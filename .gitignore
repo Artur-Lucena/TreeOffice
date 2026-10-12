@@ -1,0 +1,18 @@
+# Dependências e artefatos, caso a stack futura utilize estes diretórios.
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+*.tsbuildinfo
+
+# Credenciais, logs e dados locais não versionáveis.
+.env
+.env.*
+!.env.example
+*.log
+/.local/
+
+# Arquivos do sistema operacional.
+.DS_Store
+Thumbs.db
