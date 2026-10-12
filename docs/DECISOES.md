@@ -46,6 +46,9 @@ A criação da estrutura não significa aprovação do plano completo.
 | D37 | Integração futura com o vault: seleção explícita de um arquivo, lido como texto e apresentado como instruções sugeridas. | Sem suposições sobre front-matter, sem varredura, sem indexação, sem escrita e sem sincronização. |
 | D38 | Dependências do roadmap são arestas pontilhadas criadas e removidas apenas por ação explícita do usuário. | O painel informa, nunca impõe: não detecta dependência do vault sozinho e não bloqueia nó algum. |
 | D39 | O caminho do vault só é solicitado quando uma etapa aprovada precisar dele. | Nenhum caminho externo é pedido durante o fechamento do plano. |
+| D40 | Ponte em porta padrão 4717, configurável, escutando apenas em `127.0.0.1`. | Porta ocupada é informada e o painel não inicia, sem troca silenciosa. O navegador nunca fala com o serviço OpenCode diretamente. |
+| D41 | Autenticação por token de 256 bits guardado em `.local/`, exigido em todas as requisições. | Painel é aberto por link impresso pela ponte; requisições de escrita também validam `Origin` e `Host`; credenciais do serviço ficam apenas na ponte. |
+| D42 | Início por comando único na pasta do projeto; desativação não exige remoção global. | Parar encerra o processo sem apagar o estado; atualização por pull com backup; logs locais sem conteúdo privado; Blob Office permanece intocado. |
 
 ## Propostas ainda abertas
 
@@ -69,7 +72,11 @@ persistência, instalação e verificação.
 | 4 | Worktrees: vinculação, criação e confirmações | Fechada (D26, D27, D28, D29, D30); leitura do destino configurado pelo projeto a verificar na Etapa 3 |
 | 5 | Falhas parciais, recuperação e anti-duplicação | Fechada (D31, D32, D33, D34, D35) |
 | 6 | Tucofre e dependências | Fechada (D36, D37, D38, D39); sem bloqueio para a V1 |
-| 7 | Instalação, autenticação, verificação e plano consolidado | Em andamento |
+| 7 | Instalação, autenticação, verificação e plano consolidado | Fechada (D40, D41, D42) |
+
+Todas as rodadas de decisão foram fechadas em 12/10/2026. O plano consolidado
+está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md). A implementação continua
+dependendo de autorização do usuário, conforme D11.
 
 ## Pesquisa de referência
 

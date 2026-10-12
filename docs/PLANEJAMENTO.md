@@ -68,10 +68,16 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   D37 define o formato mínimo futuro: seleção explícita de um arquivo, lido
   como texto, apresentado como instruções sugeridas. D38 trata das dependências.
 
-### Rodada 7 — instalação e fechamento
+### Rodada 7 — instalação e fechamento (fechada em 12/10/2026)
 
-- [ ] Definir autenticação local, instalação, configuração e verificação.
-- [ ] Apresentar o plano consolidado e obter aprovação antes da implementação.
+- [x] Definir autenticação local, instalação, configuração e verificação.
+  Resolvido por D40, D41 e D42: porta 4717 apenas em `127.0.0.1`, token de
+  256 bits em `.local/` exigido em toda requisição, validação de `Origin` e
+  `Host` nas escritas, e ciclo de início, parada, atualização e desativação
+  documentado sem registro global.
+- [x] Apresentar o plano consolidado e obter aprovação antes da implementação.
+  O plano está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md). A aprovação para
+  implementar continua pendente e depende do usuário (D11).
 
 Só solicitar caminhos de projetos externos ou do vault quando forem necessários
 para uma etapa aprovada. Não inspecionar GameDev com base no exemplo anterior.
@@ -155,6 +161,8 @@ seus projetos como efeito colateral.
 - [ ] O painel não abre nem lê o vault na V1.
 - [ ] Instruções de entrada são sempre digitadas, nunca retiradas de outro chat.
 - [ ] Aresta de dependência só existe por criação explícita; nenhum nó é bloqueado por dependência.
+- [ ] Ponte escuta apenas em `127.0.0.1`, exige token em toda requisição e valida `Origin` e `Host` nas escritas.
+- [ ] Credenciais do serviço OpenCode não aparecem no navegador, no estado local nem no repositório.
 - [ ] Reconexão recompõe o estado atual sem depender de eventos perdidos.
 - [ ] Credenciais e conteúdo privado não aparecem no cliente ou em logs indevidos.
 - [ ] Blob Office, vault e projetos anteriores permanecem inalterados.
