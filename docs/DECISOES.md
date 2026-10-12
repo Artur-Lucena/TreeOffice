@@ -32,6 +32,11 @@ A criação da estrutura não significa aprovação do plano completo.
 | D23 | O estado local guarda apenas identificadores, rótulos, cadastros de pasta e preferências visuais. | Conteúdo de conversa, notas do Tucofre, credenciais e tokens nunca são persistidos. |
 | D24 | Zero reuso de código, assets ou arquivos visuais do Blob Office. | O repositório de origem não possui licença; a referência serve apenas como linguagem visual. Reforça D09, agora com evidência verificada. |
 | D25 | p5.js é servida localmente pela ponte; o painel funciona sem internet. | A referência carrega a biblioteca de CDN; o protótipo precisa provar funcionamento offline. |
+| D26 | Vincular worktree existente vem antes de criar novos; criação testada só em repositórios descartáveis. | Reduz o alcance das operações de escrita na V1 e mantém os testes longe dos projetos reais. |
+| D27 | Compartilhar worktree entre dois nós de implementação exige aviso bloqueante com confirmação explícita, registrado no estado local. | Conflito nunca fica oculto; bloqueio absoluto seria inflexível demais para casos legítimos de leitura ou revisão. |
+| D28 | Origem, nome e destino de novos worktrees: origem é a referência atual do repositório canônico, escolhida explicitamente no popup; nome é sugerido a partir do título e sempre editável; destino é o que o projeto configurou. | O painel não impõe nomenclatura nem destino. Nenhuma operação assume `main` em silêncio. |
+| D29 | Alterações não commitadas são detectadas e exibidas; a decisão de criar ou não é do usuário. | O painel explica que essas alterações não migram para o novo worktree, e nunca faz commit, stash, reset, merge ou cópia de arquivos entre diretórios. |
+| D30 | O popup de criação declara que a operação pode executar a preparação configurada pelo projeto. | Criar worktree carrega configuração e plugins do diretório canônico; a operação nunca é apresentada como "criar uma pasta". |
 
 ## Propostas ainda abertas
 
@@ -52,7 +57,7 @@ persistência, instalação e verificação.
 | 1 | Arquitetura e escopo da conversa | Fechada (D12, D13) |
 | 2 | Organização, papéis e aparência da árvore | Fechada (D14, D15, D16, D17, D18, D19); desenho visual detalhado sai do protótipo da Etapa 2 |
 | 3 | Persistência dos vínculos | Fechada (D20, D21, D22, D23) |
-| 4 | Worktrees: vinculação, criação e confirmações | Aberta |
+| 4 | Worktrees: vinculação, criação e confirmações | Fechada (D26, D27, D28, D29, D30); leitura do destino configurado pelo projeto a verificar na Etapa 3 |
 | 5 | Falhas parciais, recuperação e anti-duplicação | Aberta |
 | 6 | Tucofre e dependências | Aberta; pode ser adiada sem travar a V1 |
 | 7 | Instalação, autenticação, verificação e plano consolidado | Aberta |

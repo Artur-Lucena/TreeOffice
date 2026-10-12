@@ -39,11 +39,19 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   A parte de falhas parciais que depende das operações do OpenCode, e não do
   disco, permanece na Rodada 5.
 
-### Rodada 4 — worktrees
+### Rodada 4 — worktrees (fechada em 12/10/2026)
 
-- [ ] Definir vinculação a worktree existente e exclusividade de subassistentes.
-- [ ] Definir origem, nomes, destinos e confirmações para novos worktrees.
-- [ ] Definir comportamento diante de alterações não commitadas e scripts de setup.
+- [x] Definir vinculação a worktree existente e exclusividade de subassistentes.
+  Resolvido por D26 e D27: vincular existente antes de criar novo, e aviso
+  bloqueante com confirmação explícita quando dois nós de implementação
+  disputam o mesmo worktree.
+- [x] Definir origem, nomes, destinos e confirmações para novos worktrees.
+  Resolvido por D28 e D30: origem escolhida no popup, nome sugerido e editável,
+  destino definido pelo projeto, e popup que declara a possível execução da
+  preparação do projeto.
+- [x] Definir comportamento diante de alterações não commitadas e scripts de setup.
+  Resolvido por D29: detectar, exibir e explicar que não migram; o painel nunca
+  faz commit, stash, reset, merge ou cópia de arquivos.
 
 ### Rodada 5 — resiliência
 
@@ -130,6 +138,10 @@ seus projetos como efeito colateral.
 - [ ] Estado local não contém conteúdo de conversa, notas do vault, credenciais ou tokens.
 - [ ] Sessão ou caminho que deixou de existir aparece como "não encontrado", não desaparece.
 - [ ] Queda do painel ou do serviço não apaga nem corrompe a árvore salva.
+- [ ] Worktree compartilhado exige confirmação explícita e fica registrado.
+- [ ] Painel nunca executa commit, stash, reset, merge nem cópia de arquivos entre diretórios.
+- [ ] Nova branch não nasce de uma referência escolhida em silêncio.
+- [ ] Popup de criação informa que a preparação do projeto pode ser executada.
 - [ ] Reconexão recompõe o estado atual sem depender de eventos perdidos.
 - [ ] Credenciais e conteúdo privado não aparecem no cliente ou em logs indevidos.
 - [ ] Blob Office, vault e projetos anteriores permanecem inalterados.

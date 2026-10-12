@@ -25,7 +25,10 @@ D17 (papel como metadado visual), D18 (grupo com ou sem diretório cadastrado) e
 D19 (p5.js como candidata de renderização). A Rodada 3, sobre persistência dos vínculos, também foi fechada, com D20
 (arquivo JSON em `.local/` versionado), D21 (identidade própria do painel),
 D22 (escrita atômica, backup e lock) e D23 (nada de conteúdo privado no estado
-local). A pesquisa de referência e ecossistema foi concluída e registrada em
+local). A Rodada 4, sobre worktrees, foi fechada com D26 a D30: vincular
+existente antes de criar novo, aviso bloqueante para worktree compartilhado,
+origem e destino definidos pelo projeto, e alterações não commitadas apenas
+informadas. A pesquisa de referência e ecossistema foi concluída e registrada em
 `docs/PESQUISA.md`, com as decisões D24 e D25.
 
 O usuário autorizou publicar a documentação no repositório
