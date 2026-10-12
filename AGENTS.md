@@ -13,8 +13,11 @@ Use português na comunicação e na documentação, salvo solicitação diferen
 
 ## Fase e autorização
 
-- A fase atual é planejamento. A autorização inicial cobriu somente a criação
-  desta estrutura e dos documentos de contexto.
+- A Etapa 2 foi concluída e aprovada. A Fase B (integração somente leitura) foi
+  autorizada; o trabalho foi pausado em 12/10/2026 a pedido do usuário. Retomar
+  quando ele solicitar, a partir de `CONTEXTO-PROJETO.md` §11. A autorização
+  inicial cobriu somente estrutura e documentos; fases seguintes têm escopo
+  próprio de aprovação.
 - Não interpretar a existência de `src/`, `tests/` ou `scripts/` como autorização
   para implementar, instalar dependências ou executar automações.
 - Fechar o plano com o usuário antes de iniciar implementação.
@@ -76,9 +79,11 @@ Use português na comunicação e na documentação, salvo solicitação diferen
 
 ## Verificação
 
-Neste estado não existem comandos de build, execução ou testes da aplicação.
-Não inventar resultados de testes. Diferenciar validação documental, testes
-simulados e testes contra uma instalação real.
+O protótipo não tem build nem dependências externas. Os comandos de execução
+e testes estão em `src/README.md`: `node src/server/bridge.mjs`,
+`node tests/smoke.mjs` e `node tests/tree-render.mjs`. Não inventar resultados
+de testes. Diferenciar validação documental, testes simulados, leituras via
+CLI e testes da integração contra uma instalação real.
 
 Futuras verificações começam com dados simulados e repositórios descartáveis
 controlados pelo projeto, nunca com operações de escrita nos projetos atuais.

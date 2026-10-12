@@ -1,10 +1,12 @@
 # Roadmap da V1 do TreeOffice
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
-**Estado:** Fase A concluída. Fase B em andamento (B1 fechado, B2 parcial);
-Fases C a F dependem de autorização do usuário em cada portão (D11).
+**Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de
+B1 feita e B2 parcial; cliente HTTP ainda não implementado. Trabalho pausado
+em 12/10/2026 a pedido do usuário. Fases C a F dependem de autorização própria
+(D11).
 **Base:** [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) (decisões), [DECISOES](DECISOES.md)
-(D01–D44), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
+(D01–D46), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
 (critérios de aceite).
 
 Este roadmap organiza a execução. Ele não substitui as decisões registradas e
@@ -19,7 +21,7 @@ Obsidian ou na configuração global do OpenCode.
 | Node.js | Instalado em 12/10/2026 pelo usuário: **v22.22.1** (apt). Requisito mínimo 18.2 satisfeito (D44) |
 | OpenCode | CLI em `~/.opencode/bin/opencode`, versão **v2.0.15** (Windows tinha v2.0.26) |
 | Blob Office | Não instalado no Linux (`~/.config/opencode/plugins/` vazio). Referência já registrada na PESQUISA; zero reuso (D24) |
-| Protótipo | Portável por construção (`node:path`; `folderName` aceita `/` e `\`), mas ainda não executado nem testado nesta máquina |
+| Protótipo | Executado e aprovado no Linux; smoke com 44 ok e renderizador com 11 ok, ambos sem falhas |
 
 ## Fase A — retomada e adaptação ao Linux
 
@@ -46,8 +48,7 @@ subárvore de galho recolhido que continuava desenhada. Cobertura em
 
 ## Fase B — integração somente leitura (Etapa 3)
 
-Exige autorização explícita do usuário (D11). Só lê o serviço local do
-OpenCode; não cria nada.
+Autorizada pelo usuário em 12/10/2026 (D11). Só lê o serviço local do OpenCode.
 
 | # | Item | Decisões/verificações |
 | --- | --- | --- |
@@ -57,10 +58,17 @@ OpenCode; não cria nada.
 | B4 | Inventário persistido + releitura completa na reconexão; eventos só para vivacidade | D21, D33 |
 | B5 | Trocar a simulação por dados reais, mantendo o mock como caminho de teste | D25 |
 
-**Andamento em 12/10/2026:** B1 fechado — D46 (HTTP com `fetch` do Node, sem
-dependência nova); contrato comprovado contra o serviço real em
-[PESQUISA](PESQUISA.md) §8. B2 parcial: V01 e V04 comprovados; V05, V02, V03 e
-V06 seguem pendentes (§7).
+**Andamento em 12/10/2026:** pesquisa inicial de B1 feita e escolha do cliente
+registrada em D46 (HTTP com `fetch` do Node, sem dependência nova). Contrato
+inspecionado e leituras feitas via CLI em [PESQUISA](PESQUISA.md) §8;
+descoberta/autenticação pelo futuro cliente ainda precisam de validação. B2
+parcial: V01 tem contrato e amostra de resposta verificados; V04 tem listagem
+de vários projetos observada. Faltam os testes descritos no §7, além de V05.
+B3 a B5 e o cliente HTTP continuam por implementar.
+
+**Retomada:** seguir o checkpoint em `CONTEXTO-PROJETO.md` §11. Começar pelo
+cliente somente leitura com testes simulados; depois integrar inventário,
+estados e reconexão. V02, V03 e V06 permanecem nas fases seguintes.
 
 **Portão de saída:** a árvore nasce das sessões reais; queda e reconexão não
 perdem nós; estados visuais aprovados.

@@ -56,7 +56,7 @@ A criação da estrutura não significa aprovação do plano completo.
 
 ## Propostas ainda abertas
 
-- Verificações V02 (destino de worktrees configurado pelo projeto), V03 (idempotência), V05 (plugin oficial de sessões) e V06 (preparação do projeto) seguem pendentes — ver [PESQUISA](PESQUISA.md) §7.
+- Completar as verificações V01/V04 e resolver V02 (destino de worktrees configurado pelo projeto), V03 (idempotência), V05 (plugin oficial de sessões) e V06 (preparação do projeto), conforme as evidências e limitações em [PESQUISA](PESQUISA.md) §7.
 - Integração com o vault do Tucofre (D36, D37) — fora da V1, depende de nova decisão.
 
 ## Rodadas de fechamento
@@ -82,8 +82,10 @@ Rodada 8 no mesmo dia (retomada no Linux) e a Rodada 9 em 12/10/2026
 comprovado contra a instalação local). O plano consolidado está em
 [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md), a pesquisa em [PESQUISA](PESQUISA.md)
 e o roadmap de execução da V1, em [ROADMAP-V1](ROADMAP-V1.md). A implementação
-das Fases B a F foi autorizada pelo usuário em 12/10/2026, dentro dos limites
-do roadmap (D11).
+da Fase B foi autorizada pelo usuário em 12/10/2026, somente leitura. As Fases
+C a F dependem de autorização própria; a integração com o Tucofre exige nova
+decisão (D11, D36). O trabalho foi pausado a pedido do usuário, com ponto de
+retomada em `CONTEXTO-PROJETO.md` §11.
 
 ## Pesquisa de referência
 

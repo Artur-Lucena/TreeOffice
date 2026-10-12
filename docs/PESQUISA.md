@@ -103,10 +103,10 @@ Todas começam por dados simulados e repositórios descartáveis. Status em
 
 | # | Pendência | Status | Impacto se falhar |
 | --- | --- | --- | --- |
-| V01 | Contrato de `session.list`: parâmetros, filtros e paginação | **Comprovado** (§8): parâmetros confirmados, paginação por cursor | — |
+| V01 | Contrato de `session.list`: parâmetros, filtros e paginação | **Parcial** (§8): parâmetros inspecionados no OpenAPI local; chamada com `limit=2` retornou `data` e cursores. Faltam travessia de páginas e testes dos filtros | A enumeração pode ficar incompleta ou misturar contextos |
 | V02 | Como ler o destino de worktrees configurado pelo projeto | Pendente — a lista de worktrees por projeto foi comprovada (§8); falta a configuração de destino do projeto, na Fase D | O painel pode sugerir destino divergente do projeto (D28) |
 | V03 | Suporte a chave de idempotência nas operações de criação | Pendente — Fase C | Sem suporte, a anti-duplicação depende só de confirmação (D34) |
-| V04 | Comportamento com múltiplos projetos simultâneos | **Comprovado** (§8): a listagem de projetos devolve vários; falta o teste em descartáveis, na Fase C | Risco de confundir projetos entre si |
+| V04 | Comportamento com múltiplos projetos simultâneos | **Parcial** (§8): observada listagem com vários projetos; isolamento de sessões e worktrees por projeto ainda precisa de teste controlado | Risco de confundir projetos entre si |
 | V05 | Se o plugin oficial de gerenciamento de sessões já oferece árvore | Pendente — leitura de documentação | Pode reduzir ou mudar o diferencial do TreeOffice |
 | V06 | Se `worktree.create` executa de fato scripts de preparação no ambiente do usuário | Pendente — Fase D, em repositório descartável com preparação conhecida | O texto do popup (D30) precisa de ajuste |
 
@@ -125,7 +125,7 @@ não são registrados aqui por D23** — apenas a forma do contrato.
 | `time` de sessão | `{ created, updated, idle, viewed }` — insumo para o mapeamento de estados (D16) |
 | `location` | `{ directory }` — contexto de trabalho do chat |
 | Projetos | `GET /api/project` devolve array; itens com `id`, `canonical`, `time`, `sandboxes` e, em alguns, `vcs` |
-| Eventos | `GET /api/event` serve `text/event-stream` (SSE) — vivacidade, não inventário (D33) |
+| Eventos | O OpenAPI local declara `GET /api/event` como `text/event-stream` (SSE). Consumo e reconexão do stream ainda não foram testados — vivacidade, não inventário (D33) |
 | Worktrees | `GET /api/worktree?projectID=...` (sem `projectID` devolve 400). Resposta: array de `{ directory }`. Existem também os esquemas `Worktree.CreateInput` e `Worktree.RemoveInput`, para as fases de criação |
 | Criação de sessão | `POST /api/session` existe no contrato (`id`, `title`, `agent`, `model`, `location`, `metadata`…) — **fora do escopo atual**, pertence à Fase C |
 
@@ -134,3 +134,8 @@ sem dependência nova). A enumeração da árvore pode nascer das sessões reais
 cursor resolve a paginação sem varredura. A autenticação usa o mesmo caminho
 do TUI — a credencial do serviço continua existindo só no processo, nunca no
 estado local, nos logs ou na documentação (D41).
+
+**Limite da evidência ao encerrar o dia:** estas leituras usaram o CLI; o
+cliente com `fetch` ainda não existe na ponte. Contrato declarado no OpenAPI,
+resposta observada e integração funcionando são evidências diferentes. O
+painel segue simulado, e os testes existentes não comprovam a integração real.

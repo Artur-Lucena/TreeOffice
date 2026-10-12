@@ -20,8 +20,10 @@ já estão.
 
 ## 2. Estado atual
 
-A estrutura e a documentação inicial foram autorizadas e criadas. A aplicação
-não foi implementada e o plano completo ainda não foi aprovado.
+A estrutura, a documentação e o protótipo visual foram construídos. O roadmap
+da V1 foi aprovado como base, a Etapa 2 foi concluída e a Fase B (integração
+somente leitura) foi autorizada. O painel ainda usa dados simulados; o cliente
+HTTP de integração com o OpenCode ainda não foi implementado.
 
 A Rodada 1 do fechamento foi concluída: D12 (aplicação local independente com
 ponte local), D13 (a conversa continua na interface do OpenCode na V1) e D14
@@ -33,6 +35,8 @@ D22 (escrita atômica, backup e lock) e D23 (nada de conteúdo privado no estado
 local). A Rodada 4, sobre worktrees, foi fechada com D26 a D30: vincular
 existente antes de criar novo, aviso bloqueante para worktree compartilhado,
 origem e destino definidos pelo projeto, e alterações não commitadas apenas
+detectadas e exibidas. As Rodadas 5 e 6 fecharam recuperação de falhas,
+anti-duplicação e participação futura do Tucofre (D31 a D39).
 A Rodada 7, sobre instalação e fechamento, foi fechada com D40 (porta 4717
 apenas em `127.0.0.1`), D41 (token de 256 bits em `.local/`, com validação de
 `Origin` e `Host` nas escritas) e D42 (início, parada, atualização e
@@ -40,10 +44,11 @@ desativação sem registro global). O plano consolidado está em
 `docs/PLANO-CONSOLIDADO.md`. A pesquisa de referência e ecossistema foi
 concluída e registrada em `docs/PESQUISA.md`, com as decisões D24 e D25.
 
-O usuário autorizou publicar a documentação no repositório
-`https://github.com/Artur-Lucena/TreeOffice`. Nenhuma dependência foi
-instalada, nenhum chat ou worktree foi criado e nenhuma configuração global do
-OpenCode ou projeto externo foi alterada.
+O usuário autorizou publicar o trabalho no repositório
+`https://github.com/Artur-Lucena/TreeOffice`. O protótipo não tem dependências
+externas; o runtime Node foi instalado pelo usuário no Linux. As operações
+de criação avaliadas no painel foram simuladas. Nenhum chat ou worktree real,
+configuração global do OpenCode ou projeto externo foi alterado pelo TreeOffice.
 
 Também em 12/10/2026, no mesmo dia: o protótipo da Etapa 2 foi construído em
 `src/` (Node puro, sem dependências, sem build) e verificado por teste
@@ -88,11 +93,9 @@ painel, quando existir, fica em `.local/`, fora do versionamento.
 
 O usuário retomou o planejamento em 12/10/2026, agora no Linux, e aprovou o
 roadmap de execução da V1 em fases A–F, registrado em
-[docs/ROADMAP-V1.md](docs/ROADMAP-V1.md). A Fase A (adaptação ao Linux) está em
-andamento; a instalação do Node no ambiente é pendência do usuário. A Fase B
-(integração somente leitura com o OpenCode) depende de nova autorização
-explícita (D11). A montagem da estrutura e a adaptação documental não autorizam
-implementar funcionalidades.
+[docs/ROADMAP-V1.md](docs/ROADMAP-V1.md). A Fase A está concluída e a Fase B
+(integração somente leitura com o OpenCode) foi autorizada. As Fases C a F
+dependem de autorização própria; a leitura do Tucofre exige nova decisão.
 
 ## 3. Referência existente inspecionada
 
@@ -116,9 +119,9 @@ Não foi copiado código do Blob Office para o projeto.
 A versão consultada pelo comando `opencode.cmd --version` foi `v2.0.26`
 (Windows). Na instalação Linux de 12/10/2026, `opencode --version` retorna
 `v2.0.15` (binário em `~/.opencode/bin/opencode`). A documentação pública V2
-oferece operações para sessões e worktrees, mas essas operações não foram
-testadas contra o serviço local neste planejamento — verificações V01 a V06
-permanecem pendentes, na Fase B do roadmap.
+oferece operações para sessões e worktrees. A inspeção do contrato e as
+chamadas de leitura realizadas em 12/10/2026 estão em `docs/PESQUISA.md` §8;
+o status e as limitações das verificações V01 a V06 estão no §7.
 
 ## 4. Aparência e interação confirmadas
 
@@ -129,8 +132,8 @@ permanecem pendentes, na Fase B do roadmap.
 - O movimento e a aparência dos blobs refletem o estado de atividade.
 - Chats parados ou concluídos permanecem visíveis.
 
-Zoom, arrastar a árvore, recolher ramificações e transições estáveis foram
-propostos como recursos de navegação. O desenho detalhado ainda será fechado.
+Zoom, arrastar a árvore, recolher ramificações e transições fazem parte do
+protótipo aprovado pelo usuário. Canvas 2D puro foi confirmado por D45.
 
 ## 5. Novos chats: decisão mais recente
 
@@ -164,8 +167,8 @@ Fluxo proposto:
 
 Subassistentes que alteram código precisam de branches e worktrees próprios.
 Pode-se vincular um worktree exclusivo já existente em vez de criar outro.
-O tratamento de tentativas de compartilhar pasta ainda é uma decisão aberta:
-nunca permitir mistura de alterações silenciosamente.
+O compartilhamento foi definido por D27: aviso bloqueante, confirmação
+explícita e registro no estado local.
 
 Criar um chat não isola arquivos. Criar um worktree não copia o histórico de
 conversa. Essas operações devem permanecer distintas, mesmo quando a interface
@@ -197,8 +200,8 @@ Separar:
 - Dependências do roadmap: tarefas que precisam de entregas de outras tarefas.
 
 A árvore visual não deve exigir alteração das relações nativas entre sessões.
-Conexões pontilhadas opcionais para dependências foram propostas, mas o modelo
-e o desenho dessas relações ainda precisam ser aprovados.
+Conexões pontilhadas para dependências foram definidas por D38 e demonstradas
+no protótipo: são criadas e removidas apenas por ação explícita do usuário.
 
 ## 8. Tucofre e responsabilidades humanas
 
@@ -220,7 +223,7 @@ Proposta inicial para a integração:
 O caminho e o formato dos registros do vault não foram informados. Só devem
 ser solicitados quando forem necessários para uma etapa aprovada.
 
-## 9. Direção técnica proposta, não definitiva
+## 9. Direção técnica atual
 
 - Painel web local separado do Blob Office.
 - p5.js como candidato para preservar a linguagem visual da referência.
@@ -234,8 +237,9 @@ ser solicitados quando forem necessários para uma etapa aprovada.
 - Credenciais, histórico e caminhos tratados como dados privados.
 
 D12 fixou aplicação local independente com ponte local como base; plugin V2
-fica fora da arquitetura inicial. Não há framework, gerenciador de pacotes ou
-porta definidos.
+fica fora da arquitetura inicial. O protótipo usa Node e JavaScript sem
+framework, build ou dependências externas. D40 definiu a porta padrão 4717
+apenas em `127.0.0.1`; D46 definiu HTTP com `fetch` do Node para a integração.
 
 Um painel lateral para ler e conversar nos chats foi proposto. D13 adiou essa
 ideia: na V1 a conversa acontece na interface do OpenCode.
@@ -256,15 +260,35 @@ ideia: na V1 a conversa acontece na interface do OpenCode.
 Se a instalação exigir configuração global do OpenCode, apresentar a mudança
 para aprovação e apontar para o código dentro do TreeOffice, sem espalhar cópias.
 
-## 11. Próxima etapa
+## 11. Ponto de parada — 12/10/2026
 
-A execução segue o roadmap em [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md): Fase A
-(adaptação ao Linux) em andamento; Fases B a F dependem de autorização do
-usuário em cada portão. O próximo assistente deve ler o registro de decisões,
-revisar as questões abertas e continuar o planejamento com o usuário, seguindo
-a ordem de rodadas descrita em `docs/DECISOES.md`. Não tratar as propostas
-técnicas como arquitetura aprovada nem começar a implementação por iniciativa
-própria.
+O usuário pediu para salvar o trabalho e encerrar por hoje. Retomar somente
+quando ele solicitar.
+
+- **Fase A concluída:** Linux com Node v22.22.1; protótipo aprovado no reteste;
+  Canvas 2D puro confirmado (D45).
+- **Últimas verificações realizadas:** `node tests/smoke.mjs` com 44 ok e
+  0 falhas; `node tests/tree-render.mjs` com 11 ok e 0 falhas. São testes
+  simulados, não testes da integração implementada.
+- **Fase B autorizada e parcial:** contrato inspecionado via CLI e escolha de
+  cliente definida (D46). A ponte ainda não consulta o OpenCode e a árvore
+  ainda não usa sessões reais.
+- **Próxima entrega:** consultar a documentação V2 atual de API e cliente,
+  confirmar descoberta e autenticação sem iniciar serviço automaticamente,
+  implementar o cliente HTTP somente leitura e testar primeiro com serviço
+  simulado. Depois ligar inventário paginado, estados e reconexão à árvore.
+- **Pendências:** completar V01/V04 conforme as limitações em
+  `docs/PESQUISA.md` §7, pesquisar V05 e executar B3 a B5. V02, V03 e V06
+  pertencem às próximas fases.
+- **Estado local:** a árvore e seus backups ficam em `.local/`, fora do Git;
+  credenciais e conteúdo privado não entram na documentação ou nos commits.
+- **Autorizações:** Fase B somente leitura; Fases C a F ainda exigem aprovação
+  própria. Nenhuma criação real foi autorizada nesta rodada.
+
+O endereço do serviço observado nesta sessão é uma informação de diagnóstico,
+não uma porta fixa de integração. Descoberta e compatibilidade devem ser
+conferidas na retomada. A execução segue
+[docs/ROADMAP-V1.md](docs/ROADMAP-V1.md).
 
 Documentos complementares:
 

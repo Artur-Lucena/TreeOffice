@@ -1,10 +1,11 @@
 # Planejamento — ainda em elaboração
 
-**Estado:** estrutura pronta, sete rodadas de decisão fechadas e rodada de
-adaptação multi-SO fechada (D43, D44). O protótipo da Etapa 2 existe e aguarda
-avaliação visual. O plano completo de execução está no roadmap
-[ROADMAP-V1](ROADMAP-V1.md); a implementação das Fases B a F depende de
-autorização do usuário (D11).
+**Estado em 12/10/2026:** protótipo da Etapa 2 concluído e aprovado no reteste;
+adaptação ao Linux concluída; D45 e D46 registradas. Fase B autorizada e em
+andamento, com pesquisa inicial do contrato feita e cliente HTTP ainda por
+implementar. Trabalho pausado a pedido do usuário; ponto de retomada em
+`CONTEXTO-PROJETO.md` §11. O roadmap está em [ROADMAP-V1](ROADMAP-V1.md);
+Fases C a F dependem de autorização própria (D11).
 
 Este documento organiza a próxima conversa. As etapas abaixo são propostas,
 não autorização para executá-las.
@@ -81,8 +82,9 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   `Host` nas escritas, e ciclo de início, parada, atualização e desativação
   documentado sem registro global.
 - [x] Apresentar o plano consolidado e obter aprovação antes da implementação.
-  O plano está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md). A aprovação para
-  implementar continua pendente e depende do usuário (D11).
+  O plano está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) e o roadmap foi
+  aprovado como base. O protótipo foi aprovado e a Fase B foi autorizada;
+  as fases seguintes dependem de aprovação própria (D11).
 
 Só solicitar caminhos de projetos externos ou do vault quando forem necessários
 para uma etapa aprovada. Não inspecionar GameDev com base no exemplo anterior.
@@ -92,15 +94,16 @@ para uma etapa aprovada. Não inspecionar GameDev com base no exemplo anterior.
 ### Etapa 0 — documentação e entrada do assistente
 
 Estrutura, contexto, decisões, instruções e limites documentados.
-Essa foi a única etapa autorizada até o momento.
+Essa foi a etapa inicialmente autorizada. As autorizações posteriores estão
+registradas nas decisões e no roadmap.
 
 ### Etapa 1 — fechamento do plano
 
 Resolver as questões bloqueadoras e produzir um desenho de interface, contrato
 de dados, arquitetura e critérios de aceite. Não instalar dependências nem
 executar operações no serviço ou nos projetos reais para antecipar essa etapa.
-As Rodadas 1 e 2 foram fechadas (D12 a D19); a Rodada 3 trata da persistência
-dos vínculos.
+As sete rodadas iniciais foram fechadas; adaptações ao Linux e encerramento do
+protótipo foram registrados nas Rodadas 8 e 9.
 
 ### Etapa 2 — protótipo visual com dados simulados (concluída em 12/10/2026)
 
@@ -146,6 +149,11 @@ verdes.
 Validar o contrato V2 da instalação autorizada, conexão com serviço já existente,
 listagem de sessões, diretórios e worktrees, estados ao vivo e reconexão.
 Caso seja necessário iniciar um serviço, solicitar autorização antes.
+
+Pesquisa inicial realizada por chamadas somente leitura via CLI e inspeção do
+OpenAPI local, registrada em [PESQUISA](PESQUISA.md) §§7–8. A implementação do
+cliente HTTP, ligação com a árvore e recuperação de conexão continuam
+pendentes. A autorização atual cobre apenas esta fase de leitura.
 
 ### Etapa 4 — ações explícitas de criação
 
