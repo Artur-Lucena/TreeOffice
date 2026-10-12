@@ -16,7 +16,7 @@ Obsidian ou na configuração global do OpenCode.
 | Item | Situação |
 | --- | --- |
 | Sistema | Ubuntu 26.04 LTS, repositório clonado em `/run/media/tuco/Games/Meus Projetos/TreeOffice` |
-| Node.js | **Ausente** (`node`/`npm` não existem). apt oferece 22.22.1; snap, nvm e fnm são alternativas. Instalação é decisão do usuário (D44) |
+| Node.js | Instalado em 12/10/2026 pelo usuário: **v22.22.1** (apt). Requisito mínimo 18.2 satisfeito (D44) |
 | OpenCode | CLI em `~/.opencode/bin/opencode`, versão **v2.0.15** (Windows tinha v2.0.26) |
 | Blob Office | Não instalado no Linux (`~/.config/opencode/plugins/` vazio). Referência já registrada na PESQUISA; zero reuso (D24) |
 | Protótipo | Portável por construção (`node:path`; `folderName` aceita `/` e `\`), mas ainda não executado nem testado nesta máquina |
@@ -27,12 +27,12 @@ Risco baixo; nada toca no OpenCode.
 
 | # | Item | Estado |
 | --- | --- | --- |
-| A1 | Instalar e fixar o runtime Node ≥ 18.2 (método escolhido pelo usuário; outro chat de outro projeto pode fazer a instalação — antes de depender dela, confirmar versão e acessibilidade a este usuário/shell) | Pendente (usuário) |
-| A2 | Registrar a correção do cookie HttpOnly (`treeoffice_token`) e cobri-la no smoke test | Feito em 12/10/2026 (43 verificações; execução no Linux depende de A1) |
-| A3 | Rodar `node tests/smoke.mjs` no Linux e registrar o resultado como evidência | Pendente de A1 |
-| A4 | Avaliação visual do protótipo pelo usuário: árvore, animação, navegação, popup — porta para confirmar ou descartar a p5.js (D19) | Pendente de A1 |
+| A1 | Instalar e fixar o runtime Node ≥ 18.2 (método escolhido pelo usuário; outro chat de outro projeto pode fazer a instalação — antes de depender dela, confirmar versão e acessibilidade a este usuário/shell) | Feito em 12/10/2026: Node v22.22.1 |
+| A2 | Registrar a correção do cookie HttpOnly (`treeoffice_token`) e cobri-la no smoke test | Feito em 12/10/2026 (6 verificações de cookie; 44 no total) |
+| A3 | Rodar `node tests/smoke.mjs` no Linux e registrar o resultado como evidência | Feito em 12/10/2026: 44 ok, 0 falhas, saída limpa, Node v22.22.1 |
+| A4 | Avaliação visual do protótipo pelo usuário: árvore, animação, navegação, popup — porta para confirmar ou descartar a p5.js (D19) | Pendente (usuário) |
 | A5 | Adaptação multi-SO da documentação (D43, D44): comandos portáteis, caminho do repositório sem absoluto fixo, requisito de Node, versões do OpenCode nos dois sistemas | Feito em 12/10/2026 |
-| A6 | Commit e push das mudanças de A2 e A5 | Commit local feito em 12/10/2026; push depende de credencial do GitHub no shell |
+| A6 | Commit e push das mudanças de A2 e A5 | Feito em 12/10/2026; push para `origin/main` OK |
 
 **Portão de saída:** árvore, animação, navegação e popup aprovados por você;
 smoke test verde no Linux; p5.js confirmada ou substituída (D19).

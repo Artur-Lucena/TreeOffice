@@ -107,7 +107,9 @@ Construído em 12/10/2026 com Node puro, sem dependências, sem build e sem
 qualquer acesso ao OpenCode, a projetos ou ao vault. Instruções de execução e
 verificação em [src/README.md](../src/README.md).
 
-Verificado por teste automatizado (`node tests/smoke.mjs`, 43 verificações):
+Verificado por teste automatizado (`node tests/smoke.mjs`, 44 verificações),
+com execução completa no Linux em 12/10/2026 sob Node v22.22.1: **44 ok,
+0 falhas**:
 
 - Autenticação por token em todas as requisições, com recusa de token
   inválido, ausente ou enviado apenas por query em escrita.
@@ -127,9 +129,8 @@ Verificado por teste automatizado (`node tests/smoke.mjs`, 43 verificações):
 Pendente de avaliação do usuário: a aparência e a animação da árvore, a
 navegação e o popup. Só depois disso a candidata p5.js (D19) pode ser
 confirmada ou descartada. Nada foi testado contra uma instalação real do
-OpenCode. Abrir o protótipo e rodar o smoke test no Linux depende da
-instalação do Node no ambiente, pendência do usuário (D44) — ver Fase A do
-roadmap.
+OpenCode. O smoke já roda no Linux (Node v22.22.1, 44 ok, 0 falhas); a
+avaliação visual é o item A4 do roadmap.
 
 ### Etapa 3 — integração somente leitura
 

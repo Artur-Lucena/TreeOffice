@@ -56,6 +56,16 @@ async function pedir(porta, caminho, opcoes = {}) {
 }
 
 /**
+ * O `fetch` do Node segue a spec: `Set-Cookie` é *forbidden response-header
+ * name*, e `headers.get("set-cookie")` devolve null. `getSetCookie()`
+ * (Node ≥ 18.13) devolve a lista real de cookies.
+ */
+function cookiesDaResposta(res) {
+  const lista = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+  return lista.join("; ") || res.headers.get("set-cookie") || "";
+}
+
+/**
  * Requisição HTTP crua: o `fetch` do Node proíbe forjar alguns cabeçalhos
  * (entre eles `Host`), então a validação de host precisa de socket direto.
  */
@@ -116,18 +126,62 @@ async function main() {
     verificar("token válido acessa a API", saude.status === 200 && saude.corpo?.simulado === true);
     verificar("saúde declara a etapa 2 como simulada", saude.corpo?.etapa === 2);
 
+    /* ── Simulação ─────────────────────────────────────────────────────── */
+    // Feita antes de qualquer POST, para observar o estado semeado de origem.
+    console.log("\nSimulação");
+    const estadoApi = await pedir(PORTA, "/api/estado", { headers: com });
+    verificar("estado inicial semeia árvore de demonstração", (estadoApi.corpo?.state?.nos?.length ?? 0) > 0);
+    verificar(
+      "estado semeado usa caminhos simulados",
+      JSON.stringify(estadoApi.corpo?.state?.cadastros || []).includes("/simulado/"),
+    );
+    verificar("simulação é entregue sem ser persistida", estadoApi.corpo?.simulacao != null);
+
+    const vivo1 = await pedir(PORTA, "/api/vivo", { headers: com });
+    await new Promise((r) => setTimeout(r, 2300));
+    const vivo2 = await pedir(PORTA, "/api/vivo", { headers: com });
+    const mudou = JSON.stringify(vivo1.corpo?.vivo || {}) !== JSON.stringify(vivo2.corpo?.vivo || {});
+    verificar("estados simulados evoluem com o tempo", mudou);
+
+    /* ── Origem e host ─────────────────────────────────────────────────── */
+    console.log("\nValidação de origem (D41)");
+    const origemRuim = await pedir(PORTA, "/api/estado", {
+      method: "POST",
+      headers: { ...jsonCom, origin: "http://inimigo.example" },
+      corpo: { state: emptyState() },
+    });
+    verificar("Origin estranha é recusada (403)", origemRuim.status === 403, `status ${origemRuim.status}`);
+
+    const hostRuim = await pedirCru(PORTA, [
+      `POST /api/estado HTTP/1.1`,
+      `Host: inimigo.example:${PORTA}`,
+      `Authorization: Bearer ${token}`,
+      `Content-Type: application/json`,
+      `Content-Length: 2`,
+      `Connection: close`,
+    ]);
+    verificar("Host estranho é recusado (403)", hostRuim.status === 403, `status ${hostRuim.status}`);
+
+    const origemBoa = await pedir(PORTA, "/api/estado", {
+      method: "POST",
+      headers: { ...jsonCom, origin: `http://127.0.0.1:${PORTA}` },
+      corpo: { state: emptyState() },
+    });
+    verificar("Origin legítima é aceita", origemBoa.status === 200, `status ${origemBoa.status}`);
+
     /* ── Cookie de subrecursos ────────────────────────────────────────── */
     // O navegador busca CSS e JS como subrecursos, sem o `?token=` da URL.
     // Sem um transporte que ele carregue sozinho, a página abre e os arquivos
     // dela são recusados — sintoma de "tela em branco com botões". A ponte
     // grava um cookie HttpOnly na primeira requisição autenticada e passa a
     // aceitá-lo como token. SameSite=Strict e a validação de Origin/Host nas
-    // escritas continuam de pé.
+    // escritas continuam de pé. Vem depois das seções que observam o estado
+    // semeado, porque os POSTs daqui escrevem estado vazio de propósito.
     console.log("\nCookie de subrecursos (D41)");
     const respostaComCookie = await fetch(`http://127.0.0.1:${PORTA}/api/saude?token=${token}`, {
       redirect: "manual",
     });
-    const setCookie = respostaComCookie.headers.get("set-cookie") || "";
+    const setCookie = cookiesDaResposta(respostaComCookie);
     verificar(
       "primeira requisição autenticada grava cookie do token",
       respostaComCookie.status === 200 && setCookie.includes(`${NOME_COOKIE}=${token}`),
@@ -175,51 +229,8 @@ async function main() {
     });
     verificar(
       "requisição apenas com cookie não regrava cookie (sem renovação indefinida)",
-      !(cookieNaoRenova.headers.get("set-cookie") || "").includes(NOME_COOKIE),
+      !cookiesDaResposta(cookieNaoRenova).includes(NOME_COOKIE),
     );
-
-    /* ── Simulação ─────────────────────────────────────────────────────── */
-    // Feita antes de qualquer POST, para observar o estado semeado de origem.
-    console.log("\nSimulação");
-    const estadoApi = await pedir(PORTA, "/api/estado", { headers: com });
-    verificar("estado inicial semeia árvore de demonstração", (estadoApi.corpo?.state?.nos?.length ?? 0) > 0);
-    verificar(
-      "estado semeado usa caminhos simulados",
-      JSON.stringify(estadoApi.corpo?.state?.cadastros || []).includes("/simulado/"),
-    );
-    verificar("simulação é entregue sem ser persistida", estadoApi.corpo?.simulacao != null);
-
-    const vivo1 = await pedir(PORTA, "/api/vivo", { headers: com });
-    await new Promise((r) => setTimeout(r, 2300));
-    const vivo2 = await pedir(PORTA, "/api/vivo", { headers: com });
-    const mudou = JSON.stringify(vivo1.corpo?.vivo || {}) !== JSON.stringify(vivo2.corpo?.vivo || {});
-    verificar("estados simulados evoluem com o tempo", mudou);
-
-    /* ── Origem e host ─────────────────────────────────────────────────── */
-    console.log("\nValidação de origem (D41)");
-    const origemRuim = await pedir(PORTA, "/api/estado", {
-      method: "POST",
-      headers: { ...jsonCom, origin: "http://inimigo.example" },
-      corpo: { state: emptyState() },
-    });
-    verificar("Origin estranha é recusada (403)", origemRuim.status === 403, `status ${origemRuim.status}`);
-
-    const hostRuim = await pedirCru(PORTA, [
-      `POST /api/estado HTTP/1.1`,
-      `Host: inimigo.example:${PORTA}`,
-      `Authorization: Bearer ${token}`,
-      `Content-Type: application/json`,
-      `Content-Length: 2`,
-      `Connection: close`,
-    ]);
-    verificar("Host estranho é recusado (403)", hostRuim.status === 403, `status ${hostRuim.status}`);
-
-    const origemBoa = await pedir(PORTA, "/api/estado", {
-      method: "POST",
-      headers: { ...jsonCom, origin: `http://127.0.0.1:${PORTA}` },
-      corpo: { state: emptyState() },
-    });
-    verificar("Origin legítima é aceita", origemBoa.status === 200, `status ${origemBoa.status}`);
 
     /* ── Recursos estáticos ────────────────────────────────────────────── */
     console.log("\nRecursos locais (D25)");
@@ -344,9 +355,12 @@ async function main() {
   if (falhou) {
     console.log("\nFalhas:");
     for (const f of falhas) console.log(`  - ${f}`);
-    process.exitCode = 1;
   }
   console.log("\nNenhum projeto real, chat, worktree, vault ou OpenCode foi tocado.");
+  // Conexões keep-alive abertas pelo `fetch` do Node seguram o event loop e o
+  // processo não encerraria sozinho. O resultado já foi impresso (em pipe no
+  // Linux a escrita é sincronizada), então a saída é determinística.
+  process.exit(falhou ? 1 : 0);
 }
 
 main().catch((erro) => {

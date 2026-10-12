@@ -49,16 +49,16 @@ Também em 12/10/2026, no mesmo dia: o protótipo da Etapa 2 foi construído em
 `src/` (Node puro, sem dependências, sem build) e verificado por teste
 automatizado (`node tests/smoke.mjs`, 38 verificações na época). Uma correção
 posterior — cookie HttpOnly `treeoffice_token` para o navegador carregar
-subrecursos sem o `?token=` na URL — elevou a verificação para 43 itens; rodar
-esse teste no Linux depende da instalação do Node no ambiente, que é
-responsabilidade do usuário (D44).
+subrecursos sem o `?token=` na URL — elevou a verificação para 44 itens. Em
+12/10/2026, já no Linux com Node v22.22.1, o teste rodou completo:
+**44 ok, 0 falhas, saída limpa** (D44 satisfeito).
 
 O usuário passou a usar o projeto no Linux pela primeira vez em 12/10/2026. O
 código do protótipo é portátil (usa `node:path` e aceita `/` e `\` nos caminhos
 que trata); a adaptação registrada em D43 cobriu documentação, caminhos e
 comandos. O ambiente Linux tem o serviço OpenCode instalado
-(`~/.opencode/bin/opencode`, versão v2.0.15), mas o Node ainda não estava
-instalado nesta máquina.
+(`~/.opencode/bin/opencode`, versão v2.0.15), e o Node foi instalado no mesmo
+dia (v22.22.1).
 
 Em 12/10/2026 o repositório Git local foi inicializado nesta pasta, rastreando
 `origin/main`, e o histórico remoto foi adotado sem reescrita. A identidade de
