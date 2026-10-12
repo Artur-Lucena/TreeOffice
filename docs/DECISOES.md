@@ -49,15 +49,19 @@ A criação da estrutura não significa aprovação do plano completo.
 | D40 | Ponte em porta padrão 4717, configurável, escutando apenas em `127.0.0.1`. | Porta ocupada é informada e o painel não inicia, sem troca silenciosa. O navegador nunca fala com o serviço OpenCode diretamente. |
 | D41 | Autenticação por token de 256 bits guardado em `.local/`, exigido em todas as requisições. | Painel é aberto por link impresso pela ponte; requisições de escrita também validam `Origin` e `Host`; credenciais do serviço ficam apenas na ponte. |
 | D42 | Início por comando único na pasta do projeto; desativação não exige remoção global. | Parar encerra o processo sem apagar o estado; atualização por pull com backup; logs locais sem conteúdo privado; Blob Office permanece intocado. |
+| D43 | O projeto é multi-SO: documentação e comandos portáteis, sem caminho absoluto fixo. | A pasta-mãe é onde o repositório foi clonado (Windows: `D:\Meus Projetos\TreeOffice`; Linux: clone local desde 12/10/2026). Comandos usam barras normais e valem em bash e PowerShell. Complementa D01 sem substituí-la; caminhos históricos do Windows ficam como nota. |
+| D44 | Runtime Node 18.2+ é requisito do protótipo; instalar runtime ou pacotes é decisão do usuário. | Nenhuma dependência externa no código. A instalação do Node no ambiente Linux depende de autorização explícita, reforçando AGENTS.md; smoke test no Linux só roda após essa instalação. |
 
 ## Propostas ainda abertas
 
-- Modelo de persistência dos vínculos e preferências.
-- Conexões pontilhadas para dependências do roadmap.
-- Primeira versão da integração com o Tucofre em leitura selecionada.
-- Regra de bloqueio ou aviso quando dois chats de implementação compartilham pasta.
-- Nomenclatura, origem e destino dos worktrees novos.
-- Distribuição, instalação e autorização de eventuais mudanças globais.
+- Autorização do usuário para iniciar a implementação das Fases B a F do
+  roadmap (D11).
+- Instalação do Node no ambiente Linux do usuário (D44).
+- Confirmação ou descarte da p5.js após a avaliação do protótipo da Etapa 2
+  (D19) — a Fase B usa o que sair dessa avaliação.
+- Verificações V01 a V06 da Etapa 3, em [PESQUISA](PESQUISA.md) §7.
+- Integração com o vault do Tucofre (D36, D37) — fora da V1, depende de nova
+  decisão.
 
 ## Rodadas de fechamento
 
@@ -73,9 +77,12 @@ persistência, instalação e verificação.
 | 5 | Falhas parciais, recuperação e anti-duplicação | Fechada (D31, D32, D33, D34, D35) |
 | 6 | Tucofre e dependências | Fechada (D36, D37, D38, D39); sem bloqueio para a V1 |
 | 7 | Instalação, autenticação, verificação e plano consolidado | Fechada (D40, D41, D42) |
+| 8 | Adaptação multi-SO e retomada no Linux | Fechada (D43, D44) |
 
-Todas as rodadas de decisão foram fechadas em 12/10/2026. O plano consolidado
-está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md). A implementação continua
+Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026 e a
+Rodada 8 no mesmo dia, quando o usuário passou a usar o projeto no Linux. O
+plano consolidado está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) e o roadmap
+de execução da V1, em [ROADMAP-V1](ROADMAP-V1.md). A implementação continua
 dependendo de autorização do usuário, conforme D11.
 
 ## Pesquisa de referência

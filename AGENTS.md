@@ -45,8 +45,14 @@ Use português na comunicação e na documentação, salvo solicitação diferen
 
 ## Limites de acesso e escrita
 
-- Todo o código, documentação e recursos do TreeOffice ficam em
-  `D:\Meus Projetos\TreeOffice`.
+- Todo o código, documentação e recursos do TreeOffice ficam na pasta deste
+  repositório — originalmente `D:\Meus Projetos\TreeOffice` no Windows e, desde
+  12/10/2026, também clonado no Linux (D43). A documentação evita caminho
+  absoluto fixo; novos textos devem valer nos dois sistemas.
+- O projeto é multi-SO: comandos e caminhos na documentação são portáteis
+  (barras normais, bash). Não presuma Windows.
+- O protótipo exige Node 18.2 ou mais recente no ambiente; instalar runtime,
+  pacotes ou dependências depende de autorização explícita do usuário (D44).
 - Não modificar projetos externos, o vault do Obsidian ou o Blob Office sem
   autorização específica para uma operação claramente delimitada.
 - Não alterar configuração global do OpenCode, iniciar serviços ou abrir chats

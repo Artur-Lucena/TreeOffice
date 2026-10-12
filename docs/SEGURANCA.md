@@ -62,7 +62,10 @@ autorizar esses efeitos. Não apresentar a operação como apenas criar uma past
 
 ## Instalação e testes
 
-- Código e documentação permanecem em `D:\Meus Projetos\TreeOffice`.
+- Código e documentação permanecem na pasta do repositório TreeOffice
+  (originalmente `D:\Meus Projetos\TreeOffice` no Windows; hoje também clonado
+  no Linux — D43). O protótipo exige Node 18.2+ no ambiente; instalar runtime
+  ou pacotes é decisão do usuário (D44).
 - Eventual configuração externa deve apontar para esse código e ser aprovada
   antes de qualquer alteração; não espalhar cópias do projeto.
 - Não instalar dependências nos projetos acompanhados.

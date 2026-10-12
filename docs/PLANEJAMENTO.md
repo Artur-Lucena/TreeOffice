@@ -1,6 +1,10 @@
 # Planejamento — ainda em elaboração
 
-**Estado:** estrutura inicial pronta; plano completo não aprovado.
+**Estado:** estrutura pronta, sete rodadas de decisão fechadas e rodada de
+adaptação multi-SO fechada (D43, D44). O protótipo da Etapa 2 existe e aguarda
+avaliação visual. O plano completo de execução está no roadmap
+[ROADMAP-V1](ROADMAP-V1.md); a implementação das Fases B a F depende de
+autorização do usuário (D11).
 
 Este documento organiza a próxima conversa. As etapas abaixo são propostas,
 não autorização para executá-las.
@@ -103,10 +107,13 @@ Construído em 12/10/2026 com Node puro, sem dependências, sem build e sem
 qualquer acesso ao OpenCode, a projetos ou ao vault. Instruções de execução e
 verificação em [src/README.md](../src/README.md).
 
-Verificado por teste automatizado (`node tests/smoke.mjs`, 38 verificações):
+Verificado por teste automatizado (`node tests/smoke.mjs`, 43 verificações):
 
 - Autenticação por token em todas as requisições, com recusa de token
   inválido, ausente ou enviado apenas por query em escrita.
+- Cookie HttpOnly `treeoffice_token`, gravado na primeira requisição
+  autenticada, aceito em GET e POST, sem renovação quando a requisição só
+  apresenta cookie, e com origem estranha ainda recusada (403).
 - Validação de `Origin` e `Host` nas escritas, testada também por socket cru,
   porque o cliente HTTP do Node não permite forjar `Host`.
 - Recursos servidos localmente, com bloqueio de fuga de diretório.
@@ -120,7 +127,9 @@ Verificado por teste automatizado (`node tests/smoke.mjs`, 38 verificações):
 Pendente de avaliação do usuário: a aparência e a animação da árvore, a
 navegação e o popup. Só depois disso a candidata p5.js (D19) pode ser
 confirmada ou descartada. Nada foi testado contra uma instalação real do
-OpenCode.
+OpenCode. Abrir o protótipo e rodar o smoke test no Linux depende da
+instalação do Node no ambiente, pendência do usuário (D44) — ver Fase A do
+roadmap.
 
 ### Etapa 3 — integração somente leitura
 

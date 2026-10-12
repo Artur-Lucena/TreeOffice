@@ -8,10 +8,15 @@ conectados em uma árvore orgânica, dinâmica e animada, semelhante ao Blob Off
 O painel deverá ajudar o usuário a acompanhar conversas, responsabilidades,
 worktrees, evidências e dependências sem interferir nos projetos atuais.
 
-Pasta-mãe do projeto: **`D:\Meus Projetos\TreeOffice`**.
+Pasta-mãe do projeto: **a pasta onde este repositório foi clonado**. O painel
+não depende de caminho absoluto fixo (D43). Originalmente, no Windows, a pasta
+era `D:\Meus Projetos\TreeOffice`; em 12/10/2026 o usuário passou a trabalhar
+também no Linux, com o repositório clonado em
+`/run/media/tuco/Games/Meus Projetos/TreeOffice`.
 
 Todo o código, documentação, recursos e testes do TreeOffice devem permanecer
-nessa pasta. Projetos externos exibidos pelo painel continuam onde já estão.
+na pasta do repositório. Projetos externos exibidos pelo painel continuam onde
+já estão.
 
 ## 2. Estado atual
 
@@ -40,17 +45,38 @@ O usuário autorizou publicar a documentação no repositório
 instalada, nenhum chat ou worktree foi criado e nenhuma configuração global do
 OpenCode ou projeto externo foi alterada.
 
+Também em 12/10/2026, no mesmo dia: o protótipo da Etapa 2 foi construído em
+`src/` (Node puro, sem dependências, sem build) e verificado por teste
+automatizado (`node tests/smoke.mjs`, 38 verificações na época). Uma correção
+posterior — cookie HttpOnly `treeoffice_token` para o navegador carregar
+subrecursos sem o `?token=` na URL — elevou a verificação para 43 itens; rodar
+esse teste no Linux depende da instalação do Node no ambiente, que é
+responsabilidade do usuário (D44).
+
+O usuário passou a usar o projeto no Linux pela primeira vez em 12/10/2026. O
+código do protótipo é portátil (usa `node:path` e aceita `/` e `\` nos caminhos
+que trata); a adaptação registrada em D43 cobriu documentação, caminhos e
+comandos. O ambiente Linux tem o serviço OpenCode instalado
+(`~/.opencode/bin/opencode`, versão v2.0.15), mas o Node ainda não estava
+instalado nesta máquina.
+
 Em 12/10/2026 o repositório Git local foi inicializado nesta pasta, rastreando
 `origin/main`, e o histórico remoto foi adotado sem reescrita. A identidade de
 commit local usa o endereço `noreply` da conta GitHub. O estado de execução do
 painel, quando existir, fica em `.local/`, fora do versionamento.
 
-O usuário iniciará um novo chat nesta pasta para conduzir o restante do
-planejamento. A montagem da estrutura não autoriza implementar funcionalidades.
+O usuário retomou o planejamento em 12/10/2026, agora no Linux, e aprovou o
+roadmap de execução da V1 em fases A–F, registrado em
+[docs/ROADMAP-V1.md](docs/ROADMAP-V1.md). A Fase A (adaptação ao Linux) está em
+andamento; a instalação do Node no ambiente é pendência do usuário. A Fase B
+(integração somente leitura com o OpenCode) depende de nova autorização
+explícita (D11). A montagem da estrutura e a adaptação documental não autorizam
+implementar funcionalidades.
 
 ## 3. Referência existente inspecionada
 
-Foram lidos os arquivos:
+Foram lidos os arquivos (no Windows; o padrão equivalente no Linux seria
+`~/.config/opencode/plugins/`, onde a referência não está instalada):
 
 - `C:\Users\Tuco\.config\opencode\plugins\blob-office.html`.
 - `C:\Users\Tuco\.config\opencode\plugins\blob-office.ts`.
@@ -66,9 +92,12 @@ removidos da visualização após inatividade.
 O TreeOffice deve funcionar separadamente e preservar essa instalação.
 Não foi copiado código do Blob Office para o projeto.
 
-A versão consultada pelo comando `opencode.cmd --version` foi `v2.0.26`.
-A documentação pública V2 oferece operações para sessões e worktrees, mas
-essas operações não foram testadas contra o serviço local neste planejamento.
+A versão consultada pelo comando `opencode.cmd --version` foi `v2.0.26`
+(Windows). Na instalação Linux de 12/10/2026, `opencode --version` retorna
+`v2.0.15` (binário em `~/.opencode/bin/opencode`). A documentação pública V2
+oferece operações para sessões e worktrees, mas essas operações não foram
+testadas contra o serviço local neste planejamento — verificações V01 a V06
+permanecem pendentes, na Fase B do roadmap.
 
 ## 4. Aparência e interação confirmadas
 
@@ -206,16 +235,21 @@ para aprovação e apontar para o código dentro do TreeOffice, sem espalhar có
 
 ## 11. Próxima etapa
 
-O próximo assistente deve ler o registro de decisões, revisar as questões
-abertas e continuar o planejamento com o usuário, seguindo a ordem de rodadas
-descrita em `docs/DECISOES.md`. Não tratar as propostas técnicas como
-arquitetura aprovada nem começar a implementação por iniciativa própria.
+A execução segue o roadmap em [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md): Fase A
+(adaptação ao Linux) em andamento; Fases B a F dependem de autorização do
+usuário em cada portão. O próximo assistente deve ler o registro de decisões,
+revisar as questões abertas e continuar o planejamento com o usuário, seguindo
+a ordem de rodadas descrita em `docs/DECISOES.md`. Não tratar as propostas
+técnicas como arquitetura aprovada nem começar a implementação por iniciativa
+própria.
 
 Documentos complementares:
 
 - [Decisões](docs/DECISOES.md).
 - [Planejamento](docs/PLANEJAMENTO.md).
 - [Segurança](docs/SEGURANCA.md).
+- [Plano consolidado](docs/PLANO-CONSOLIDADO.md).
+- [Roadmap da V1](docs/ROADMAP-V1.md).
 
 ## 12. Referências técnicas
 

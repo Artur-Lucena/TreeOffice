@@ -6,10 +6,19 @@ O protótipo roda com o Node instalado e serve todos os recursos localmente
 persistência com dados simulados — e para isso usa caminhos fictícios
 (`/simulado/...`), nunca os projetos reais do usuário.
 
+## Requisitos
+
+- **Node 18.2 ou mais recente** (20/22 LTS recomendado). A ponte usa `fetch`
+  global, `??` e `server.closeAllConnections?.()`, indisponíveis antes do 18.2.
+- Nenhuma dependência para instalar: só o runtime do Node.
+- Funciona em Windows e Linux. Os comandos abaixo usam barras normais, que
+  valem nos dois sistemas (no PowerShell do Windows, `node src\server\bridge.mjs`
+  também funciona, mas a documentação padroniza `/`).
+
 ## Como executar
 
-```powershell
-node src\server\bridge.mjs
+```bash
+node src/server/bridge.mjs
 ```
 
 A ponte imprime um endereço com token, parecido com:
@@ -21,20 +30,20 @@ Ponte   http://127.0.0.1:4717/?token=<64 caracteres hexadecimais>
 Abra esse endereço no navegador. O token é exigido em todas as requisições
 (D41); se a porta 4717 estiver ocupada, a ponte **não** troca de porta em
 silêncio — ela informa e não inicia (D40). Para usar outra porta:
-`node src\server\bridge.mjs --porta 4800`.
+`node src/server/bridge.mjs --porta 4800`.
 
 Para encerrar: `Ctrl+C`. O estado permanece em `.local/`.
 
 ## Como verificar
 
-```powershell
-node tests\smoke.mjs
+```bash
+node tests/smoke.mjs
 ```
 
 O teste cria diretórios temporários descartáveis e exercita autenticação,
-validação de origem, recursos locais, normalização do estado, simulação,
-escrita atômica com backup, lock e modo degradado. Nada toca em projetos,
-chats, worktrees, vault ou no OpenCode.
+cookie de subrecursos, validação de origem, recursos locais, normalização do
+estado, simulação, escrita atômica com backup, lock e modo degradado. Nada toca
+em projetos, chats, worktrees, vault ou no OpenCode.
 
 ## Estrutura
 
@@ -69,6 +78,10 @@ src/
   backup e lock (D20, D22).
 - Ponte apenas em `127.0.0.1`, com token de 256 bits, validação de `Origin` e
   `Host` nas escritas, e recursos sem rede externa (D40, D41, D25).
+- Cookie HttpOnly `treeoffice_token`, gravado na primeira requisição
+  autenticada para que o navegador carregue CSS e JS sem o `?token=` na URL —
+  sem ele a página abria com "tela em branco com botões". O cookie não se
+  renova sozinho e as escritas continuam validando `Origin` e `Host` (D41).
 
 ## Limites conhecidos do protótipo
 
@@ -76,5 +89,5 @@ src/
   escolha definitiva depende de você avaliar o resultado.
 - A simulação é local e não representa o comportamento real das sessões.
 - Nenhuma operação de escrita no OpenCode ou no Git existe aqui. Criar chat,
-  vincular worktree e criar worktree pertencem às Etapas 4 e 5.
+  vincular worktree e criar worktree pertencem às Etapas 4 e 5 do roadmap.
 - O popup demonstra as confirmações; ele não chama API alguma.

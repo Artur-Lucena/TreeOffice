@@ -1,8 +1,11 @@
 # Plano consolidado do TreeOffice
 
 **Fechado em:** 12 de outubro de 2026.
-**Estado:** decisões de desenho completas. Nada foi implementado, instalado,
-executado ou testado contra uma instalação real do OpenCode.
+**Estado:** decisões de desenho completas. A aplicação integrada ao OpenCode
+não foi implementada, instalada, executada ou testada contra uma instalação
+real. O protótipo da Etapa 2 existe em `src/` (Node puro, dados simulados) e
+aguarda avaliação visual do usuário; o roadmap de execução da V1 está em
+[ROADMAP-V1](ROADMAP-V1.md).
 **Depende de:** autorização do usuário para iniciar a implementação (D11).
 
 Este documento consolida o resultado das sete rodadas de fechamento. As
