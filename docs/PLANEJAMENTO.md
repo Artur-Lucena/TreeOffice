@@ -61,10 +61,12 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   confirmação. D35 mantém a resposta a permissões fora do escopo da V1.
   A parte de persistência em disco já havia sido fechada na Rodada 3 (D22).
 
-### Rodada 6 — Tucofre e dependências
+### Rodada 6 — Tucofre e dependências (fechada em 12/10/2026)
 
-- [ ] Definir a participação inicial do Tucofre e o formato mínimo dos registros.
-  Pode ser adiada sem travar a V1.
+- [x] Definir a participação inicial do Tucofre e o formato mínimo dos registros.
+  Resolvido por D36 e D39: a V1 não lê o vault e nenhum caminho é pedido agora.
+  D37 define o formato mínimo futuro: seleção explícita de um arquivo, lido
+  como texto, apresentado como instruções sugeridas. D38 trata das dependências.
 
 ### Rodada 7 — instalação e fechamento
 
@@ -150,6 +152,9 @@ seus projetos como efeito colateral.
 - [ ] Estado incerto leva a verificar, nunca a presumir ou repetir sozinho.
 - [ ] Nenhum nó desaparece porque um evento foi perdido.
 - [ ] Sessão aguardando permissão é exibida e aberta no OpenCode, não respondida pelo painel.
+- [ ] O painel não abre nem lê o vault na V1.
+- [ ] Instruções de entrada são sempre digitadas, nunca retiradas de outro chat.
+- [ ] Aresta de dependência só existe por criação explícita; nenhum nó é bloqueado por dependência.
 - [ ] Reconexão recompõe o estado atual sem depender de eventos perdidos.
 - [ ] Credenciais e conteúdo privado não aparecem no cliente ou em logs indevidos.
 - [ ] Blob Office, vault e projetos anteriores permanecem inalterados.

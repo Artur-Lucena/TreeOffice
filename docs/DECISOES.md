@@ -42,6 +42,10 @@ A criação da estrutura não significa aprovação do plano completo.
 | D33 | Reconexão acontece por releitura completa, não por eventos. | Eventos servem para vivacidade; nós do painel nunca desaparecem porque um evento foi perdido. |
 | D34 | Anti-duplicação por confirmação explícita. | Pedido que o registro indica já ter sido tentado gera aviso e pergunta; nunca criação duplicada em silêncio. |
 | D35 | O painel não responde a permissões pendentes. | O estado é exibido com atalho para abrir a sessão no OpenCode; responder permissão é escrita com consequência e fica fora do escopo da V1. |
+| D36 | A V1 não lê o vault do Obsidian. | Instruções de entrada são digitadas pelo usuário no popup; a integração com o vault pertence à Etapa 5. |
+| D37 | Integração futura com o vault: seleção explícita de um arquivo, lido como texto e apresentado como instruções sugeridas. | Sem suposições sobre front-matter, sem varredura, sem indexação, sem escrita e sem sincronização. |
+| D38 | Dependências do roadmap são arestas pontilhadas criadas e removidas apenas por ação explícita do usuário. | O painel informa, nunca impõe: não detecta dependência do vault sozinho e não bloqueia nó algum. |
+| D39 | O caminho do vault só é solicitado quando uma etapa aprovada precisar dele. | Nenhum caminho externo é pedido durante o fechamento do plano. |
 
 ## Propostas ainda abertas
 
@@ -64,8 +68,8 @@ persistência, instalação e verificação.
 | 3 | Persistência dos vínculos | Fechada (D20, D21, D22, D23) |
 | 4 | Worktrees: vinculação, criação e confirmações | Fechada (D26, D27, D28, D29, D30); leitura do destino configurado pelo projeto a verificar na Etapa 3 |
 | 5 | Falhas parciais, recuperação e anti-duplicação | Fechada (D31, D32, D33, D34, D35) |
-| 6 | Tucofre e dependências | Aberta; pode ser adiada sem travar a V1 |
-| 7 | Instalação, autenticação, verificação e plano consolidado | Aberta |
+| 6 | Tucofre e dependências | Fechada (D36, D37, D38, D39); sem bloqueio para a V1 |
+| 7 | Instalação, autenticação, verificação e plano consolidado | Em andamento |
 
 ## Pesquisa de referência
 
