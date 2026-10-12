@@ -60,6 +60,15 @@ comandos. O ambiente Linux tem o serviço OpenCode instalado
 (`~/.opencode/bin/opencode`, versão v2.0.15), e o Node foi instalado no mesmo
 dia (v22.22.1).
 
+Na primeira avaliação visual, o usuário aprovou a aparência, mas criar um chat
+não aparecia na tela. A causa foram três defeitos de renderização no
+`src/ui/tree.js`, encontrados por teste com DOM falso e corrigidos no mesmo
+dia: posições nascidas sem velocidade/fase (coordenadas NaN, que tornavam a
+árvore inteira invisível), nós sem grupo de origem sem âncora própria, e
+subárvore de galho recolhido que continuava desenhada. O teste
+`tests/tree-render.mjs` (11 verificações) cobre os três casos;
+`tests/smoke.mjs` segue com 44 verificações verdes no Linux.
+
 Em 12/10/2026 o repositório Git local foi inicializado nesta pasta, rastreando
 `origin/main`, e o histórico remoto foi adotado sem reescrita. A identidade de
 commit local usa o endereço `noreply` da conta GitHub. O estado de execução do

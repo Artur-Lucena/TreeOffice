@@ -83,6 +83,9 @@ export function criarArvore(canvas, opcoes = {}) {
 
   /* ── Layout: âncoras determinísticas, física em cima delas ─────────────── */
 
+  /** Nós sob um galho recolhido: existem no estado, mas saem de cena. */
+  const ocultos = new Set();
+
   function calcularAncoras() {
     const grupos = estado.grupos || [];
     const nos = estado.nos || [];
@@ -100,54 +103,113 @@ export function criarArvore(canvas, opcoes = {}) {
     const ESPACO_Y = 110;
     const espaco = { x: ESPACO_X, y: ESPACO_Y };
 
+    ocultos.clear();
+    const marcarOcultos = (id) => {
+      ocultos.add(id);
+      for (const filho of filhosPorPai.get(id) || []) marcarOcultos(filho.id);
+    };
+
+    const visitados = new Set();
+
+    /**
+     * Cria ou reposiciona a entrada de um nó. Toda entrada nasce completa —
+     * x/y/vx/vy/fase finitos — porque a física e o raio orgânico propagam NaN
+     * em silêncio, e nó some da tela sem aviso (regressão já observada).
+     * `nascidoEm` só vale na primeira aparição e alimenta a animação de entrada.
+     */
+    const entrada = (id, x, y) => {
+      const novo = !posicoes.has(id);
+      const atual = posicoes.get(id) || { x, y, vx: 0, vy: 0 };
+      visitados.add(id);
+      posicoes.set(id, {
+        ...atual,
+        x: Number.isFinite(atual.x) ? atual.x : x,
+        y: Number.isFinite(atual.y) ? atual.y : y,
+        vx: Number.isFinite(atual.vx) ? atual.vx : 0,
+        vy: Number.isFinite(atual.vy) ? atual.vy : 0,
+        fase: Number.isFinite(atual.fase) ? atual.fase : hashNum(id) * Math.PI * 2,
+        nascidoEm: novo ? performance.now() : atual.nascidoEm,
+        alvoX: x,
+        alvoY: y,
+        camada: "no",
+      });
+    };
+
+    const percorrer = (id, deslocamentoX, y) => {
+      const no = nos.find((n) => n.id === id);
+      if (!no) return;
+      if (no.recolhido) {
+        // Recolhido: o nó fica no lugar (com o selo de contagem); apenas a
+        // subárvore abaixo dele sai de cena.
+        entrada(id, deslocamentoX, y);
+        for (const filho of filhosPorPai.get(id) || []) marcarOcultos(filho.id);
+        return;
+      }
+      const filhos = filhosPorPai.get(id) || [];
+      const filhosVisiveis = filhos.filter((f) => !f.recolhido);
+      entrada(id, deslocamentoX, y);
+      filhosVisiveis.forEach((filho, indice) => {
+        percorrer(
+          filho.id,
+          deslocamentoX + espaco.x,
+          y + (indice - (filhosVisiveis.length - 1) / 2) * espaco.y,
+        );
+      });
+    };
+
     grupos.forEach((grupo, indiceGrupo) => {
       const filhoIds = filhosPorPai.get(grupo.id) || [];
       const colunaX = indiceGrupo * espaco.x;
       const baseY = -((filhoIds.length - 1) * espaco.y) / 2;
-      const base = posicoes.get(grupo.id) || { x: colunaX, y: baseY };
+      const base = posicoes.get(grupo.id) || { x: colunaX, y: baseY, vx: 0, vy: 0 };
       posicoes.set(grupo.id, {
         ...base,
+        x: Number.isFinite(base.x) ? base.x : colunaX,
+        y: Number.isFinite(base.y) ? base.y : baseY,
+        vx: Number.isFinite(base.vx) ? base.vx : 0,
+        vy: Number.isFinite(base.vy) ? base.vy : 0,
         alvoX: colunaX,
         alvoY: baseY,
         camada: "grupo",
       });
 
-      const percorrer = (id, deslocamentoX, y) => {
-        const no = nos.find((n) => n.id === id);
-        if (!no) return;
-        if (no.recolhido) {
-          const atual = posicoes.get(id) || { x: deslocamentoX, y };
-          posicoes.set(id, { ...atual, alvoX: deslocamentoX, alvoY: y, camada: "no" });
-          return;
-        }
-        const filhos = filhosPorPai.get(id) || [];
-        const filhosVisiveis = filhos.filter((f) => !f.recolhido);
-        const atual = posicoes.get(id) || { x: deslocamentoX, y };
-        posicoes.set(id, {
-          ...atual,
-          alvoX: deslocamentoX,
-          alvoY: y,
-          camada: "no",
-        });
-        filhosVisiveis.forEach((filho, indice) => {
-          percorrer(filho.id, deslocamentoX + espaco.x, y + (indice - (filhosVisiveis.length - 1) / 2) * espaco.y);
-        });
-      };
-
       filhoIds.forEach((no, indice) => {
         percorrer(no.id, colunaX, baseY + (indice - (filhoIds.length - 1) / 2) * espaco.y);
       });
     });
+
+    // Órfãos: nós sem grupo válido — criados sem origem (`grupoPai: null`, o
+    // que o botão "criar chat" produz) ou cujo pai deixou de existir. Sem
+    // âncora própria eles nunca seriam desenhados e sumiriam da tela em
+    // silêncio, contra D21. Ganham coluna própria após os grupos, com a
+    // subárvore preservada.
+    const orfaos = nos.filter((n) => !visitados.has(n.id) && !ocultos.has(n.id));
+    if (orfaos.length) {
+      const colunaX = grupos.length * espaco.x;
+      const raizes = orfaos.filter((n) => !nos.some((p) => p.id === n.grupoPai));
+      const lista = raizes.length ? raizes : orfaos;
+      const altura = lista.length * espaco.y;
+      lista.forEach((no, indice) => {
+        percorrer(no.id, colunaX, -altura / 2 + indice * espaco.y + espaco.y / 2);
+      });
+      // Ressalva para ciclos ou nós pendurados em órfãos: ainda visíveis.
+      let sobra = 0;
+      for (const no of orfaos) {
+        if (visitados.has(no.id)) continue;
+        entrada(no.id, colunaX + espaco.x, -altura / 2 + sobra * espaco.y + espaco.y / 2);
+        sobra += 1;
+      }
+    }
   }
 
+  /** Garante velocidade e fase finitas em toda entrada (defesa em profundidade). */
   function inicializarPosicoes() {
-    calcularAncoras();
     for (const [id, p] of posicoes) {
       if (!Number.isFinite(p.x)) p.x = p.alvoX;
       if (!Number.isFinite(p.y)) p.y = p.alvoY;
       if (!Number.isFinite(p.vx)) p.vx = 0;
       if (!Number.isFinite(p.vy)) p.vy = 0;
-      p.fase = hashNum(id) * Math.PI * 2;
+      if (!Number.isFinite(p.fase)) p.fase = hashNum(id) * Math.PI * 2;
     }
   }
 
@@ -156,6 +218,11 @@ export function criarArvore(canvas, opcoes = {}) {
     const atracao = 0.045;
 
     for (const [id, p] of posicoes) {
+      // Defesa: entrada incompleta viraria NaN e apagaria o nó da tela.
+      if (!Number.isFinite(p.x)) p.x = p.alvoX;
+      if (!Number.isFinite(p.y)) p.y = p.alvoY;
+      if (!Number.isFinite(p.vx)) p.vx = 0;
+      if (!Number.isFinite(p.vy)) p.vy = 0;
       const dx = p.alvoX - p.x;
       const dy = p.alvoY - p.y;
       p.vx = (p.vx + dx * atracao) * amortecimento;
@@ -199,6 +266,8 @@ export function criarArvore(canvas, opcoes = {}) {
       const destino = posicoes.get(para);
       if (!origem || !destino) continue;
       if (destino.camada !== "no") continue;
+      // Galho recolhido esconde a subárvore — a aresta também sai de cena.
+      if (ocultos.has(de) || ocultos.has(para)) continue;
 
       const paiEhGrupo = grupos.some((g) => g.id === de);
       const a = mundoParaTela(origem.x, origem.y);
@@ -290,34 +359,41 @@ export function criarArvore(canvas, opcoes = {}) {
   function desenharNo(no, tempo) {
     const p = posicoes.get(no.id);
     if (!p || p.camada !== "no") return;
-    const { estado } = estadoVisual(no);
+    // Recolhido: a subárvore existe no estado, mas não é desenhada.
+    if (ocultos.has(no.id)) return;
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+    const { estado: estadoNo } = estadoVisual(no);
     const t = mundoParaTela(p.x, p.y);
     const hue = hueFromId(no.id);
+    // Nascer com escala: criação de chat tem retorno visual imediato (D02).
+    const idade = tempo - (Number.isFinite(p.nascidoEm) ? p.nascidoEm : tempo);
+    const fracaoEntrada = idade < 0 ? 1 : Math.min(1, idade / 320);
+    const escalaEntrada = 1 - (1 - fracaoEntrada) * (1 - fracaoEntrada) * (1 - fracaoEntrada);
     const raioBase = 26 * camera.zoom * (no.grupoPai && (estado.nos || []).some((n) => n.grupoPai === no.id) ? 1.15 : 1);
-    const raio = raioOrganico(tempo, p.fase, raioBase);
+    const raio = raioOrganico(tempo, p.fase, raioBase) * escalaEntrada;
 
     let saturacao = 70;
     let luz = 60;
     let alfa = 1;
     let brilho = 0;
 
-    if (estado === ESTADO.ATIVO) {
+    if (estadoNo === ESTADO.ATIVO) {
       saturacao = 82;
       luz = 62;
       brilho = 0.35 + 0.25 * Math.sin(tempo * 0.004 + p.fase);
-    } else if (estado === ESTADO.DORMENTE) {
+    } else if (estadoNo === ESTADO.DORMENTE) {
       saturacao = 32;
       luz = 52;
       alfa = 0.72;
-    } else if (estado === ESTADO.VAZIO) {
+    } else if (estadoNo === ESTADO.VAZIO) {
       saturacao = 12;
       luz = 46;
       alfa = 0.55;
-    } else if (estado === ESTADO.NAO_ENCONTRADO) {
+    } else if (estadoNo === ESTADO.NAO_ENCONTRADO) {
       saturacao = 6;
       luz = 40;
       alfa = 0.5;
-    } else if (estado === ESTADO.INCERTO) {
+    } else if (estadoNo === ESTADO.INCERTO) {
       saturacao = 18;
       luz = 58;
       alfa = 0.75 + 0.2 * Math.sin(tempo * 0.012 + p.fase);
@@ -353,11 +429,11 @@ export function criarArvore(canvas, opcoes = {}) {
 
     // Contorno por estado
     ctx.lineWidth = 2 * camera.zoom;
-    if (estado === ESTADO.VAZIO) ctx.setLineDash([4, 5]);
-    else if (estado === ESTADO.INCERTO) ctx.setLineDash([2, 4]);
+    if (estadoNo === ESTADO.VAZIO) ctx.setLineDash([4, 5]);
+    else if (estadoNo === ESTADO.INCERTO) ctx.setLineDash([2, 4]);
     else ctx.setLineDash([]);
     ctx.strokeStyle =
-      estado === ESTADO.NAO_ENCONTRADO
+      estadoNo === ESTADO.NAO_ENCONTRADO
         ? "rgba(255, 120, 120, 0.85)"
         : `hsla(${hue}, 80%, ${luz + 12}%, ${alfa})`;
     ctx.beginPath();
@@ -454,8 +530,10 @@ export function criarArvore(canvas, opcoes = {}) {
     // Do topo (último desenhado) para baixo.
     for (let i = (estado.nos || []).length - 1; i >= 0; i -= 1) {
       const no = estado.nos[i];
+      if (ocultos.has(no.id)) continue;
       const p = posicoes.get(no.id);
       if (!p || p.camada !== "no") continue;
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
       const raio = 34;
       if (Math.hypot(p.x - mundo.x, p.y - mundo.y) <= raio) return no;
     }
@@ -533,6 +611,7 @@ export function criarArvore(canvas, opcoes = {}) {
       if (!idsValidos.has(id)) posicoes.delete(id);
     }
     calcularAncoras();
+    inicializarPosicoes();
   }
 
   function definirVivo(novoVivo) {

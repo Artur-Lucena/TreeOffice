@@ -37,6 +37,13 @@ Risco baixo; nada toca no OpenCode.
 **Portão de saída:** árvore, animação, navegação e popup aprovados por você;
 smoke test verde no Linux; p5.js confirmada ou substituída (D19).
 
+**Nota de 12/10/2026:** durante a preparação do reteste (A4), três defeitos de
+renderização foram encontrados por teste com DOM falso e corrigidos — nós
+desenhados em NaN (árvore invisível), nó criado sem origem sem âncora, e
+subárvore de galho recolhido que continuava desenhada. Cobertura em
+`tests/tree-render.mjs` (11 verificações) e em `tests/smoke.mjs`
+(44 verificações), ambos verdes no Linux.
+
 ## Fase B — integração somente leitura (Etapa 3)
 
 Exige autorização explícita do usuário (D11). Só lê o serviço local do

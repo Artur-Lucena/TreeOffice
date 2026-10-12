@@ -129,8 +129,15 @@ com execução completa no Linux em 12/10/2026 sob Node v22.22.1: **44 ok,
 Pendente de avaliação do usuário: a aparência e a animação da árvore, a
 navegação e o popup. Só depois disso a candidata p5.js (D19) pode ser
 confirmada ou descartada. Nada foi testado contra uma instalação real do
-OpenCode. O smoke já roda no Linux (Node v22.22.1, 44 ok, 0 falhas); a
-avaliação visual é o item A4 do roadmap.
+OpenCode. O smoke já roda no Linux (Node v22.22.1, 44 ok, 0 falhas).
+
+Na primeira avaliação visual (12/10/2026) o usuário aprovou a aparência e o
+fundo, mas relatou que criar um chat não aparecia na tela. A investigação
+encontrou três defeitos de renderização, todos corrigidos e cobertos pelo novo
+teste `tests/tree-render.mjs` (11 verificações): nós desenhados em coordenadas
+NaN (a árvore inteira era invisível no canvas), nós sem grupo de origem sem
+âncora própria, e subárvore de galho recolhido que continuava desenhada. O
+reteste visual é o próximo passo.
 
 ### Etapa 3 — integração somente leitura
 

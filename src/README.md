@@ -37,13 +37,18 @@ Para encerrar: `Ctrl+C`. O estado permanece em `.local/`.
 ## Como verificar
 
 ```bash
-node tests/smoke.mjs
+node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
+node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
 ```
 
-O teste cria diretórios temporários descartáveis e exercita autenticação,
+O smoke cria diretórios temporários descartáveis e exercita autenticação,
 cookie de subrecursos, validação de origem, recursos locais, normalização do
 estado, simulação, escrita atômica com backup, lock e modo degradado. Nada toca
 em projetos, chats, worktrees, vault ou no OpenCode.
+
+O `tree-render` instancia o `tree.js` de verdade com um DOM falso e observa as
+chamadas de `arc`/`fillText` — é o que pega defeitos de renderização que o
+smoke não alcança, como nós desenhados em NaN (invisíveis) ou nós sem âncora.
 
 ## Estrutura
 
