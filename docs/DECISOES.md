@@ -26,6 +26,12 @@ A criação da estrutura não significa aprovação do plano completo.
 | D17 | Papel organizacional é metadado visual, sem comportamento automático. | Papel não inicia chats, não envia instruções e não cria worktrees. No máximo pré-preenche sugestões no popup de criação, sempre confirmadas pelo usuário. |
 | D18 | Um grupo pode ou não ter diretório cadastrado; o vínculo é apenas informativo. | O painel não move, cria nem valida pastas. Grupo sem diretório leva o popup de criação a perguntar o contexto. |
 | D19 | p5.js permanece como candidata de renderização. | Fidelidade com a referência visual de D02; a escolha só vira definitiva se o protótipo com dados simulados (Etapa 2) provar árvore orgânica, animada e estável. |
+| D20 | Registro local em arquivo JSON único dentro de `.local/`, com campo `schemaVersion`. | Sem banco de dados externo e sem cópias espalhadas; migrações futuras ficam versionadas. |
+| D21 | O painel é dono da identidade dos nós; `sessionID` é referência opcional. | Sessão ou caminho cadastrado que deixa de existir gera estado visível de "não encontrado", nunca remoção silenciosa. |
+| D22 | Escrita atômica com backup da versão anterior, modo degradado em caso de corrupção e lock de instância única. | Queda de energia, falha de escrita ou segunda instância do painel não zeram nem sobrescrevem a árvore. |
+| D23 | O estado local guarda apenas identificadores, rótulos, cadastros de pasta e preferências visuais. | Conteúdo de conversa, notas do Tucofre, credenciais e tokens nunca são persistidos. |
+| D24 | Zero reuso de código, assets ou arquivos visuais do Blob Office. | O repositório de origem não possui licença; a referência serve apenas como linguagem visual. Reforça D09, agora com evidência verificada. |
+| D25 | p5.js é servida localmente pela ponte; o painel funciona sem internet. | A referência carrega a biblioteca de CDN; o protótipo precisa provar funcionamento offline. |
 
 ## Propostas ainda abertas
 
@@ -45,11 +51,24 @@ persistência, instalação e verificação.
 | --- | --- | --- |
 | 1 | Arquitetura e escopo da conversa | Fechada (D12, D13) |
 | 2 | Organização, papéis e aparência da árvore | Fechada (D14, D15, D16, D17, D18, D19); desenho visual detalhado sai do protótipo da Etapa 2 |
-| 3 | Persistência dos vínculos | Aberta |
+| 3 | Persistência dos vínculos | Fechada (D20, D21, D22, D23) |
 | 4 | Worktrees: vinculação, criação e confirmações | Aberta |
 | 5 | Falhas parciais, recuperação e anti-duplicação | Aberta |
 | 6 | Tucofre e dependências | Aberta; pode ser adiada sem travar a V1 |
 | 7 | Instalação, autenticação, verificação e plano consolidado | Aberta |
+
+## Pesquisa de referência
+
+Concluída em 12/10/2026, com registro em [PESQUISA](PESQUISA.md).
+
+| ID | Decisão | Consequência |
+| --- | --- | --- |
+| D24 | Zero reuso de código, assets ou arquivos visuais do Blob Office. | Repositório de origem sem licença; referência é apenas linguagem visual. |
+| D25 | p5.js servida localmente pela ponte. | Painel funciona sem internet; sem dependência de CDN. |
+
+A pesquisa também confirmou, por evidência, que a arquitetura D12 não era
+apenas preferência: o contexto de plugin V2 não expõe listagem de sessões,
+enquanto o cliente HTTP expõe. Detalhes em `PESQUISA.md`.
 
 ## Proposta substituída
 

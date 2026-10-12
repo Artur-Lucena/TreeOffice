@@ -29,9 +29,15 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
 - [x] Confirmar a biblioteca de renderização.
   Resolvido por D19: p5.js segue como candidata, a validar no protótipo.
 
-### Rodada 3 — persistência
+### Rodada 3 — persistência (fechada em 12/10/2026)
 
-- [ ] Definir persistência dos vínculos sem alterar sessões existentes.
+- [x] Definir persistência dos vínculos sem alterar sessões existentes.
+  Resolvido por D20 a D23: arquivo JSON em `.local/` com `schemaVersion`,
+  identidade própria do painel com `sessionID` como referência opcional,
+  escrita atômica com backup e lock, e proibição de conteúdo privado no
+  estado local.
+  A parte de falhas parciais que depende das operações do OpenCode, e não do
+  disco, permanece na Rodada 5.
 
 ### Rodada 4 — worktrees
 
@@ -120,6 +126,10 @@ seus projetos como efeito colateral.
 - [ ] Painel não altera configuração global do OpenCode.
 - [ ] Painel não varre o disco em busca de pastas ou do vault.
 - [ ] Na V1, conversar acontece na interface do OpenCode, não no painel.
+- [ ] Painel funciona sem internet, com a biblioteca de renderização servida localmente.
+- [ ] Estado local não contém conteúdo de conversa, notas do vault, credenciais ou tokens.
+- [ ] Sessão ou caminho que deixou de existir aparece como "não encontrado", não desaparece.
+- [ ] Queda do painel ou do serviço não apaga nem corrompe a árvore salva.
 - [ ] Reconexão recompõe o estado atual sem depender de eventos perdidos.
 - [ ] Credenciais e conteúdo privado não aparecem no cliente ou em logs indevidos.
 - [ ] Blob Office, vault e projetos anteriores permanecem inalterados.
