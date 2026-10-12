@@ -37,6 +37,11 @@ A criação da estrutura não significa aprovação do plano completo.
 | D28 | Origem, nome e destino de novos worktrees: origem é a referência atual do repositório canônico, escolhida explicitamente no popup; nome é sugerido a partir do título e sempre editável; destino é o que o projeto configurou. | O painel não impõe nomenclatura nem destino. Nenhuma operação assume `main` em silêncio. |
 | D29 | Alterações não commitadas são detectadas e exibidas; a decisão de criar ou não é do usuário. | O painel explica que essas alterações não migram para o novo worktree, e nunca faz commit, stash, reset, merge ou cópia de arquivos entre diretórios. |
 | D30 | O popup de criação declara que a operação pode executar a preparação configurada pelo projeto. | Criar worktree carrega configuração e plugins do diretório canônico; a operação nunca é apresentada como "criar uma pasta". |
+| D31 | Nenhuma limpeza destrutiva automática. | Fluxo que falha no meio é relatado e interrompido; desfazer é decisão do usuário, com aviso de que remover sessão pode remover descendentes. |
+| D32 | "Estado incerto" é um estado de primeira classe. | Falha de comunicação no meio de uma operação leva a verificar o inventário, nunca a presumir sucesso ou falha, e nunca a re-executar sozinho. |
+| D33 | Reconexão acontece por releitura completa, não por eventos. | Eventos servem para vivacidade; nós do painel nunca desaparecem porque um evento foi perdido. |
+| D34 | Anti-duplicação por confirmação explícita. | Pedido que o registro indica já ter sido tentado gera aviso e pergunta; nunca criação duplicada em silêncio. |
+| D35 | O painel não responde a permissões pendentes. | O estado é exibido com atalho para abrir a sessão no OpenCode; responder permissão é escrita com consequência e fica fora do escopo da V1. |
 
 ## Propostas ainda abertas
 
@@ -58,7 +63,7 @@ persistência, instalação e verificação.
 | 2 | Organização, papéis e aparência da árvore | Fechada (D14, D15, D16, D17, D18, D19); desenho visual detalhado sai do protótipo da Etapa 2 |
 | 3 | Persistência dos vínculos | Fechada (D20, D21, D22, D23) |
 | 4 | Worktrees: vinculação, criação e confirmações | Fechada (D26, D27, D28, D29, D30); leitura do destino configurado pelo projeto a verificar na Etapa 3 |
-| 5 | Falhas parciais, recuperação e anti-duplicação | Aberta |
+| 5 | Falhas parciais, recuperação e anti-duplicação | Fechada (D31, D32, D33, D34, D35) |
 | 6 | Tucofre e dependências | Aberta; pode ser adiada sem travar a V1 |
 | 7 | Instalação, autenticação, verificação e plano consolidado | Aberta |
 

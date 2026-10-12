@@ -28,7 +28,8 @@ D22 (escrita atômica, backup e lock) e D23 (nada de conteúdo privado no estado
 local). A Rodada 4, sobre worktrees, foi fechada com D26 a D30: vincular
 existente antes de criar novo, aviso bloqueante para worktree compartilhado,
 origem e destino definidos pelo projeto, e alterações não commitadas apenas
-informadas. A pesquisa de referência e ecossistema foi concluída e registrada em
+informadas. A Rodada 5, sobre falhas parciais e recuperação, foi fechada com
+D31 a D35. A pesquisa de referência e ecossistema foi concluída e registrada em
 `docs/PESQUISA.md`, com as decisões D24 e D25.
 
 O usuário autorizou publicar a documentação no repositório

@@ -96,13 +96,17 @@ marcnuri.
 | Escreve estado na pasta global de plugins (`.viewer-opened-today`, `blob-office.settings.json`) | Estado em `.local/`, dentro da pasta do projeto | D20 |
 | Detecta agentes por eventos, sem inventário persistente | Inventário próprio persistente, com releitura após desconexão | D21, `SEGURANCA.md` |
 
-## 7. Riscos e verificações pendentes
+## 7. Verificações pendentes
 
-- Confirmar `session.list` e o contrato de paginação contra a instalação real
-  na Etapa 3. Nenhuma operação foi testada até aqui.
-- Confirmar a licença antes de qualquer reuso futuro. A regra atual é não reusar.
-- Verificar se o plugin oficial de gerenciamento de sessões do OpenCode já
-  oferece organização em árvore; se oferecer, reavaliar o diferencial do
-  TreeOffice antes da Etapa 4.
-- Nenhuma evidência de comportamento em ambientes com múltiplos projetos
-  simultâneos foi coletada.
+Todas são itens da Etapa 3 e devem ser conferidos contra a instalação
+autorizada, começando por dados simulados e repositórios descartáveis. Nenhuma
+delas foi verificada até aqui.
+
+| # | Pendência | Como verificar | Impacto se falhar |
+| --- | --- | --- | --- |
+| V01 | Contrato de `session.list`: parâmetros, filtros e paginação | Chamada de leitura contra o serviço local autorizado, sem escrever nada | A enumeração da árvore pode ficar incompleta |
+| V02 | Como ler o destino de worktrees configurado pelo projeto | Ler a configuração do diretório canônico e comparar com o inventário | O painel pode sugerir destino divergente do projeto (D28) |
+| V03 | Suporte a chave de idempotência nas operações de criação | Inspecionar o contrato da API | Sem suporte, a anti-duplicação depende só de confirmação (D34) |
+| V04 | Comportamento com múltiplos projetos simultâneos | Teste em repositórios descartáveis | Risco de confundir projetos entre si |
+| V05 | Se o plugin oficial de gerenciamento de sessões já oferece árvore | Ler a documentação e o repositório do plugin | Pode reduzir ou mudar o diferencial do TreeOffice |
+| V06 | Se `worktree.create` executa de fato scripts de preparação no ambiente do usuário | Teste em repositório descartável com preparação conhecida | O texto do popup (D30) precisa de ajuste |

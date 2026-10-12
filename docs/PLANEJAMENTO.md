@@ -53,9 +53,13 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   Resolvido por D29: detectar, exibir e explicar que não migram; o painel nunca
   faz commit, stash, reset, merge ou cópia de arquivos.
 
-### Rodada 5 — resiliência
+### Rodada 5 — resiliência (fechada em 12/10/2026)
 
-- [ ] Definir falhas parciais, recuperação e prevenção de criação duplicada.
+- [x] Definir falhas parciais, recuperação e prevenção de criação duplicada.
+  Resolvido por D31 a D34: sem limpeza destrutiva automática, estado incerto
+  como estado explícito, reconexão por releitura e anti-duplicação por
+  confirmação. D35 mantém a resposta a permissões fora do escopo da V1.
+  A parte de persistência em disco já havia sido fechada na Rodada 3 (D22).
 
 ### Rodada 6 — Tucofre e dependências
 
@@ -142,6 +146,10 @@ seus projetos como efeito colateral.
 - [ ] Painel nunca executa commit, stash, reset, merge nem cópia de arquivos entre diretórios.
 - [ ] Nova branch não nasce de uma referência escolhida em silêncio.
 - [ ] Popup de criação informa que a preparação do projeto pode ser executada.
+- [ ] Falha no meio de um fluxo é relatada, sem remoção automática do que foi criado.
+- [ ] Estado incerto leva a verificar, nunca a presumir ou repetir sozinho.
+- [ ] Nenhum nó desaparece porque um evento foi perdido.
+- [ ] Sessão aguardando permissão é exibida e aberta no OpenCode, não respondida pelo painel.
 - [ ] Reconexão recompõe o estado atual sem depender de eventos perdidos.
 - [ ] Credenciais e conteúdo privado não aparecem no cliente ou em logs indevidos.
 - [ ] Blob Office, vault e projetos anteriores permanecem inalterados.
