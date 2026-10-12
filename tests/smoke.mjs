@@ -14,7 +14,7 @@ import path from "node:path";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 
-import { criarPonte } from "../src/server/bridge.mjs";
+import { criarPonte, NOME_COOKIE } from "../src/server/bridge.mjs";
 import { normalizeState, emptyState, ESTADO } from "../src/shared/model.mjs";
 import { loadState, localDir, NOME_ESTADO } from "../src/server/state-store.mjs";
 
@@ -115,6 +115,68 @@ async function main() {
     const saude = await pedir(PORTA, "/api/saude", { headers: com });
     verificar("token válido acessa a API", saude.status === 200 && saude.corpo?.simulado === true);
     verificar("saúde declara a etapa 2 como simulada", saude.corpo?.etapa === 2);
+
+    /* ── Cookie de subrecursos ────────────────────────────────────────── */
+    // O navegador busca CSS e JS como subrecursos, sem o `?token=` da URL.
+    // Sem um transporte que ele carregue sozinho, a página abre e os arquivos
+    // dela são recusados — sintoma de "tela em branco com botões". A ponte
+    // grava um cookie HttpOnly na primeira requisição autenticada e passa a
+    // aceitá-lo como token. SameSite=Strict e a validação de Origin/Host nas
+    // escritas continuam de pé.
+    console.log("\nCookie de subrecursos (D41)");
+    const respostaComCookie = await fetch(`http://127.0.0.1:${PORTA}/api/saude?token=${token}`, {
+      redirect: "manual",
+    });
+    const setCookie = respostaComCookie.headers.get("set-cookie") || "";
+    verificar(
+      "primeira requisição autenticada grava cookie do token",
+      respostaComCookie.status === 200 && setCookie.includes(`${NOME_COOKIE}=${token}`),
+      setCookie,
+    );
+    verificar(
+      "cookie é HttpOnly, SameSite=Strict e com Path=/",
+      /HttpOnly/i.test(setCookie) && /SameSite=Strict/i.test(setCookie) && /Path=\//i.test(setCookie),
+      setCookie,
+    );
+
+    const soCookie = { cookie: `${NOME_COOKIE}=${token}` };
+    const getComCookie = await pedir(PORTA, "/api/saude", { headers: soCookie });
+    verificar(
+      "GET apenas com cookie é aceito (subrecursos da página)",
+      getComCookie.status === 200,
+      `status ${getComCookie.status}`,
+    );
+
+    const postComCookie = await pedir(PORTA, "/api/estado", {
+      method: "POST",
+      headers: { ...soCookie, origin: `http://127.0.0.1:${PORTA}` },
+      corpo: { state: emptyState() },
+    });
+    verificar(
+      "POST com cookie e origem legítima é aceito",
+      postComCookie.status === 200,
+      `status ${postComCookie.status}`,
+    );
+
+    const postComCookieOrigemRuim = await pedir(PORTA, "/api/estado", {
+      method: "POST",
+      headers: { ...soCookie, origin: "http://inimigo.example" },
+      corpo: { state: emptyState() },
+    });
+    verificar(
+      "POST com cookie e origem estranha é recusado (403)",
+      postComCookieOrigemRuim.status === 403,
+      `status ${postComCookieOrigemRuim.status}`,
+    );
+
+    const cookieNaoRenova = await fetch(`http://127.0.0.1:${PORTA}/api/saude`, {
+      headers: soCookie,
+      redirect: "manual",
+    });
+    verificar(
+      "requisição apenas com cookie não regrava cookie (sem renovação indefinida)",
+      !(cookieNaoRenova.headers.get("set-cookie") || "").includes(NOME_COOKIE),
+    );
 
     /* ── Simulação ─────────────────────────────────────────────────────── */
     // Feita antes de qualquer POST, para observar o estado semeado de origem.

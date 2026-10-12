@@ -48,6 +48,15 @@ const MIME = {
   ".ico": "image/x-icon",
 };
 
+/*
+ * O navegador busca CSS e JS como subrecursos, sem o `?token=` da URL. Sem um
+ * transporte que ele carregue sozinho, a página abre e os arquivos dela são
+ * recusados — sintoma de "tela em branco com botões". A ponte grava um cookie
+ * HttpOnly na primeira requisição autenticada e passa a aceitá-lo como token.
+ * SameSite=Strict e a validação de Origin/Host nas escritas continuam de pé.
+ */
+const NOME_COOKIE = "treeoffice_token";
+
 function argumentos() {
   const args = process.argv.slice(2);
   const saida = { porta: PORTA_PADRAO, raiz: RAIZ_PROJETO };
@@ -123,12 +132,41 @@ export function criarPonte(opcoes = {}) {
   }
   sincronizarSimulacao();
 
+  function cookieDaRequisicao(req) {
+    const cru = req.headers.cookie || "";
+    for (const parte of cru.split(";")) {
+      const [nome, ...resto] = parte.trim().split("=");
+      if (nome === NOME_COOKIE) return decodeURIComponent(resto.join("="));
+    }
+    return null;
+  }
+
   function tokenValido(req, url) {
     const cabecalho = req.headers.authorization || "";
     if (cabecalho === `Bearer ${identidade.token}`) return true;
+    if (cookieDaRequisicao(req) === identidade.token) return true;
     // Token por query só é aceito em GET, para o carregamento inicial da página.
     if (req.method === "GET" && url.searchParams.get("token") === identidade.token) return true;
     return false;
+  }
+
+  /**
+   * O cookie só é gravado quando a autenticação veio por meio explícito
+   * (query ou cabeçalho), nunca em resposta a um cookie — evita reforçar
+   * sessão indefinidamente e mantém o cookie curto.
+   */
+  function tokenExplicitoValido(req, url) {
+    const cabecalho = req.headers.authorization || "";
+    if (cabecalho === `Bearer ${identidade.token}`) return true;
+    if (req.method === "GET" && url.searchParams.get("token") === identidade.token) return true;
+    return false;
+  }
+
+  function gravarCookie(res) {
+    res.setHeader(
+      "set-cookie",
+      `${NOME_COOKIE}=${encodeURIComponent(identidade.token)}; HttpOnly; SameSite=Strict; Path=/`,
+    );
   }
 
   function origemValida(req, url) {
@@ -209,6 +247,9 @@ export function criarPonte(opcoes = {}) {
       json(res, 401, { erro: "token ausente ou inválido" });
       return;
     }
+    // Primeira requisição autenticada da aba: o navegador passa a carregar o
+    // token sozinho nos subrecursos e nas chamadas seguintes.
+    if (tokenExplicitoValido(req, url)) gravarCookie(res);
 
     if (req.method === "GET" && (url.pathname === "/" || url.pathname.startsWith("/ui/"))) {
       servirEstatico(req, res, url);
@@ -355,4 +396,4 @@ if (executandoDiretamente) {
   process.on("SIGTERM", encerrar);
 }
 
-export { PORTA_PADRAO, ESTADO };
+export { PORTA_PADRAO, NOME_COOKIE, ESTADO };
