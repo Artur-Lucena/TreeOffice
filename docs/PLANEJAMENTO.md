@@ -97,10 +97,30 @@ executar operações no serviço ou nos projetos reais para antecipar essa etapa
 As Rodadas 1 e 2 foram fechadas (D12 a D19); a Rodada 3 trata da persistência
 dos vínculos.
 
-### Etapa 2 — protótipo visual com dados simulados
+### Etapa 2 — protótipo visual com dados simulados (construído, em avaliação)
 
-Validar aparência, animações, navegação, popup e estados persistentes sem acesso
-a projetos, chats ou vault reais.
+Construído em 12/10/2026 com Node puro, sem dependências, sem build e sem
+qualquer acesso ao OpenCode, a projetos ou ao vault. Instruções de execução e
+verificação em [src/README.md](../src/README.md).
+
+Verificado por teste automatizado (`node tests/smoke.mjs`, 38 verificações):
+
+- Autenticação por token em todas as requisições, com recusa de token
+  inválido, ausente ou enviado apenas por query em escrita.
+- Validação de `Origin` e `Host` nas escritas, testada também por socket cru,
+  porque o cliente HTTP do Node não permite forjar `Host`.
+- Recursos servidos localmente, com bloqueio de fuga de diretório.
+- Normalização defensiva do estado: nó sem identificador e aresta órfã são
+  descartados com aviso, e conteúdo privado não é persistido.
+- Escrita atômica com backup da versão anterior, sem arquivo temporário
+  residual, com lock fresco bloqueando escrita e lock velho sendo assumido.
+- Modo degradado: arquivo corrompido recai no backup sem apagar a árvore.
+- Porta ocupada impede início silencioso.
+
+Pendente de avaliação do usuário: a aparência e a animação da árvore, a
+navegação e o popup. Só depois disso a candidata p5.js (D19) pode ser
+confirmada ou descartada. Nada foi testado contra uma instalação real do
+OpenCode.
 
 ### Etapa 3 — integração somente leitura
 

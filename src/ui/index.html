@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TreeOffice — protótipo</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <canvas id="arvore" aria-label="Árvore organizacional animada"></canvas>
+
+    <header id="topo">
+      <div class="marca">
+        <span class="ponto"></span>
+        <div>
+          <strong>TreeOffice</strong>
+          <small>Etapa 2 · protótipo com dados simulados</small>
+        </div>
+      </div>
+      <div id="status" class="status">conectando…</div>
+    </header>
+
+    <div id="barra">
+      <button id="btn-novo" class="primario" type="button">+ Novo chat</button>
+      <button id="btn-recolher" type="button" title="Recolher ou expandir todos os nós">Recolher</button>
+      <button id="btn-zoom-menos" type="button" title="Diminuir zoom">−</button>
+      <button id="btn-zoom-mais" type="button" title="Aumentar zoom">+</button>
+      <button id="btn-centralizar" type="button" title="Centralizar a árvore">Centralizar</button>
+    </div>
+
+    <aside id="painel" class="painel oculto" aria-live="polite">
+      <div class="painel-cabeca">
+        <h2 id="pn-titulo">Nó</h2>
+        <button id="pn-fechar" type="button" aria-label="Fechar painel">×</button>
+      </div>
+      <dl class="painel-corpo">
+        <div><dt>Estado</dt><dd id="pn-estado">—</dd></div>
+        <div><dt>Papel</dt><dd id="pn-papel">—</dd></div>
+        <div><dt>Diretório</dt><dd id="pn-diretorio">—</dd></div>
+        <div><dt>Worktree</dt><dd id="pn-worktree">—</dd></div>
+        <div><dt>Sessão</dt><dd id="pn-sessao">—</dd></div>
+        <div class="largo"><dt>Instruções de entrada</dt><dd id="pn-instrucoes">—</dd></div>
+      </dl>
+      <div class="painel-acoes">
+        <button id="pn-ramificar" class="primario" type="button">Ramificar daqui</button>
+        <button id="pn-dependencia" type="button">Marcar dependência</button>
+        <button id="pn-recolher" type="button">Recolher galho</button>
+        <button id="pn-abrir" type="button" disabled>Abrir no OpenCode</button>
+        <button id="pn-remover" class="perigo" type="button">Remover vínculo visual</button>
+      </div>
+      <p class="nota" id="pn-nota"></p>
+    </aside>
+
+    <div id="legenda" class="legenda">
+      <span><i class="estado ativo"></i>ativo</span>
+      <span><i class="estado dormente"></i>dormente</span>
+      <span><i class="estado vazio"></i>sem sessão</span>
+      <span><i class="estado nao_encontrado"></i>não encontrado</span>
+      <span><i class="estado incerto"></i>incerto</span>
+    </div>
+
+    <p id="dica" class="dica">
+      arrastar para mover · roda para zoom · clique para selecionar · duplo clique para focar ·
+      botão direito para ações
+    </p>
+
+    <div id="popup" class="popup-oculto" role="dialog" aria-modal="true" aria-labelledby="pp-titulo">
+      <div class="popup">
+        <h2 id="pp-titulo">Novo chat</h2>
+        <p class="popup-etapa" id="pp-etapa">Etapa 1 de 4</p>
+        <div id="pp-corpo" class="popup-corpo"></div>
+        <div class="popup-acoes" id="pp-acoes"></div>
+        <p class="popup-aviso" id="pp-aviso"></p>
+      </div>
+    </div>
+
+    <div id="avisos" class="avisos" aria-live="polite"></div>
+
+    <script type="module" src="/ui/app.js"></script>
+  </body>
+</html>
