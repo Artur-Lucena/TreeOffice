@@ -40,6 +40,11 @@ O usuário autorizou publicar a documentação no repositório
 instalada, nenhum chat ou worktree foi criado e nenhuma configuração global do
 OpenCode ou projeto externo foi alterada.
 
+Em 12/10/2026 o repositório Git local foi inicializado nesta pasta, rastreando
+`origin/main`, e o histórico remoto foi adotado sem reescrita. A identidade de
+commit local usa o endereço `noreply` da conta GitHub. O estado de execução do
+painel, quando existir, fica em `.local/`, fora do versionamento.
+
 O usuário iniciará um novo chat nesta pasta para conduzir o restante do
 planejamento. A montagem da estrutura não autoriza implementar funcionalidades.
 
