@@ -27,7 +27,15 @@ const ESTADO_ROTULO = {
 const parametros = new URLSearchParams(location.search);
 const tokenDaUrl = parametros.get("token");
 let TOKEN = tokenDaUrl || sessionStorage.getItem("treeoffice.token") || "";
-if (tokenDaUrl) sessionStorage.setItem("treeoffice.token", tokenDaUrl);
+if (tokenDaUrl) {
+  sessionStorage.setItem("treeoffice.token", tokenDaUrl);
+  // O token já está guardado; tirá-lo da barra reduz exposição em histórico.
+  if (history.replaceState) {
+    const limpa = new URL(location.href);
+    limpa.searchParams.delete("token");
+    history.replaceState(null, "", limpa.pathname + limpa.search + limpa.hash);
+  }
+}
 
 const el = (id) => document.getElementById(id);
 

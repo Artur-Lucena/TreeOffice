@@ -1,4 +1,4 @@
-# Planejamento — ainda em elaboração
+# Planejamento — estado em 12/10/2026
 
 **Estado em 12/10/2026:** protótipo da Etapa 2 concluído e aprovado no reteste;
 adaptação ao Linux concluída; D45 e D46 registradas. Fase B autorizada e em
@@ -103,7 +103,9 @@ Resolver as questões bloqueadoras e produzir um desenho de interface, contrato
 de dados, arquitetura e critérios de aceite. Não instalar dependências nem
 executar operações no serviço ou nos projetos reais para antecipar essa etapa.
 As sete rodadas iniciais foram fechadas; adaptações ao Linux e encerramento do
-protótipo foram registrados nas Rodadas 8 e 9.
+protótipo foram registrados nas Rodadas 8 e 9. A correspondência com o roadmap
+está em [ROADMAP-V1](ROADMAP-V1.md): Etapa 2→Fase A, Etapa 3→Fase B,
+Etapa 4→Fase C, Etapa 5→Fase D, Etapa 6→Fase E, Etapa 7→Fase F.
 
 ### Etapa 2 — protótipo visual com dados simulados (concluída em 12/10/2026)
 
@@ -174,6 +176,12 @@ qualquer registro global antes de aplicá-lo. Validar com o usuário sem alterar
 seus projetos como efeito colateral.
 
 ## 3. Critérios de aceite candidatos
+
+Cobertura atual dos testes simulados: o smoke (`tests/smoke.mjs`, 44 ok)
+cobre token/origem/host, recursos locais, normalização sem conteúdo privado,
+escrita atômica com backup, lock, modo degradado e porta fixa; o
+`tree-render` (11 ok) cobre nós visíveis, órfãos com âncora e galho recolhido.
+O restante segue pendente de integração real e de validação assistida.
 
 - [ ] Árvore visualmente orgânica e animada, coerente com a referência.
 - [ ] Nó de chat informa título, estado e contexto de trabalho correto.

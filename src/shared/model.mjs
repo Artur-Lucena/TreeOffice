@@ -49,7 +49,10 @@ export const PAPEL_COR = Object.freeze({
 });
 
 export function genId(prefixo) {
-  const aleatorio = Math.random().toString(36).slice(2, 8);
+  const aleatorio =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 8)
+      : Math.random().toString(36).slice(2, 8);
   return `${prefixo}_${Date.now().toString(36)}${aleatorio}`;
 }
 
@@ -182,6 +185,20 @@ export function normalizeState(bruto) {
     .map((d) => normalizaDependencia(d, avisos, ids))
     .filter(Boolean);
 
+  // Arestas duplicadas ou em loop não acrescentam informação; manter só a primeira.
+  const vistas = new Set();
+  const dependenciasUnicas = [];
+  for (const d of dependencias) {
+    if (d.origem === d.destino) {
+      avisos.push(`Dependência ${d.origem}→${d.destino} aponta para o próprio nó e foi ignorada.`);
+      continue;
+    }
+    const chave = `${d.origem}→${d.destino}`;
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    dependenciasUnicas.push(d);
+  }
+
   const ocupacaoWorktree = lista(bruto.ocupacaoWorktree)
     .map((o) => normalizaOcupacao(o, avisos, ids))
     .filter(Boolean);
@@ -201,7 +218,7 @@ export function normalizeState(bruto) {
     schemaVersion: SCHEMA_VERSION,
     grupos,
     nos,
-    dependencias,
+    dependencias: dependenciasUnicas,
     ocupacaoWorktree,
     cadastros,
     preferencias,

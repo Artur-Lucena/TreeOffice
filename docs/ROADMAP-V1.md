@@ -52,7 +52,7 @@ Autorizada pelo usuário em 12/10/2026 (D11). Só lê o serviço local do OpenCo
 
 | # | Item | Decisões/verificações |
 | --- | --- | --- |
-| B1 | Contrato do cliente: versão instalada (v2.0.15), endpoint, autenticação; escolher entre `@opencode/client` e HTTP direto — nova decisão a registrar | D12, D41 |
+| B1 | Contrato do cliente: versão instalada (v2.0.15), endpoint, autenticação; HTTP direto com `fetch` do Node, registrado em D46 | D12, D41 |
 | B2 | V01 contrato de `session.list`; V04 múltiplos projetos simultâneos; V05 plugin oficial de sessões | PESQUISA §7 |
 | B3 | Mapear eventos do serviço para os estados visuais (ativo, dormente, vazio, não encontrado, incerto) | D16, D32 |
 | B4 | Inventário persistido + releitura completa na reconexão; eventos só para vivacidade | D21, D33 |

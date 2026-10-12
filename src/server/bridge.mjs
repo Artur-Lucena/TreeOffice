@@ -77,7 +77,14 @@ function carregarOuCriarIdentidade(baseDir) {
   const alvo = path.join(localDir(baseDir), NOME_BRIDGE);
   try {
     const atual = JSON.parse(fs.readFileSync(alvo, "utf8"));
-    if (atual && typeof atual.token === "string" && atual.token.length >= 32) return atual;
+    if (atual && typeof atual.token === "string" && atual.token.length >= 32) {
+      try {
+        fs.chmodSync(alvo, 0o600);
+      } catch {
+        /* permissão corretiva é cortesia, não bloqueia a ponte */
+      }
+      return atual;
+    }
   } catch {
     /* primeira execução ou arquivo inválido: recriar */
   }
@@ -141,12 +148,19 @@ export function criarPonte(opcoes = {}) {
     return null;
   }
 
+  function mesmoTexto(esperado, recebido) {
+    const a = Buffer.from(String(esperado));
+    const b = Buffer.from(String(recebido ?? ""));
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  }
+
   function tokenValido(req, url) {
     const cabecalho = req.headers.authorization || "";
-    if (cabecalho === `Bearer ${identidade.token}`) return true;
-    if (cookieDaRequisicao(req) === identidade.token) return true;
+    if (mesmoTexto(`Bearer ${identidade.token}`, cabecalho)) return true;
+    if (mesmoTexto(identidade.token, cookieDaRequisicao(req))) return true;
     // Token por query só é aceito em GET, para o carregamento inicial da página.
-    if (req.method === "GET" && url.searchParams.get("token") === identidade.token) return true;
+    if (req.method === "GET" && mesmoTexto(identidade.token, url.searchParams.get("token"))) return true;
     return false;
   }
 
@@ -157,8 +171,8 @@ export function criarPonte(opcoes = {}) {
    */
   function tokenExplicitoValido(req, url) {
     const cabecalho = req.headers.authorization || "";
-    if (cabecalho === `Bearer ${identidade.token}`) return true;
-    if (req.method === "GET" && url.searchParams.get("token") === identidade.token) return true;
+    if (mesmoTexto(`Bearer ${identidade.token}`, cabecalho)) return true;
+    if (req.method === "GET" && mesmoTexto(identidade.token, url.searchParams.get("token"))) return true;
     return false;
   }
 
@@ -196,7 +210,8 @@ export function criarPonte(opcoes = {}) {
     // A interface é publicada sob /ui/; o que vem antes disso não existe.
     const relativo = pedido.startsWith("/ui/") ? pedido.slice("/ui".length) : pedido;
     const alvo = path.resolve(DIR_UI, `.${relativo}`);
-    if (!alvo.startsWith(DIR_UI)) {
+    const fora = path.relative(DIR_UI, alvo);
+    if (fora === ".." || fora.startsWith(`..${path.sep}`)) {
       json(res, 403, { erro: "caminho fora da interface" });
       return;
     }

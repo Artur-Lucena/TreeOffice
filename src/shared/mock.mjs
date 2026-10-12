@@ -154,7 +154,6 @@ const CICLOS = [
   { peso: 0.15, estado: ESTADO.ATIVO, detalhe: "editando arquivos" },
   { peso: 0.12, estado: ESTADO.DORMENTE, detalhe: "aguardando" },
   { peso: 0.05, estado: ESTADO.INCERTO, detalhe: "estado incerto" },
-  { peso: 0.03, estado: ESTADO.NAO_ENCONTRADO, detalhe: "sessão não encontrada" },
 ];
 
 function sortearTicket() {

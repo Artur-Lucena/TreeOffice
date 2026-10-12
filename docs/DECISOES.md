@@ -17,7 +17,7 @@ A criação da estrutura não significa aprovação do plano completo.
 | D08 | Tucofre é o vault do Obsidian. | Não presumir API, caminho ou formato dos registros. |
 | D09 | Proteger os projetos atuais e preservar o Blob Office. | Nenhuma reorganização ou alteração implícita. |
 | D10 | O usuário controla tarefas, evidências e dependências. | Não fazer delegação automática. |
-| D11 | A etapa autorizada foi somente estrutura e documentação. | Implementação depende de nova autorização após fechar o plano. |
+| D11 | A etapa autorizada foi somente estrutura e documentação; Fase B foi autorizada em 12/10/2026, somente leitura. | Implementação das Fases C a F depende de nova autorização. |
 | D12 | Arquitetura: aplicação local independente com ponte local, integrando pela API V2. | Painel web local; credenciais ficam na ponte, fora do navegador; nenhuma alteração na configuração global do OpenCode; porta própria, distinta da 2727. Substitui a proposta de plugin V2 como base. |
 | D13 | Escopo da V1: a conversa continua na interface do OpenCode. | A V1 organiza, cria e exibe estado; sem painel de conversa embutido. Remove a proposta de painel lateral de conversa do escopo inicial. |
 | D14 | Pastas e projetos entram por cadastro explícito do usuário. | Sem varredura automática de disco; o inventário do OpenCode é lido para exibir, e a organização é decidida pelo usuário. |
@@ -25,13 +25,13 @@ A criação da estrutura não significa aprovação do plano completo.
 | D16 | Estados visuais: chat parado permanece visível; ausência de dado não é desenhada como estado. | Estado dormente para conversas paradas ou concluídas; mapeamento definitivo dos estados na Etapa 3, com dados reais. |
 | D17 | Papel organizacional é metadado visual, sem comportamento automático. | Papel não inicia chats, não envia instruções e não cria worktrees. No máximo pré-preenche sugestões no popup de criação, sempre confirmadas pelo usuário. |
 | D18 | Um grupo pode ou não ter diretório cadastrado; o vínculo é apenas informativo. | O painel não move, cria nem valida pastas. Grupo sem diretório leva o popup de criação a perguntar o contexto. |
-| D19 | p5.js permanece como candidata de renderização. | Fidelidade com a referência visual de D02; a escolha só vira definitiva se o protótipo com dados simulados (Etapa 2) provar árvore orgânica, animada e estável. |
+| D19 | p5.js permanece como candidata de renderização. Encerrada por D45. | Fidelidade com a referência visual de D02; a escolha só vira definitiva se o protótipo com dados simulados (Etapa 2) provar árvore orgânica, animada e estável. Ver D45. |
 | D20 | Registro local em arquivo JSON único dentro de `.local/`, com campo `schemaVersion`. | Sem banco de dados externo e sem cópias espalhadas; migrações futuras ficam versionadas. |
 | D21 | O painel é dono da identidade dos nós; `sessionID` é referência opcional. | Sessão ou caminho cadastrado que deixa de existir gera estado visível de "não encontrado", nunca remoção silenciosa. |
 | D22 | Escrita atômica com backup da versão anterior, modo degradado em caso de corrupção e lock de instância única. | Queda de energia, falha de escrita ou segunda instância do painel não zeram nem sobrescrevem a árvore. |
 | D23 | O estado local guarda apenas identificadores, rótulos, cadastros de pasta e preferências visuais. | Conteúdo de conversa, notas do Tucofre, credenciais e tokens nunca são persistidos. |
 | D24 | Zero reuso de código, assets ou arquivos visuais do Blob Office. | O repositório de origem não possui licença; a referência serve apenas como linguagem visual. Reforça D09, agora com evidência verificada. |
-| D25 | p5.js é servida localmente pela ponte; o painel funciona sem internet. | A referência carrega a biblioteca de CDN; o protótipo precisa provar funcionamento offline. |
+| D25 | p5.js é servida localmente pela ponte; o painel funciona sem internet. Sem objeto após D45: nenhuma biblioteca externa na renderização. | A referência carrega a biblioteca de CDN; o painel segue sem dependência de rede externa. |
 | D26 | Vincular worktree existente vem antes de criar novos; criação testada só em repositórios descartáveis. | Reduz o alcance das operações de escrita na V1 e mantém os testes longe dos projetos reais. |
 | D27 | Compartilhar worktree entre dois nós de implementação exige aviso bloqueante com confirmação explícita, registrado no estado local. | Conflito nunca fica oculto; bloqueio absoluto seria inflexível demais para casos legítimos de leitura ou revisão. |
 | D28 | Origem, nome e destino de novos worktrees: origem é a referência atual do repositório canônico, escolhida explicitamente no popup; nome é sugerido a partir do título e sempre editável; destino é o que o projeto configurou. | O painel não impõe nomenclatura nem destino. Nenhuma operação assume `main` em silêncio. |

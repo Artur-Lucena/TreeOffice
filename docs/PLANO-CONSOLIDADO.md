@@ -153,11 +153,9 @@ pelo projeto.
 
 ## 7. Verificações pendentes
 
-Seis itens permanecem sem comprovação e são tarefa da Etapa 3, listados com
-método e impacto em [PESQUISA](PESQUISA.md) §7: contrato de `session.list`,
-destino de worktrees configurado pelo projeto, suporte a idempotência,
-comportamento com múltiplos projetos, sobreposição com o plugin oficial de
-sessões e execução real da preparação do projeto.
+Status consolidado em [PESQUISA](PESQUISA.md) §7: V01 e V04 parciais, V02, V03,
+V05 e V06 pendentes. São tarefa da Fase B (Etapa 3), listados com método e
+impacto na pesquisa.
 
 ## 8. O que exige nova autorização do usuário
 

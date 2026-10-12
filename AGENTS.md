@@ -70,8 +70,8 @@ Use português na comunicação e na documentação, salvo solicitação diferen
 ## Direção técnica
 
 - A integração terá como referência a API do OpenCode V2.
-- Arquitetura, stack, instalação e persistência ainda precisam ser decididas.
-- p5.js e uma ponte local são propostas, não escolhas técnicas definitivas.
+- Arquitetura, stack e persistência estão decididas (D12, D20–D23, D40–D42, D45, D46); a instalação segue o ciclo documentado em D42.
+- Ponte local e Canvas 2D puro são escolhas definitivas da V1, não propostas.
 - Quando for tratar de APIs ou configuração do OpenCode, consultar a documentação
   V2 atual e confirmar o contrato da instalação antes de implementar.
 - Não confundir hierarquia organizacional, relação nativa entre sessões,

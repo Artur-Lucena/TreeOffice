@@ -13,6 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import crypto from "node:crypto";
 import { normalizeState, emptyState } from "../shared/model.mjs";
 
 export const NOME_ESTADO = "state.json";
@@ -80,6 +81,18 @@ export function loadState(baseDir, { semear } = {}) {
   return { ...normalizado, avisos };
 }
 
+/** Processo dono do lock ainda vive nesta máquina? Evita roubar lock ativo. */
+function pidVivo(pid, maquina) {
+  if (maquina !== os.hostname()) return false;
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Adquire o lock de escrita. Devolve função de liberação. */
 export function acquireLock(baseDir) {
   const dir = ensureLocalDir(baseDir);
@@ -122,6 +135,13 @@ export function acquireLock(baseDir) {
     if (Number.isFinite(idade) && idade < LOCK_TTL_MS) {
       return { ok: false, motivo: `Outra gravação em andamento (${Math.round(idade / 1000)}s atrás).` };
     }
+    // Lock velho pelo relógio, mas dono vivo nesta máquina: não roubar.
+    if (pidVivo(leitura.valor?.pid, leitura.valor?.maquina)) {
+      return {
+        ok: false,
+        motivo: `Outra gravação em andamento (processo ${leitura.valor.pid} ativo).`,
+      };
+    }
     // Lock velho: outro processo caiu. Substituir e avisar pelo aviso do chamador.
     try {
       fs.rmSync(alvo, { force: true });
@@ -155,7 +175,7 @@ export function saveState(baseDir, state) {
   const alvo = path.join(dir, NOME_ESTADO);
   const backup = path.join(dir, NOME_BACKUP);
   const backupAnterior = path.join(dir, NOME_BACKUP_ANTERIOR);
-  const temporario = path.join(dir, `${NOME_ESTADO}.${process.pid}.${Date.now()}.tmp`);
+  const temporario = path.join(dir, `${NOME_ESTADO}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString("hex")}.tmp`);
 
   const lock = acquireLock(baseDir);
   if (!lock.ok) {
