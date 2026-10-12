@@ -31,7 +31,8 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
   galhos, agrupamento, zoom e transições — sai do protótipo da Etapa 2, com
   dados simulados, e volta para aprovação.
 - [x] Confirmar a biblioteca de renderização.
-  Resolvido por D19: p5.js segue como candidata, a validar no protótipo.
+  Resolvido por D19 e encerrado por D45: p5.js descartada; Canvas 2D puro
+  provou árvore orgânica, animada e estável, aprovado no reteste.
 
 ### Rodada 3 — persistência (fechada em 12/10/2026)
 
@@ -101,7 +102,7 @@ executar operações no serviço ou nos projetos reais para antecipar essa etapa
 As Rodadas 1 e 2 foram fechadas (D12 a D19); a Rodada 3 trata da persistência
 dos vínculos.
 
-### Etapa 2 — protótipo visual com dados simulados (construído, em avaliação)
+### Etapa 2 — protótipo visual com dados simulados (concluída em 12/10/2026)
 
 Construído em 12/10/2026 com Node puro, sem dependências, sem build e sem
 qualquer acesso ao OpenCode, a projetos ou ao vault. Instruções de execução e
@@ -126,18 +127,19 @@ com execução completa no Linux em 12/10/2026 sob Node v22.22.1: **44 ok,
 - Modo degradado: arquivo corrompido recai no backup sem apagar a árvore.
 - Porta ocupada impede início silencioso.
 
-Pendente de avaliação do usuário: a aparência e a animação da árvore, a
-navegação e o popup. Só depois disso a candidata p5.js (D19) pode ser
-confirmada ou descartada. Nada foi testado contra uma instalação real do
-OpenCode. O smoke já roda no Linux (Node v22.22.1, 44 ok, 0 falhas).
+Etapa 2 concluída em 12/10/2026. Na primeira avaliação visual o usuário
+aprovou a aparência e o fundo, mas relatou que criar um chat não aparecia na
+tela. A investigação encontrou três defeitos de renderização, todos corrigidos
+e cobertos pelo teste `tests/tree-render.mjs` (11 verificações): nós desenhados
+em coordenadas NaN (a árvore inteira era invisível no canvas), nós sem grupo de
+origem sem âncora própria, e subárvore de galho recolhido que continuava
+desenhada.
 
-Na primeira avaliação visual (12/10/2026) o usuário aprovou a aparência e o
-fundo, mas relatou que criar um chat não aparecia na tela. A investigação
-encontrou três defeitos de renderização, todos corrigidos e cobertos pelo novo
-teste `tests/tree-render.mjs` (11 verificações): nós desenhados em coordenadas
-NaN (a árvore inteira era invisível no canvas), nós sem grupo de origem sem
-âncora própria, e subárvore de galho recolhido que continuava desenhada. O
-reteste visual é o próximo passo.
+No reteste o usuário aprovou: árvore visível, criação, vinculação e remoção de
+vínculo funcionando. A D19 foi encerrada por D45 — p5.js descartada,
+renderização segue em Canvas 2D puro. Nada foi testado contra uma instalação
+real do OpenCode nesta etapa; o smoke roda no Linux com 44 verificações
+verdes.
 
 ### Etapa 3 — integração somente leitura
 

@@ -90,8 +90,8 @@ src/
 
 ## Limites conhecidos do protótipo
 
-- O desenho é Canvas 2D puro. p5.js continua sendo apenas candidata (D19): a
-  escolha definitiva depende de você avaliar o resultado.
+- O desenho é Canvas 2D puro e assim fica: a p5.js foi descartada por D45
+  depois que a avaliação visual aprovou o resultado.
 - A simulação é local e não representa o comportamento real das sessões.
 - Nenhuma operação de escrita no OpenCode ou no Git existe aqui. Criar chat,
   vincular worktree e criar worktree pertencem às Etapas 4 e 5 do roadmap.

@@ -98,15 +98,39 @@ marcnuri.
 
 ## 7. Verificações pendentes
 
-Todas são itens da Etapa 3 e devem ser conferidos contra a instalação
-autorizada, começando por dados simulados e repositórios descartáveis. Nenhuma
-delas foi verificada até aqui.
+Todas começam por dados simulados e repositórios descartáveis. Status em
+12/10/2026, após as chamadas somente leitura descritas no §8:
 
-| # | Pendência | Como verificar | Impacto se falhar |
+| # | Pendência | Status | Impacto se falhar |
 | --- | --- | --- | --- |
-| V01 | Contrato de `session.list`: parâmetros, filtros e paginação | Chamada de leitura contra o serviço local autorizado, sem escrever nada | A enumeração da árvore pode ficar incompleta |
-| V02 | Como ler o destino de worktrees configurado pelo projeto | Ler a configuração do diretório canônico e comparar com o inventário | O painel pode sugerir destino divergente do projeto (D28) |
-| V03 | Suporte a chave de idempotência nas operações de criação | Inspecionar o contrato da API | Sem suporte, a anti-duplicação depende só de confirmação (D34) |
-| V04 | Comportamento com múltiplos projetos simultâneos | Teste em repositórios descartáveis | Risco de confundir projetos entre si |
-| V05 | Se o plugin oficial de gerenciamento de sessões já oferece árvore | Ler a documentação e o repositório do plugin | Pode reduzir ou mudar o diferencial do TreeOffice |
-| V06 | Se `worktree.create` executa de fato scripts de preparação no ambiente do usuário | Teste em repositório descartável com preparação conhecida | O texto do popup (D30) precisa de ajuste |
+| V01 | Contrato de `session.list`: parâmetros, filtros e paginação | **Comprovado** (§8): parâmetros confirmados, paginação por cursor | — |
+| V02 | Como ler o destino de worktrees configurado pelo projeto | Pendente — a lista de worktrees por projeto foi comprovada (§8); falta a configuração de destino do projeto, na Fase D | O painel pode sugerir destino divergente do projeto (D28) |
+| V03 | Suporte a chave de idempotência nas operações de criação | Pendente — Fase C | Sem suporte, a anti-duplicação depende só de confirmação (D34) |
+| V04 | Comportamento com múltiplos projetos simultâneos | **Comprovado** (§8): a listagem de projetos devolve vários; falta o teste em descartáveis, na Fase C | Risco de confundir projetos entre si |
+| V05 | Se o plugin oficial de gerenciamento de sessões já oferece árvore | Pendente — leitura de documentação | Pode reduzir ou mudar o diferencial do TreeOffice |
+| V06 | Se `worktree.create` executa de fato scripts de preparação no ambiente do usuário | Pendente — Fase D, em repositório descartável com preparação conhecida | O texto do popup (D30) precisa de ajuste |
+
+## 8. Contrato do serviço local — comprovado em 12/10/2026
+
+**Natureza:** verificado contra a instalação real do usuário (serviço em
+`http://127.0.0.1:49374`, OpenCode v2.0.15), por chamadas somente leitura via
+`opencode api` (mesmo fluxo de descoberta e autenticação da TUI). Nada foi
+criado, alterado ou removido. **Valores observados (ids, títulos, diretórios)
+não são registrados aqui por D23** — apenas a forma do contrato.
+
+| Item | Forma comprovada |
+| --- | --- |
+| Lista de sessões | `GET /api/session` com `limit`, `order`, `search`, `parentID`, `directory`, `project`, `subpath`, `cursor`. Resposta: `{ data: Session.Info[], cursor: { previous, next } }` — paginação por cursor com âncora `{id, time, direction}` |
+| `Session.Info` | `id`, `parentID`, `fork`, `projectID`, `agent`, `model`, `cost`, `tokens`, `outcome`, `time`, `title`, `subpath`, `metadata`, `permissions`, `revert`, `location`. Na resposta real observada: `id, projectID, agent, model, cost, tokens, outcome, time, title, location` |
+| `time` de sessão | `{ created, updated, idle, viewed }` — insumo para o mapeamento de estados (D16) |
+| `location` | `{ directory }` — contexto de trabalho do chat |
+| Projetos | `GET /api/project` devolve array; itens com `id`, `canonical`, `time`, `sandboxes` e, em alguns, `vcs` |
+| Eventos | `GET /api/event` serve `text/event-stream` (SSE) — vivacidade, não inventário (D33) |
+| Worktrees | `GET /api/worktree?projectID=...` (sem `projectID` devolve 400). Resposta: array de `{ directory }`. Existem também os esquemas `Worktree.CreateInput` e `Worktree.RemoveInput`, para as fases de criação |
+| Criação de sessão | `POST /api/session` existe no contrato (`id`, `title`, `agent`, `model`, `location`, `metadata`…) — **fora do escopo atual**, pertence à Fase C |
+
+**Consequências:** D46 fica assentada em evidência (HTTP com `fetch` do Node,
+sem dependência nova). A enumeração da árvore pode nascer das sessões reais; o
+cursor resolve a paginação sem varredura. A autenticação usa o mesmo caminho
+do TUI — a credencial do serviço continua existindo só no processo, nunca no
+estado local, nos logs ou na documentação (D41).

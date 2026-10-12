@@ -51,17 +51,13 @@ A criação da estrutura não significa aprovação do plano completo.
 | D42 | Início por comando único na pasta do projeto; desativação não exige remoção global. | Parar encerra o processo sem apagar o estado; atualização por pull com backup; logs locais sem conteúdo privado; Blob Office permanece intocado. |
 | D43 | O projeto é multi-SO: documentação e comandos portáteis, sem caminho absoluto fixo. | A pasta-mãe é onde o repositório foi clonado (Windows: `D:\Meus Projetos\TreeOffice`; Linux: clone local desde 12/10/2026). Comandos usam barras normais e valem em bash e PowerShell. Complementa D01 sem substituí-la; caminhos históricos do Windows ficam como nota. |
 | D44 | Runtime Node 18.2+ é requisito do protótipo; instalar runtime ou pacotes é decisão do usuário. | Nenhuma dependência externa no código. A instalação do Node no ambiente Linux depende de autorização explícita, reforçando AGENTS.md; smoke test no Linux só roda após essa instalação. |
+| D45 | p5.js é descartada: o protótipo da Etapa 2 provou árvore orgânica, animada e estável com Canvas 2D puro. | Renderização segue sem nenhuma dependência externa. D19 encerrada por evidência: 11 verificações de renderização e avaliação visual aprovada pelo usuário em 12/10/2026. Pode ser revisitada se a fidelidade visual um dia exigir. |
+| D46 | A ponte fala com o serviço local do OpenCode por HTTP com `fetch` do próprio Node — sem `@opencode/client` nem nova dependência. | O contrato foi comprovado contra o serviço real (v2.0.15): `session.list` com paginação por cursor, SSE em `/api/event`, worktrees por `projectID`. Descoberta do endpoint e credencial em runtime, nunca persistidas (D23, D41). |
 
 ## Propostas ainda abertas
 
-- Autorização do usuário para iniciar a implementação das Fases B a F do
-  roadmap (D11).
-- Instalação do Node no ambiente Linux do usuário (D44).
-- Confirmação ou descarte da p5.js após a avaliação do protótipo da Etapa 2
-  (D19) — a Fase B usa o que sair dessa avaliação.
-- Verificações V01 a V06 da Etapa 3, em [PESQUISA](PESQUISA.md) §7.
-- Integração com o vault do Tucofre (D36, D37) — fora da V1, depende de nova
-  decisão.
+- Verificações V02 (destino de worktrees configurado pelo projeto), V03 (idempotência), V05 (plugin oficial de sessões) e V06 (preparação do projeto) seguem pendentes — ver [PESQUISA](PESQUISA.md) §7.
+- Integração com o vault do Tucofre (D36, D37) — fora da V1, depende de nova decisão.
 
 ## Rodadas de fechamento
 
@@ -78,12 +74,16 @@ persistência, instalação e verificação.
 | 6 | Tucofre e dependências | Fechada (D36, D37, D38, D39); sem bloqueio para a V1 |
 | 7 | Instalação, autenticação, verificação e plano consolidado | Fechada (D40, D41, D42) |
 | 8 | Adaptação multi-SO e retomada no Linux | Fechada (D43, D44) |
+| 9 | Encerramento da Etapa 2 e contrato do serviço | Fechada (D45, D46) |
 
-Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026 e a
-Rodada 8 no mesmo dia, quando o usuário passou a usar o projeto no Linux. O
-plano consolidado está em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) e o roadmap
-de execução da V1, em [ROADMAP-V1](ROADMAP-V1.md). A implementação continua
-dependendo de autorização do usuário, conforme D11.
+Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026, a
+Rodada 8 no mesmo dia (retomada no Linux) e a Rodada 9 em 12/10/2026
+(p5.js descartada por D45; cliente HTTP do serviço definido por D46, já
+comprovado contra a instalação local). O plano consolidado está em
+[PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md), a pesquisa em [PESQUISA](PESQUISA.md)
+e o roadmap de execução da V1, em [ROADMAP-V1](ROADMAP-V1.md). A implementação
+das Fases B a F foi autorizada pelo usuário em 12/10/2026, dentro dos limites
+do roadmap (D11).
 
 ## Pesquisa de referência
 

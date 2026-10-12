@@ -69,6 +69,18 @@ subárvore de galho recolhido que continuava desenhada. O teste
 `tests/tree-render.mjs` (11 verificações) cobre os três casos;
 `tests/smoke.mjs` segue com 44 verificações verdes no Linux.
 
+No reteste (12/10/2026) o usuário aprovou: árvore visível, criação, vinculação
+e remoção de vínculo funcionando. A D19 foi encerrada por D45 — p5.js
+descartada, renderização segue em Canvas 2D puro, sem dependência externa.
+
+Ainda em 12/10/2026, com autorização do usuário (Fase B do roadmap), a ponte
+teve seu contrato com o serviço local comprovado por chamadas somente
+leitura: serviço em `http://127.0.0.1:49374` (OpenCode v2.0.15),
+`session.list` com paginação por cursor, eventos por SSE e worktrees por
+`projectID` — registro em `docs/PESQUISA.md` §8 e decisão D46 (HTTP com
+`fetch` do Node, sem dependência nova). Nenhuma credencial, id, título ou
+diretório real foi registrado (D23).
+
 Em 12/10/2026 o repositório Git local foi inicializado nesta pasta, rastreando
 `origin/main`, e o histórico remoto foi adotado sem reescrita. A identidade de
 commit local usa o endereço `noreply` da conta GitHub. O estado de execução do
@@ -212,6 +224,8 @@ ser solicitados quando forem necessários para uma etapa aprovada.
 
 - Painel web local separado do Blob Office.
 - p5.js como candidato para preservar a linguagem visual da referência.
+  Descartada por D45: o Canvas 2D puro do protótipo entregou a linguagem
+  visual aprovada pelo usuário, sem dependência externa.
 - Integração com o serviço OpenCode usando a API V2.
 - Ponte local para manter credenciais fora do navegador.
 - Persistência própria de vínculos e preferências visuais.

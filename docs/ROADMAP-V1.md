@@ -1,8 +1,8 @@
 # Roadmap da V1 do TreeOffice
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
-**Estado:** Fase A em andamento. Fases B a F dependem de autorização do usuário
-em cada portão (D11).
+**Estado:** Fase A concluída. Fase B em andamento (B1 fechado, B2 parcial);
+Fases C a F dependem de autorização do usuário em cada portão (D11).
 **Base:** [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) (decisões), [DECISOES](DECISOES.md)
 (D01–D44), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
 (critérios de aceite).
@@ -30,7 +30,7 @@ Risco baixo; nada toca no OpenCode.
 | A1 | Instalar e fixar o runtime Node ≥ 18.2 (método escolhido pelo usuário; outro chat de outro projeto pode fazer a instalação — antes de depender dela, confirmar versão e acessibilidade a este usuário/shell) | Feito em 12/10/2026: Node v22.22.1 |
 | A2 | Registrar a correção do cookie HttpOnly (`treeoffice_token`) e cobri-la no smoke test | Feito em 12/10/2026 (6 verificações de cookie; 44 no total) |
 | A3 | Rodar `node tests/smoke.mjs` no Linux e registrar o resultado como evidência | Feito em 12/10/2026: 44 ok, 0 falhas, saída limpa, Node v22.22.1 |
-| A4 | Avaliação visual do protótipo pelo usuário: árvore, animação, navegação, popup — porta para confirmar ou descartar a p5.js (D19) | Pendente (usuário) |
+| A4 | Avaliação visual do protótipo pelo usuário: árvore, animação, navegação, popup — porta para confirmar ou descartar a p5.js (D19) | Feito em 12/10/2026: aprovado pelo usuário com três defeitos de renderização corrigidos antes; p5.js descartada por D45 |
 | A5 | Adaptação multi-SO da documentação (D43, D44): comandos portáteis, caminho do repositório sem absoluto fixo, requisito de Node, versões do OpenCode nos dois sistemas | Feito em 12/10/2026 |
 | A6 | Commit e push das mudanças de A2 e A5 | Feito em 12/10/2026; push para `origin/main` OK |
 
@@ -56,6 +56,11 @@ OpenCode; não cria nada.
 | B3 | Mapear eventos do serviço para os estados visuais (ativo, dormente, vazio, não encontrado, incerto) | D16, D32 |
 | B4 | Inventário persistido + releitura completa na reconexão; eventos só para vivacidade | D21, D33 |
 | B5 | Trocar a simulação por dados reais, mantendo o mock como caminho de teste | D25 |
+
+**Andamento em 12/10/2026:** B1 fechado — D46 (HTTP com `fetch` do Node, sem
+dependência nova); contrato comprovado contra o serviço real em
+[PESQUISA](PESQUISA.md) §8. B2 parcial: V01 e V04 comprovados; V05, V02, V03 e
+V06 seguem pendentes (§7).
 
 **Portão de saída:** a árvore nasce das sessões reais; queda e reconexão não
 perdem nós; estados visuais aprovados.

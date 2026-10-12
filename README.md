@@ -4,10 +4,11 @@ Integração visual com o OpenCode para organizar e criar chats em uma árvore
 orgânica, dinâmica e animada, inspirada no Blob Office.
 
 **Estado atual:** plano de design fechado em 12/10/2026, após sete rodadas de
-decisão. O protótipo visual da Etapa 2 existe em `src/` (Node puro, sem
-dependências, dados simulados) e aguarda sua avaliação para confirmar ou
-descartar a p5.js (D19). A integração com o OpenCode (Etapas 3 em diante)
-depende de autorização do usuário (D11). Roadmap de execução em
+decisão, e Etapa 2 encerrada com avaliação visual aprovada pelo usuário (D45).
+O protótipo visual vive em `src/` (Node puro, sem dependências) e a Fase B do
+roadmap está em andamento, com o contrato do serviço local já comprovado por
+chamadas somente leitura (D46). A integração com escrita depende de autorização
+do usuário em cada portão (D11). Roadmap de execução em
 [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md).
 
 ## Requisitos
@@ -19,7 +20,7 @@ depende de autorização do usuário (D11). Roadmap de execução em
 
 - [AGENTS.md](AGENTS.md): instruções de entrada para assistentes do projeto.
 - [CONTEXTO-PROJETO.md](CONTEXTO-PROJETO.md): histórico, requisitos e limites.
-- [docs/DECISOES.md](docs/DECISOES.md): decisões confirmadas (D01–D44) e propostas abertas.
+- [docs/DECISOES.md](docs/DECISOES.md): decisões confirmadas (D01–D46) e propostas abertas.
 - [docs/PLANEJAMENTO.md](docs/PLANEJAMENTO.md): rodadas de decisão, etapas e critérios de aceite.
 - [docs/SEGURANCA.md](docs/SEGURANCA.md): proteção dos projetos existentes.
 - [docs/PESQUISA.md](docs/PESQUISA.md): pesquisa de referência, ecossistema e verificações pendentes.
@@ -46,7 +47,7 @@ TreeOffice/
 │   ├── PLANO-CONSOLIDADO.md
 │   └── ROADMAP-V1.md         # roadmap de execução da V1
 ├── src/       # protótipo da Etapa 2 (Node puro, dados simulados)
-├── tests/     # smoke test do protótipo; demais testes virão nas próximas etapas
+├── tests/     # smoke (ponte) e tree-render (renderizador); ambos sem rede
 ├── assets/    # recursos visuais próprios do TreeOffice
 └── scripts/   # automações futuras, sempre explícitas
 ```

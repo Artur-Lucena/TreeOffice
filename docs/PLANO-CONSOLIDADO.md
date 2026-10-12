@@ -1,12 +1,12 @@
 # Plano consolidado do TreeOffice
 
 **Fechado em:** 12 de outubro de 2026.
-**Estado:** decisões de desenho completas. A aplicação integrada ao OpenCode
-não foi implementada, instalada, executada ou testada contra uma instalação
-real. O protótipo da Etapa 2 existe em `src/` (Node puro, dados simulados) e
-aguarda avaliação visual do usuário; o roadmap de execução da V1 está em
-[ROADMAP-V1](ROADMAP-V1.md).
-**Depende de:** autorização do usuário para iniciar a implementação (D11).
+**Estado:** decisões de desenho completas; Etapa 2 encerrada com avaliação
+aprovada pelo usuário (D45). A aplicação integrada ao OpenCode não foi
+implementada, mas o contrato do serviço local foi comprovado por chamadas
+somente leitura (PESQUISA §8, D46). O roadmap de execução da V1 está em
+[ROADMAP-V1](ROADMAP-V1.md), com a Fase B em andamento.
+**Depende de:** autorização do usuário para as fases de escrita (D11).
 
 Este documento consolida o resultado das sete rodadas de fechamento. As
 decisões individuais estão em [DECISOES](DECISOES.md); a pesquisa que sustenta
@@ -36,7 +36,7 @@ dependências; o painel apenas descreve e executa o que ele pede.
 | --- | --- | --- |
 | Forma | Aplicação local independente, com ponte local e UI web | D12. Um plugin V2 não conseguiria listar sessões existentes; ver [PESQUISA](PESQUISA.md) §2 |
 | Comunicação | Ponte fala com o OpenCode pelo cliente HTTP e pelo serviço local, que resolvem endpoint e autenticação | D12, D41. Credenciais ficam apenas na ponte |
-| Renderização | p5.js como candidata, a validar no protótipo | D02, D19, D25 |
+| Renderização | Canvas 2D puro; p5.js descartada por D45 após o protótipo da Etapa 2 | D02, D19, D45, D25 |
 | Estado | Arquivo JSON único em `.local/`, versionado, fora do Git | D20, D22, D23 |
 | Exposição | Porta 4717 apenas em `127.0.0.1`, token de 256 bits, `Origin` e `Host` validados | D40, D41 |
 
@@ -172,7 +172,7 @@ sessões e execução real da preparação do projeto.
 | Risco | Mitigação |
 | --- | --- |
 | Contrato da API não verificado contra instalação real | Etapa 3 com dados simulados e leituras antes de qualquer escrita |
-| p5.js pode não entregar árvore estável e animada | D19: só vira escolha definitiva se o protótipo provar |
+| p5.js poderia não entregar árvore estável e animada | Resolvido por D45: o Canvas 2D puro provou; renderização sem dependência externa |
 | A API pode mudar entre versões do OpenCode | Verificar a versão instalada antes de implementar; conteúdo das etapas 3 e 4 |
 | Compartilhamento acidental de worktree | D27: aviso bloqueante com confirmação e registro |
 | Criação duplicada por falha de comunicação | D32 e D34: estado incerto e confirmação explícita |
