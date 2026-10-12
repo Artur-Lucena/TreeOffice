@@ -20,8 +20,10 @@ não foi implementada e o plano completo ainda não foi aprovado.
 
 A Rodada 1 do fechamento foi concluída: D12 (aplicação local independente com
 ponte local), D13 (a conversa continua na interface do OpenCode na V1) e D14
-(cadastro explícito de pastas e projetos). A Rodada 2, sobre organização e
-aparência da árvore, está em andamento.
+(cadastro explícito de pastas e projetos). A Rodada 2 também foi fechada, com
+D17 (papel como metadado visual), D18 (grupo com ou sem diretório cadastrado) e
+D19 (p5.js como candidata de renderização). A Rodada 3 trata da persistência
+dos vínculos.
 
 O usuário autorizou publicar a documentação no repositório
 `https://github.com/Artur-Lucena/TreeOffice`. Nenhuma dependência foi

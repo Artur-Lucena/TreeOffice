@@ -17,15 +17,17 @@ surgindo. Cada rodada só é iniciada quando a anterior deixa de bloquear.
 - [x] Fechar o escopo: conversar no painel ou abrir o chat no OpenCode.
   Resolvido por D13: a conversa continua na interface do OpenCode na V1.
 
-### Rodada 2 — organização e aparência (em andamento)
+### Rodada 2 — organização e aparência (fechada em 12/10/2026)
 
-- [ ] Definir como organizar projetos, papéis e sessões sem reorganizar pastas.
-  D14 e D15 aprovados; falta detalhar o que é um "papel" na árvore e como
-  grupos e sessões se relacionam com diretórios reais.
-- [ ] Definir os elementos visuais, estados e navegação da árvore animada.
-  Direção aprovada em D16 (estado dormente, ausência de dado não vira estado);
-  falta o desenho detalhado, validado no protótipo da Etapa 2.
-- [ ] Confirmar a biblioteca de renderização. p5.js segue como proposta.
+- [x] Definir como organizar projetos, papéis e sessões sem reorganizar pastas.
+  Resolvido por D14, D17 e D18: cadastro explícito, papel como metadado visual
+  sem comportamento, grupo com ou sem diretório cadastrado.
+- [x] Definir os elementos visuais, estados e navegação da árvore animada.
+  Direção aprovada em D15 e D16. O desenho detalhado — formato dos blobs,
+  galhos, agrupamento, zoom e transições — sai do protótipo da Etapa 2, com
+  dados simulados, e volta para aprovação.
+- [x] Confirmar a biblioteca de renderização.
+  Resolvido por D19: p5.js segue como candidata, a validar no protótipo.
 
 ### Rodada 3 — persistência
 
@@ -66,7 +68,8 @@ Essa foi a única etapa autorizada até o momento.
 Resolver as questões bloqueadoras e produzir um desenho de interface, contrato
 de dados, arquitetura e critérios de aceite. Não instalar dependências nem
 executar operações no serviço ou nos projetos reais para antecipar essa etapa.
-A Rodada 1 foi fechada com D12 e D13; a Rodada 2 está em andamento.
+As Rodadas 1 e 2 foram fechadas (D12 a D19); a Rodada 3 trata da persistência
+dos vínculos.
 
 ### Etapa 2 — protótipo visual com dados simulados
 

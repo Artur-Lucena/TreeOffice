@@ -23,10 +23,12 @@ A criação da estrutura não significa aprovação do plano completo.
 | D14 | Pastas e projetos entram por cadastro explícito do usuário. | Sem varredura automática de disco; o inventário do OpenCode é lido para exibir, e a organização é decidida pelo usuário. |
 | D15 | Modelo visual em três camadas, com vínculo organizacional distinto da relação nativa entre sessões. | Grupos, nós de chat e dependências são camadas separadas; `session.move` e a aresta do painel têm grafia visual diferente. |
 | D16 | Estados visuais: chat parado permanece visível; ausência de dado não é desenhada como estado. | Estado dormente para conversas paradas ou concluídas; mapeamento definitivo dos estados na Etapa 3, com dados reais. |
+| D17 | Papel organizacional é metadado visual, sem comportamento automático. | Papel não inicia chats, não envia instruções e não cria worktrees. No máximo pré-preenche sugestões no popup de criação, sempre confirmadas pelo usuário. |
+| D18 | Um grupo pode ou não ter diretório cadastrado; o vínculo é apenas informativo. | O painel não move, cria nem valida pastas. Grupo sem diretório leva o popup de criação a perguntar o contexto. |
+| D19 | p5.js permanece como candidata de renderização. | Fidelidade com a referência visual de D02; a escolha só vira definitiva se o protótipo com dados simulados (Etapa 2) provar árvore orgânica, animada e estável. |
 
 ## Propostas ainda abertas
 
-- p5.js para renderização.
 - Modelo de persistência dos vínculos e preferências.
 - Conexões pontilhadas para dependências do roadmap.
 - Primeira versão da integração com o Tucofre em leitura selecionada.
@@ -42,7 +44,7 @@ persistência, instalação e verificação.
 | Rodada | Tema | Estado |
 | --- | --- | --- |
 | 1 | Arquitetura e escopo da conversa | Fechada (D12, D13) |
-| 2 | Organização, papéis e aparência da árvore | Em andamento (D14, D15, D16) |
+| 2 | Organização, papéis e aparência da árvore | Fechada (D14, D15, D16, D17, D18, D19); desenho visual detalhado sai do protótipo da Etapa 2 |
 | 3 | Persistência dos vínculos | Aberta |
 | 4 | Worktrees: vinculação, criação e confirmações | Aberta |
 | 5 | Falhas parciais, recuperação e anti-duplicação | Aberta |
