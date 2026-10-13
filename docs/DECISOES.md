@@ -55,6 +55,7 @@ A criação da estrutura não significa aprovação do plano completo.
 | D46 | A ponte fala com o serviço local do OpenCode por HTTP com `fetch` do próprio Node — sem `@opencode/client` nem nova dependência. | O contrato foi comprovado contra o serviço real (v2.0.15): `session.list` com paginação por cursor, SSE em `/api/event`, worktrees por `projectID`. Descoberta do endpoint e credencial em runtime, nunca persistidas (D23, D41). |
 | D47 | Blob Office removido da pasta global de plugins por ordem explícita do usuário em 13/10/2026, com backup reversível. | Os 4 arquivos foram movidos para pasta de backup fora de `plugins/`; nada foi copiado para o TreeOffice (D24 segue valendo). Substitui a cláusula de preservação do Blob Office em D09. Para reverter, mover os arquivos de volta e reiniciar o serviço OpenCode. |
 | D48 | Comando único de entrada `node src/iniciar.mjs`, que sobe a ponte e abre o painel no navegador. | Abertura automática é cortesia e pode ser desativada (`--sem-abrir`, `TREEOFFICE_NO_OPEN=1`); falha ao abrir nunca derruba a ponte. Sem dependências novas, portátil Windows/Linux. |
+| D49 | Direção de arte giz-cassino com naipes semânticos, aprovada pelo usuário em 13/10/2026. | Naipe codifica papel (♠ liderança, ♥ execução, ♦ investigação, ♣ estudo; livre sem naipe) no lugar da cor; estados em textura + contorno + brilho; ficha de pôquer marca galho recolhido e worktree (dupla quando compartilhado). Tudo procedural em Canvas, sem asset externo (D24, D25). |
 
 ## Propostas ainda abertas
 
@@ -78,6 +79,7 @@ persistência, instalação e verificação.
 | 8 | Adaptação multi-SO e retomada no Linux | Fechada (D43, D44) |
 | 9 | Encerramento da Etapa 2 e contrato do serviço | Fechada (D45, D46) |
 | 10 | Substituição do Blob Office e comando de entrada | Fechada (D47, D48) |
+| 11 | Direção de arte giz-cassino | Fechada (D49) |
 
 Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026, a
 Rodada 8 no mesmo dia (retomada no Linux) e a Rodada 9 em 12/10/2026

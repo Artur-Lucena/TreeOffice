@@ -263,6 +263,14 @@ button.perigo {
   gap: 5px;
 }
 
+.legenda .naipes {
+  letter-spacing: 3px;
+  color: rgba(235, 232, 224, 0.85);
+  border-left: 1px solid var(--borda);
+  padding-left: 12px;
+  cursor: help;
+}
+
 .estado {
   width: 9px;
   height: 9px;

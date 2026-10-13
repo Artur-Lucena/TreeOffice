@@ -24,20 +24,28 @@ const ESTADO = {
   INCERTO: "incerto",
 };
 
-const COR_PAPEL = {
-  lideranca: "#7cc4ff",
-  execucao: "#7ee0b8",
-  investigacao: "#ffb86b",
-  estudo: "#c9a7ff",
-  livre: "#9aa4b2",
+/**
+ * Naipes com significado (D49): o naipe codifica o papel organizacional no
+ * lugar da cor, que morreu na transição para o giz monocromático.
+ * Livre não tem naipe. Renderizados via fillText com fonte do sistema —
+ * nenhum asset externo (D25).
+ */
+const NAIPE = {
+  lideranca: "♠",
+  execucao: "♥",
+  investigacao: "♦",
+  estudo: "♣",
 };
 
-function hueFromId(id) {
-  let h = 0;
-  const texto = String(id);
-  for (let i = 0; i < texto.length; i += 1) h = (h * 31 + texto.charCodeAt(i)) & 0xffff;
-  return h % 360;
+function naipeDe(papel) {
+  return NAIPE[papel] || "";
 }
+
+/* Giz sobre quadro-negro: tudo em tons de giz quente; o único acento é o
+ * brilho do estado ativo. Estados vivem em textura + contorno, não em cor. */
+const GIZ = "232, 230, 222";
+const SERIFA = `Georgia, 'Times New Roman', serif`;
+const SANS = `"Segoe UI", system-ui, sans-serif`;
 
 function hashNum(id) {
   let h = 0;
@@ -93,6 +101,57 @@ export function criarArvore(canvas, opcoes = {}) {
   const camera = { x: 0, y: 0, zoom: 0.75, alvoX: 0, alvoY: 0, alvoZoom: 0.75 };
   const posicoes = new Map(); // id → {x, y, vx, vy, fase, alvoX, alvoY, camada}
   const arrastando = { ativo: false, x: 0, y: 0, moveu: false };
+
+  /* ── D49: worktrees compartilhados e granulado do quadro ─────────────── */
+  const compartilhados = new Set(); // worktrees com >1 ocupante confirmado
+  let grao = null; // padrão de ruído pré-renderizado (nulo = sem granulado)
+
+  /** Worktrees com ocupação confirmada por mais de um nó (chip duplo). */
+  function computarCompartilhados() {
+    compartilhados.clear();
+    const contagem = new Map();
+    for (const o of estado.ocupacaoWorktree || []) {
+      if (!o || !o.worktree) continue;
+      contagem.set(o.worktree, (contagem.get(o.worktree) || 0) + 1);
+    }
+    for (const [wt, n] of contagem) {
+      if (n > 1) compartilhados.add(wt);
+    }
+  }
+
+  /** Granulado estático do quadro-negro; regenerado ao redimensionar. */
+  function semearGrao() {
+    grao = null;
+    if (nivelEfeitos() === "desligado") return;
+    try {
+      if (typeof document === "undefined" || !document.createElement) return;
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(largura / 2));
+      c.height = Math.max(1, Math.round(altura / 2));
+      const g = c.getContext("2d");
+      if (!g) return;
+      const img = g.createImageData(c.width, c.height);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const v = Math.random() < 0.5 ? 0 : 255;
+        img.data[i] = v;
+        img.data[i + 1] = v;
+        img.data[i + 2] = v;
+        img.data[i + 3] = Math.random() * 14;
+      }
+      g.putImageData(img, 0, 0);
+      grao = c;
+    } catch {
+      grao = null;
+    }
+  }
+
+  function desenharGrao() {
+    if (!grao || !ctx.drawImage) return;
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(grao, 0, 0, largura, altura);
+    ctx.restore();
+  }
 
   /* ── Onda 1: hover, densidade de efeitos e poeira ambiente ─────────────── */
   let pairado = null;
@@ -374,15 +433,14 @@ export function criarArvore(canvas, opcoes = {}) {
 
       const a = mundoParaTela(origem.x, origem.y);
       const b = mundoParaTela(destino.x, destino.y);
-      const hue = hueFromId(para);
       const tocaHover = pairado != null && (de === pairado || para === pairado);
       const dim = esmaecido(de) && esmaecido(para);
 
       ctx.save();
       if (dim) ctx.globalAlpha = 0.18;
       ctx.strokeStyle = tocaHover
-        ? `hsla(${hue}, 85%, 70%, 0.95)`
-        : `hsla(${hue}, 65%, ${paiEhGrupo ? 62 : 58}%, ${paiEhGrupo ? 0.5 : 0.75})`;
+        ? `rgba(${GIZ}, 0.95)`
+        : `rgba(${GIZ}, ${paiEhGrupo ? 0.4 : 0.6})`;
       ctx.lineWidth = (paiEhGrupo ? 5 : 3) * camera.zoom * (tocaHover ? 1.25 : 1);
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
@@ -479,7 +537,6 @@ export function criarArvore(canvas, opcoes = {}) {
     const p = posicoes.get(grupo.id);
     if (!p) return;
     const filhos = (estado.nos || []).filter((n) => n.grupoPai === grupo.id);
-    const cor = COR_PAPEL[grupo.papel] || COR_PAPEL.livre;
     const centro = mundoParaTela(p.x, p.y);
 
     let raio = 70 * camera.zoom;
@@ -494,24 +551,32 @@ export function criarArvore(canvas, opcoes = {}) {
     ctx.save();
     if (esmaecido(grupo.id)) ctx.globalAlpha = 0.25;
     const gradiente = ctx.createRadialGradient(centro.x, centro.y, raio * 0.2, centro.x, centro.y, raio);
-    gradiente.addColorStop(0, `${cor}22`);
-    gradiente.addColorStop(0.75, `${cor}12`);
-    gradiente.addColorStop(1, `${cor}00`);
+    gradiente.addColorStop(0, `rgba(${GIZ}, 0.10)`);
+    gradiente.addColorStop(0.75, `rgba(${GIZ}, 0.05)`);
+    gradiente.addColorStop(1, `rgba(${GIZ}, 0)`);
     ctx.fillStyle = gradiente;
     ctx.beginPath();
     ctx.ellipse(centro.x, centro.y, raio, raio * 0.82, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = `${cor}55`;
+    // Contorno esboçado do território: traço duplo de giz.
+    ctx.strokeStyle = `rgba(${GIZ}, 0.28)`;
     ctx.lineWidth = 1.2 * camera.zoom;
     ctx.setLineDash([4, 6]);
     ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = `rgba(${GIZ}, 0.12)`;
+    ctx.beginPath();
+    ctx.ellipse(centro.x, centro.y, raio * 0.94, raio * 0.77, 0, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
 
-    ctx.fillStyle = "rgba(233, 238, 245, 0.85)";
-    ctx.font = `${Math.round(13 * camera.zoom)}px "Segoe UI", system-ui, sans-serif`;
+    // Título em serifa vintage com o naipe do papel (D49).
+    const naipe = naipeDe(grupo.papel);
+    ctx.fillStyle = "rgba(235, 232, 224, 0.88)";
+    ctx.font = `${Math.round(14 * camera.zoom)}px ${SERIFA}`;
     ctx.textAlign = "center";
-    ctx.fillText(grupo.titulo, centro.x, centro.y - raio * 0.82 - 10 * camera.zoom);
+    ctx.fillText(naipe ? `${grupo.titulo} ${naipe}` : grupo.titulo, centro.x, centro.y - raio * 0.82 - 10 * camera.zoom);
   }
 
   function desenharNo(no, tempo) {
@@ -524,7 +589,6 @@ export function criarArvore(canvas, opcoes = {}) {
     const centro = posMundo(no.id, tempo, ampDeriva(estadoNo));
     if (!centro) return;
     const t = mundoParaTela(centro.x, centro.y);
-    const hue = hueFromId(no.id);
     // Hover fora da vizinhança esmaece (padrão Obsidian); o par não some.
     const dim = esmaecido(no.id);
     if (dim) {
@@ -538,46 +602,52 @@ export function criarArvore(canvas, opcoes = {}) {
     const raioBase = 26 * camera.zoom * (no.grupoPai && (estado.nos || []).some((n) => n.grupoPai === no.id) ? 1.15 : 1);
     const raio = raioOrganico(tempo, p.fase, raioBase) * escalaEntrada;
 
-    let saturacao = 70;
-    let luz = 60;
+    // Giz monocromático (D49): o estado mora em textura + contorno + brilho.
     let alfa = 1;
     let brilho = 0;
+    let alfaTraco = 0.9;
+    let alfaHachura = 0;
+    let passoHachura = 0;
+    let cruzada = false;
 
     if (estadoNo === ESTADO.ATIVO) {
-      saturacao = 82;
-      luz = 62;
       brilho = 0.35 + 0.25 * Math.sin(tempo * 0.004 + p.fase);
+      alfaHachura = 0.26;
+      passoHachura = 7 * camera.zoom;
     } else if (estadoNo === ESTADO.DORMENTE) {
-      saturacao = 32;
-      luz = 52;
       alfa = 0.72;
+      alfaTraco = 0.55;
+      alfaHachura = 0.13;
+      passoHachura = 11 * camera.zoom;
     } else if (estadoNo === ESTADO.VAZIO) {
-      saturacao = 12;
-      luz = 46;
       alfa = 0.55;
+      alfaTraco = 0.45;
     } else if (estadoNo === ESTADO.NAO_ENCONTRADO) {
-      saturacao = 6;
-      luz = 40;
       alfa = 0.5;
+      alfaTraco = 0.6;
+      alfaHachura = 0.2;
+      passoHachura = 8 * camera.zoom;
+      cruzada = true; // hachura em X: sessão cortada, mas nó preservado (D21)
     } else if (estadoNo === ESTADO.INCERTO) {
-      saturacao = 18;
-      luz = 58;
       alfa = 0.75 + 0.2 * Math.sin(tempo * 0.012 + p.fase);
+      alfaTraco = 0.7;
+      alfaHachura = 0.15;
+      passoHachura = 9 * camera.zoom;
     }
 
-    // Aura
+    // Aura de giz para o estado ativo.
     if (brilho > 0) {
       ctx.save();
-      ctx.shadowColor = `hsla(${hue}, 90%, 65%, ${brilho})`;
+      ctx.shadowColor = `rgba(${GIZ}, ${brilho})`;
       ctx.shadowBlur = 30 * camera.zoom;
-      ctx.fillStyle = `hsla(${hue}, ${saturacao}%, ${luz}%, ${alfa})`;
+      ctx.fillStyle = `rgba(20, 24, 32, ${alfa})`;
       ctx.beginPath();
       ctx.arc(t.x, t.y, raio, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
-    // Corpo
+    // Corpo: giz escuro com topo iluminado, sem cor por papel.
     const gradiente = ctx.createRadialGradient(
       t.x - raio * 0.35,
       t.y - raio * 0.4,
@@ -586,25 +656,49 @@ export function criarArvore(canvas, opcoes = {}) {
       t.y,
       raio,
     );
-    gradiente.addColorStop(0, `hsla(${hue}, ${saturacao}%, ${Math.min(luz + 16, 88)}%, ${alfa})`);
-    gradiente.addColorStop(1, `hsla(${hue + 12}, ${saturacao}%, ${Math.max(luz - 18, 22)}%, ${alfa})`);
+    gradiente.addColorStop(0, `rgba(52, 58, 70, ${alfa})`);
+    gradiente.addColorStop(1, `rgba(16, 20, 28, ${alfa})`);
     ctx.fillStyle = gradiente;
     ctx.beginPath();
     ctx.arc(t.x, t.y, raio, 0, Math.PI * 2);
     ctx.fill();
 
-    // Contorno por estado
+    // Hachura do estado, recortada no círculo (efeito desligado = sem relevo).
+    if (passoHachura > 0 && nivelEfeitos() !== "desligado" && ctx.clip) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, raio * 0.96, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.strokeStyle = `rgba(${GIZ}, ${alfaHachura})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const direcoes = cruzada ? [1, -1] : [1];
+      for (const sinal of direcoes) {
+        for (let d = -raio * 2; d <= raio * 2; d += passoHachura) {
+          ctx.moveTo(t.x - raio, t.y + d);
+          ctx.lineTo(t.x + raio, t.y + d - sinal * raio * 2);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Contorno esboçado: traço triplo de giz com tremor estável por nó.
+    const tremor = (hashNum(`${no.id}:traco`) - 0.5) * 2.4 * camera.zoom;
+    const tracejados = {
+      [ESTADO.VAZIO]: [4, 5],
+      [ESTADO.INCERTO]: [2, 4],
+      [ESTADO.NAO_ENCONTRADO]: [5, 4],
+    };
     ctx.lineWidth = 2 * camera.zoom;
-    if (estadoNo === ESTADO.VAZIO) ctx.setLineDash([4, 5]);
-    else if (estadoNo === ESTADO.INCERTO) ctx.setLineDash([2, 4]);
+    if (tracejados[estadoNo]) ctx.setLineDash(tracejados[estadoNo]);
     else ctx.setLineDash([]);
-    ctx.strokeStyle =
-      estadoNo === ESTADO.NAO_ENCONTRADO
-        ? "rgba(255, 120, 120, 0.85)"
-        : `hsla(${hue}, 80%, ${luz + 12}%, ${alfa})`;
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, raio + 1.5 * camera.zoom, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.strokeStyle = `rgba(${GIZ}, ${alfaTraco})`;
+    for (const delta of [0, 1.4 * camera.zoom + tremor * 0.3, -1.4 * camera.zoom + tremor * 0.3]) {
+      ctx.beginPath();
+      ctx.arc(t.x + tremor * 0.2, t.y, Math.max(raio + 1.5 * camera.zoom + delta, 1), 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.setLineDash([]);
 
     // Seleção
@@ -627,31 +721,79 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.stroke();
     }
 
-    // Recolhido: marcador
+    // Recolhido: ficha de pôquer com a contagem no centro (D49).
     const filhos = (estado.nos || []).filter((n) => n.grupoPai === no.id);
     if (filhos.length) {
-      ctx.fillStyle = "rgba(20, 24, 31, 0.9)";
+      const fx = t.x + raio * 0.78;
+      const fy = t.y - raio * 0.78;
+      const fr = 8 * camera.zoom;
+      ctx.fillStyle = "rgba(14, 17, 24, 0.92)";
       ctx.beginPath();
-      ctx.arc(t.x + raio * 0.78, t.y - raio * 0.78, 8 * camera.zoom, 0, Math.PI * 2);
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(233, 238, 245, 0.95)";
-      ctx.font = `${Math.round(11 * camera.zoom)}px "Segoe UI", system-ui, sans-serif`;
+      // Borda da ficha: 8 marcas no aro.
+      ctx.strokeStyle = `rgba(${GIZ}, 0.9)`;
+      ctx.lineWidth = 1.4 * camera.zoom;
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr * 0.68, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 8; i += 1) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.moveTo(fx + Math.cos(a) * fr * 0.68, fy + Math.sin(a) * fr * 0.68);
+        ctx.lineTo(fx + Math.cos(a) * fr, fy + Math.sin(a) * fr);
+      }
+      ctx.stroke();
+      ctx.fillStyle = "rgba(235, 232, 224, 0.95)";
+      ctx.font = `${Math.round(11 * camera.zoom)}px ${SANS}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(
         no.recolhido ? String(filhos.length) : "–",
-        t.x + raio * 0.78,
-        t.y - raio * 0.78 + 0.5,
+        fx,
+        fy + 0.5,
       );
     }
 
-    // Rótulos
+    // Worktree vinculado: ficha pequena; compartilhado confirmado = ficha dupla (D49).
+    if (no.worktree && camera.zoom > 0.45) {
+      const wx = t.x - raio * 0.78;
+      const wy = t.y + raio * 0.78;
+      const wr = 6 * camera.zoom;
+      const duplo = compartilhados.has(no.worktree);
+      if (duplo) {
+        ctx.fillStyle = "rgba(14, 17, 24, 0.92)";
+        ctx.beginPath();
+        ctx.arc(wx - 3 * camera.zoom, wy - 3 * camera.zoom, wr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${GIZ}, 0.55)`;
+        ctx.lineWidth = 1.2 * camera.zoom;
+        ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(14, 17, 24, 0.92)";
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${GIZ}, 0.9)`;
+      ctx.lineWidth = 1.2 * camera.zoom;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Rótulos em serifa vintage com o naipe do papel (D49).
     if (camera.zoom > 0.45) {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillStyle = "rgba(235, 240, 247, 0.95)";
-      ctx.font = `${Math.round(12.5 * camera.zoom)}px "Segoe UI", system-ui, sans-serif`;
-      const titulo = no.titulo.length > 34 ? `${no.titulo.slice(0, 33)}…` : no.titulo;
+      ctx.fillStyle = "rgba(235, 232, 224, 0.95)";
+      ctx.font = `${Math.round(12.5 * camera.zoom)}px ${SERIFA}`;
+      const naipe = naipeDe(no.papel);
+      const base = no.titulo.length > 32 ? `${no.titulo.slice(0, 31)}…` : no.titulo;
+      const titulo = naipe ? `${base} ${naipe}` : base;
       ctx.fillText(titulo, t.x, t.y + raio + 7 * camera.zoom);
 
       const sub = [];
@@ -659,7 +801,7 @@ export function criarArvore(canvas, opcoes = {}) {
       if (no.worktree) sub.push("worktree");
       if (sub.length && camera.zoom > 0.7) {
         ctx.fillStyle = "rgba(160, 172, 190, 0.9)";
-        ctx.font = `${Math.round(10.5 * camera.zoom)}px "Segoe UI", system-ui, sans-serif`;
+        ctx.font = `${Math.round(10.5 * camera.zoom)}px ${SANS}`;
         ctx.fillText(sub.join(" · "), t.x, t.y + raio + 22 * camera.zoom);
       }
     }
@@ -672,7 +814,7 @@ export function criarArvore(canvas, opcoes = {}) {
     for (const g of poeira) {
       const cintilar = 0.55 + 0.45 * Math.sin(tempo * 0.0011 + g.f);
       ctx.globalAlpha = g.a * cintilar;
-      ctx.fillStyle = "rgba(178, 198, 228, 1)";
+      ctx.fillStyle = `rgba(${GIZ}, 1)`;
       ctx.beginPath();
       ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
       ctx.fill();
@@ -720,6 +862,7 @@ export function criarArvore(canvas, opcoes = {}) {
     const T = reduzir ? 0 : tempo;
 
     desenharPoeira(T);
+    desenharGrao();
 
     ctx.save();
     ctx.globalAlpha = 0.5;
@@ -844,7 +987,9 @@ export function criarArvore(canvas, opcoes = {}) {
     else atualizarVizinhos();
     calcularAncoras();
     inicializarPosicoes();
+    computarCompartilhados();
     semearPoeira();
+    semearGrao();
   }
 
   function definirVivo(novoVivo) {
@@ -872,10 +1017,12 @@ export function criarArvore(canvas, opcoes = {}) {
   function ajustar() {
     redimensionar();
     semearPoeira();
+    semearGrao();
   }
 
   redimensionar();
   semearPoeira();
+  semearGrao();
   window.addEventListener("resize", ajustar);
   requestAnimationFrame(laco);
 

@@ -224,6 +224,30 @@ const fotoD = centros(arcs);
 verificar("nós parados mantêm o centro entre quadros", fotoC.join() === fotoD.join());
 verificar("nó do grupo segue visível no desligado", textos.includes("Nó do grupo"));
 
+/* ── Cenário 7: naipes com significado (D49) ─────────────────────────────── */
+console.log("\nCenário 7 — naipe codifica o papel; livre não tem naipe");
+const comNaipes = {
+  schemaVersion: 1,
+  grupos: [{ id: "g_lider", titulo: "Comando", papel: "lideranca" }],
+  nos: [
+    { id: "n_chefe", titulo: "Chefe", grupoPai: "g_lider", papel: "lideranca", estado: "ativo", recolhido: false },
+    { id: "n_obra", titulo: "Obra", grupoPai: "g_lider", papel: "execucao", estado: "dormente", recolhido: false },
+    { id: "n_pista", titulo: "Pista", grupoPai: "g_lider", papel: "investigacao", estado: "ativo", recolhido: false },
+    { id: "n_livro", titulo: "Livro", grupoPai: "g_lider", papel: "estudo", estado: "vazio", recolhido: false },
+    { id: "n_solto", titulo: "Solto", grupoPai: "g_lider", estado: "ativo", recolhido: false },
+  ],
+  dependencias: [],
+  preferencias: {},
+};
+const c7 = cenario(comNaipes, "um nó por papel mais um livre");
+verificar("nenhum arco com coordenada NaN", c7.naoFinitos.length === 0, `${c7.naoFinitos.length} arcos`);
+verificar("grupo liderança carrega ♠", textos.includes("Comando ♠"));
+verificar("execução carrega ♥", textos.includes("Obra ♥"));
+verificar("investigação carrega ♦", textos.includes("Pista ♦"));
+verificar("estudo carrega ♣", textos.includes("Livro ♣"));
+const solto = textos.find((t) => t === "Solto");
+verificar("livre não tem naipe", solto !== undefined && !"♠♥♦♣".split("").some((s) => solto.includes(s)));
+
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;
 console.log("\nNenhum projeto real, chat, worktree, vault ou OpenCode foi tocado.");

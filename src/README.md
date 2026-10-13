@@ -85,8 +85,9 @@ src/
 
 ## O que o protótipo já demonstra
 
-- Árvore orgânica e animada, com grupos, nós e arestas de dependência em
-  camadas visualmente distintas (D15).
+- Árvore orgânica e animada em giz-cassino (D49), com grupos, nós e arestas de
+  dependência em camadas visualmente distintas (D15). Naipes indicam o papel;
+  ficha de pôquer indica galho recolhido e worktree vinculado.
 - Onda 1 de efeitos (Canvas 2D puro, D45): deriva orgânica por soma
   quase-periódica (ativo respira, dormente quase para), hover que realça a
   vizinhança e esmaece o resto, fluxo animado nas dependências com seta de
