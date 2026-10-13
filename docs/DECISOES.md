@@ -59,6 +59,7 @@ A criação da estrutura não significa aprovação do plano completo.
 | D50 | Colisão só entre corpos, com âncoras autoritárias, aprovada em 13/10/2026. | Repulsão par a par determinística antes das molas; rótulos livres; irmãos de grupo dividem a órbita (filho único no centro); acessório `_debugPosicoes()` só de leitura para testes. Sem o passe determinístico de grupos — física primeiro. |
 | D51 | Correção dos gestos autorizada em 13/10/2026: arrastar nó empurra os vizinhos; arrastar fundo navega. | Ao soltar/cancelar, volta à âncora por mola. Não persiste posição manual nem realiza operações externas. O contato respeita o tamanho do desenho em unidades de mundo, independentemente do zoom. |
 | D52 | Correções de vivacidade e naipes autorizadas junto dos defeitos da UI. | Recência e estado suavizam o tamanho; partículas percorrem dependências visuais e brilhos usam composição aditiva. Papel/naipe pode ser escolhido na criação ou no painel; livre continua sem naipe. Sem novas dependências nem mudança de agente/modelo/permissões. |
+| D53 | Refino giz v2 autorizado em 13/10/2026: retorno suave, galhos em tubo e tipografia. | Soltar inicia planagem que só termina ao chegar devagar (ou no timeout), com trava anti-estalo sobre o deslocamento total do quadro; galhos em halo + núcleo; títulos de grupo espaçados e títulos de nó com brilho tênue, só com fontes do sistema. |
 
 ## Propostas ainda abertas
 
@@ -84,6 +85,7 @@ persistência, instalação e verificação.
 | 10 | Substituição do Blob Office e comando de entrada | Fechada (D47, D48) |
 | 11 | Direção de arte giz-cassino | Fechada (D49) |
 | 12 | Colisão entre corpos | Fechada (D50); passe de grupos adiado |
+| 13 | Refino giz v2: retorno, galhos e tipo | Fechada (D53) |
 
 Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026, a
 Rodada 8 no mesmo dia (retomada no Linux) e a Rodada 9 em 12/10/2026

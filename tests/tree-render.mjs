@@ -29,7 +29,7 @@ let rafCb = null;
 let relogio = 0;
 
 function canvasFalso() {
-  const reg = { alfa: [], dash: [] };
+  const reg = { alfa: [], dash: [], largura: [], traco: [], espaco: [] };
   const eventos = new Map();
   let pontos = [];
   const ctx = {
@@ -57,6 +57,18 @@ function canvasFalso() {
   Object.defineProperty(ctx, "lineDashOffset", {
     set(v) { reg.dash.push(v); },
     get() { return 0; },
+  });
+  Object.defineProperty(ctx, "lineWidth", {
+    set(v) { reg.largura.push(v); },
+    get() { return 1; },
+  });
+  Object.defineProperty(ctx, "strokeStyle", {
+    set(v) { reg.traco.push(v); },
+    get() { return ""; },
+  });
+  Object.defineProperty(ctx, "letterSpacing", {
+    set(v) { reg.espaco.push(v); },
+    get() { return "0px"; },
   });
   return {
     getContext: () => ctx,
@@ -101,6 +113,9 @@ function cenario(estado, rotulo, reduzir = false) {
   tracados = [];
   tela.__reg.alfa = [];
   tela.__reg.dash = [];
+  tela.__reg.largura = [];
+  tela.__reg.traco = [];
+  tela.__reg.espaco = [];
   passo(); // um quadro depois de tudo estabilizado
 
   const naoFinitos = [
@@ -490,6 +505,55 @@ const pos13 = c13.arvore._debugPosicoes().filter((p) => p.camada === "no");
 const meio13 = (Math.min(...pos13.map((p) => p.x)) + Math.max(...pos13.map((p) => p.x))) / 2;
 verificar("enquadramento usa o centro real do grafo", Math.abs(cam13.alvoX - meio13) < 1);
 verificar("enquadramento reserva espaço para o corpo e rótulos", pos13.every((p) => Math.abs((p.x - cam13.alvoX) * cam13.alvoZoom) < 350 && Math.abs((p.y - cam13.alvoY) * cam13.alvoZoom) < 220));
+
+/* ── Cenário 14: soltar plana em vez de estalar (D53) ───────────────────── */
+console.log("\nCenário 14 — retorno suave após arrasto real pelo handler");
+const c14 = cenario(base, "planagem");
+const p14 = (id) => c14.arvore._debugPosicoes().find((q) => q.id === id);
+const tela14 = (p) => {
+  const cam = c14.arvore.camera();
+  return { clientX: 450 + (p.x - cam.x) * cam.zoom, clientY: 300 + (p.y - cam.y) * cam.zoom };
+};
+const alvo14 = p14("n_orfao");
+c14.tela.disparar("pointerdown", tela14(alvo14));
+for (let i = 1; i <= 10; i += 1) {
+  c14.tela.disparar("pointermove", {
+    clientX: 450 + (alvo14.x - c14.arvore.camera().x) * 0.75 + i * 20,
+    clientY: 300 + (alvo14.y - c14.arvore.camera().y) * 0.75,
+  });
+}
+c14.tela.disparar("pointerup", { clientX: 650, clientY: 300 });
+let pico = 0;
+let anterior = p14("n_orfao");
+for (let i = 0; i < 40; i += 1) {
+  c14.passo();
+  const atual = p14("n_orfao");
+  pico = Math.max(pico, Math.hypot(atual.x - anterior.x, atual.y - anterior.y));
+  anterior = atual;
+}
+verificar("planagem limita o passo (sem estalo)", pico < 6, `pico=${pico.toFixed(2)}`);
+for (let i = 0; i < 120; i += 1) c14.passo();
+const deVolta = p14("n_orfao");
+verificar(
+  "retorno suave ainda chega à âncora",
+  Math.hypot(deVolta.x - alvo14.x, deVolta.y - alvo14.y) < 8,
+  `dist=${Math.hypot(deVolta.x - alvo14.x, deVolta.y - alvo14.y).toFixed(1)}`,
+);
+
+/* ── Cenário 15: tubo de giz e tipografia (D53) ─────────────────────────── */
+console.log("\nCenário 15 — galho em duas passadas e títulos com estilo");
+const c15 = cenario(base, "tubo e tipo");
+c15.tela.__reg.largura = [];
+c15.tela.__reg.espaco = [];
+c15.passo();
+const larguras = [...new Set(c15.tela.__reg.largura.filter(Number.isFinite))];
+verificar(
+  "galho tem halo largo e núcleo fino",
+  larguras.length >= 2 && Math.max(...larguras) / Math.min(...larguras.filter((w) => w > 0.5)) >= 2,
+  larguras.map((w) => w.toFixed(2)).join(", "),
+);
+verificar("títulos de grupo usam espaçamento", c15.tela.__reg.espaco.includes("2px"));
+verificar("títulos de nó zeram o espaçamento", c15.tela.__reg.espaco.includes("0px"));
 
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;

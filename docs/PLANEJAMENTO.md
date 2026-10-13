@@ -188,8 +188,9 @@ seus projetos como efeito colateral.
 Cobertura atual dos testes simulados: o smoke (`tests/smoke.mjs`, 44 ok)
 cobre token/origem/host, cookie de subrecursos, recursos locais, normalização
 sem conteúdo privado, escrita atômica com backup, lock, modo degradado e porta
-fixa; o `tree-render` (34 ok) cobre nós visíveis, órfãos com âncora, galho
-recolhido, efeitos da Onda 1, naipes por papel e colisão entre corpos; o `opencode-client` (27 ok) cobre descoberta,
+fixa; o `tree-render` (55 ok) cobre nós visíveis, órfãos com âncora, galho
+recolhido, efeitos da Onda 1, naipes por papel, colisão entre corpos, arrasto
+com retorno suave, galhos em tubo e tipografia; o `opencode-client` (27 ok) cobre descoberta,
 paginação, SSE, modo real e ausência de vazamento de credencial, tudo contra
 serviço simulado.
 O restante segue pendente de integração real e de validação assistida.

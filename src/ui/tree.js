@@ -467,6 +467,10 @@ export function criarArvore(canvas, opcoes = {}) {
   function passoFisica(dt) {
     const amortecimento = 0.86;
     const atracao = 0.045;
+    // Planagem pós-soltura (D53): mola fraca + freio forte ≈ convergência
+    // crítica — aproxima sem oscilar nem teleportar.
+    const amortecimentoSuave = 0.93;
+    const atracaoSuave = 0.012;
 
     // Colisão antes das molas: só corpos visíveis se desgrudam; as âncoras
     // continuam mandando no global, a repulsão só corrige o local (D50).
@@ -485,6 +489,16 @@ export function criarArvore(canvas, opcoes = {}) {
     }
     aplicarRepulsao(corpos, 26);
 
+    // Trava anti-estalo (D53): deslocamento máximo por quadro durante a
+    // planagem, medido sobre o deslocamento TOTAL (mola + repulsão + contato).
+    // O contato é resolvido depois do loop, então a trava também vem depois.
+    const LIMITE_PASSO = 4;
+    const passoQ = Math.min(dt, 3);
+    const planantes = new Map();
+    for (const [id, p] of posicoes) {
+      if ((p.planagem || 0) > 0) planantes.set(id, { ox: p.x, oy: p.y });
+    }
+
     for (const [id, p] of posicoes) {
       // Defesa: entrada incompleta viraria NaN e apagaria o nó da tela.
       if (!Number.isFinite(p.x)) p.x = p.alvoX;
@@ -497,16 +511,48 @@ export function criarArvore(canvas, opcoes = {}) {
         p.vy = 0;
         continue;
       }
+      const planando = (p.planagem || 0) > 0;
+      const mola = planando ? atracaoSuave : atracao;
+      const freio = planando ? amortecimentoSuave : amortecimento;
       const dx = p.alvoX - p.x;
       const dy = p.alvoY - p.y;
-      p.vx = (p.vx + dx * atracao) * amortecimento;
-      p.vy = (p.vy + dy * atracao) * amortecimento;
-      p.x += p.vx * Math.min(dt, 3);
-      p.y += p.vy * Math.min(dt, 3);
+      p.vx = (p.vx + dx * mola) * freio;
+      p.vy = (p.vy + dy * mola) * freio;
+      const passo = Math.min(dt, 3);
+      p.x += p.vx * passo;
+      p.y += p.vy * passo;
+      if (planando) {
+        // Fim da planagem só ao chegar devagar (ou no timeout): entrega em
+        // repouso para a mola cheia não somar com a velocidade acumulada e
+        // estalar no quadro da troca.
+        const daAncora = Math.hypot(p.alvoX - p.x, p.alvoY - p.y);
+        const vel = Math.hypot(p.vx, p.vy);
+        p.planagem -= 1;
+        if (p.planagem <= 0 || (daAncora < 12 && vel < 1.5)) {
+          p.planagem = 0;
+          p.vx = 0;
+          p.vy = 0;
+        }
+      }
       if (Math.abs(p.vx) < 0.0008) p.vx = 0;
       if (Math.abs(p.vy) < 0.0008) p.vy = 0;
     }
     resolverContatos(corpos);
+
+    for (const [id, ini] of planantes) {
+      const p = posicoes.get(id);
+      if (!p) continue;
+      const sx = p.x - ini.ox;
+      const sy = p.y - ini.oy;
+      const tamanho = Math.hypot(sx, sy);
+      if (tamanho > LIMITE_PASSO) {
+        // Velocidade acompanha o corte para não acumular e estalar depois.
+        p.x = ini.ox + (sx / tamanho) * LIMITE_PASSO;
+        p.y = ini.oy + (sy / tamanho) * LIMITE_PASSO;
+        p.vx = (sx / tamanho) * (LIMITE_PASSO / passoQ);
+        p.vy = (sy / tamanho) * (LIMITE_PASSO / passoQ);
+      }
+    }
   }
 
   /**
@@ -588,20 +634,30 @@ export function criarArvore(canvas, opcoes = {}) {
 
       ctx.save();
       if (dim) ctx.globalAlpha = 0.18;
+      // Tubo de giz (D53): halo largo e suave + núcleo fino e brilhante.
+      const baseW = (paiEhGrupo ? 5 : 3) * camera.zoom * (tocaHover ? 1.25 : 1);
+      const traco = () => {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.bezierCurveTo(
+          a.x + (b.x - a.x) * 0.35,
+          a.y,
+          b.x - (b.x - a.x) * 0.35,
+          b.y,
+          b.x,
+          b.y,
+        );
+      };
+      ctx.lineCap = "round";
+      ctx.strokeStyle = `rgba(${GIZ}, ${tocaHover ? 0.3 : paiEhGrupo ? 0.14 : 0.2})`;
+      ctx.lineWidth = baseW * 2.4;
+      traco();
+      ctx.stroke();
       ctx.strokeStyle = tocaHover
         ? `rgba(${GIZ}, 0.95)`
-        : `rgba(${GIZ}, ${paiEhGrupo ? 0.4 : 0.6})`;
-      ctx.lineWidth = (paiEhGrupo ? 5 : 3) * camera.zoom * (tocaHover ? 1.25 : 1);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.bezierCurveTo(
-        a.x + (b.x - a.x) * 0.35,
-        a.y,
-        b.x - (b.x - a.x) * 0.35,
-        b.y,
-        b.x,
-        b.y,
-      );
+        : `rgba(${GIZ}, ${paiEhGrupo ? 0.45 : 0.65})`;
+      ctx.lineWidth = baseW * 0.85;
+      traco();
       ctx.stroke();
       ctx.restore();
     }
@@ -754,12 +810,14 @@ export function criarArvore(canvas, opcoes = {}) {
     ctx.stroke();
     ctx.restore();
 
-    // Título em serifa vintage com o naipe do papel (D49).
+    // Título em serifa vintage com o naipe do papel (D49), espaçado (D53).
     const naipe = naipeDe(grupo.papel);
     ctx.fillStyle = "rgba(235, 232, 224, 0.88)";
     ctx.font = `${Math.round(14 * camera.zoom)}px ${SERIFA}`;
     ctx.textAlign = "center";
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
     ctx.fillText(naipe ? `${grupo.titulo} ${naipe}` : grupo.titulo, centro.x, centro.y - raio * 0.82 - 10 * camera.zoom);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
   }
 
   function desenharNo(no, tempo) {
@@ -979,15 +1037,21 @@ export function criarArvore(canvas, opcoes = {}) {
     }
 
     // Naipe ao lado do título: tamanho mínimo legível, inclusive com zoom baixo.
+    // Brilho tênue no título (D53); espaçamento zerado aqui (grupos usam 2px).
     const naipe = naipeDe(no.papel);
     if (camera.zoom > 0.45 || pairado === no.id || selecionado === no.id || arrastando.no === no.id) {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = "rgba(235, 232, 224, 0.95)";
       ctx.font = `${Math.max(14, Math.round(14 * camera.zoom))}px ${SERIFA}`;
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
       const base = no.titulo.length > 32 ? `${no.titulo.slice(0, 31)}…` : no.titulo;
       const titulo = naipe ? `${base} ${naipe}` : base;
+      ctx.save();
+      ctx.shadowColor = `rgba(${GIZ}, 0.45)`;
+      ctx.shadowBlur = 5 * camera.zoom;
       ctx.fillText(titulo, t.x, t.y + raio + 7 * camera.zoom);
+      ctx.restore();
 
       const sub = [];
       if (no.diretorio) sub.push(no.diretorio);
@@ -1156,7 +1220,10 @@ export function criarArvore(canvas, opcoes = {}) {
   function liberarArrasto(evento, cancelado = false) {
     if (!arrastando.ativo || evento.pointerId !== arrastando.pointerId) return;
     arrastando.ativo = false;
-    // Soltar devolve o nó à âncora por mola: arrasto é inspeção, não edição.
+    // Soltar inicia a planagem: retorno suave em vez de estalo (D53). Só vale
+    // se o nó saiu do lugar; clique simples não precisa planar.
+    const solto = posicoes.get(arrastando.no);
+    if (arrastando.no && arrastando.moveu && solto) solto.planagem = 240;
     arrastando.no = null;
     arrastando.pointerId = null;
     canvas.style.cursor = pairado ? "grab" : "";
