@@ -115,8 +115,10 @@ Ele é um visualizador passivo: não oferece controles para criar chats ou
 gerenciar worktrees. Seu estado visual é temporário e certos agentes são
 removidos da visualização após inatividade.
 
-O TreeOffice deve funcionar separadamente e preservar essa instalação.
-Não foi copiado código do Blob Office para o projeto.
+O TreeOffice funciona separadamente. Em 13/10/2026 o usuário ordenou a
+remoção do Blob Office da pasta global de plugins (D47); os 4 arquivos foram
+movidos para pasta de backup fora de `plugins/`, sem cópia para este
+repositório. Não foi copiado código do Blob Office para o projeto.
 
 A versão consultada pelo comando `opencode.cmd --version` foi `v2.0.26`
 (Windows). Na instalação Linux de 12/10/2026, `opencode --version` retorna

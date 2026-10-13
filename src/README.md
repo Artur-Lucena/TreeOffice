@@ -18,12 +18,16 @@ persistência com dados simulados — e para isso usa caminhos fictícios
 ## Como executar
 
 ```bash
-node src/server/bridge.mjs
+node src/iniciar.mjs
 ```
 
+Comando único (D48): sobe a ponte, imprime o endereço com token e abre o
+painel no navegador automaticamente. Para não abrir o navegador:
+`node src/iniciar.mjs --sem-abrir` ou `TREEOFFICE_NO_OPEN=1`.
+
 ```bash
-node src/server/bridge.mjs --fonte real
-TREEOFFICE_FONTE=real node src/server/bridge.mjs
+node src/iniciar.mjs --fonte real
+TREEOFFICE_FONTE=real node src/iniciar.mjs
 ```
 
 A ponte imprime um endereço com token, parecido com:
@@ -46,6 +50,10 @@ node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
 node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
 node tests/opencode-client.mjs  # Fase B com serviço simulado (descoberta, paginação, SSE, modo real)
 ```
+
+O comando direto da ponte (`node src/server/bridge.mjs`, mesmas opções menos
+`--sem-abrir`) continua disponível; `src/iniciar.mjs` é só o atalho que abre
+o navegador.
 
 O smoke cria diretórios temporários descartáveis e exercita autenticação,
 cookie de subrecursos, validação de origem, recursos locais, normalização do
