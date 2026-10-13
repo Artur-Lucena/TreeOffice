@@ -23,6 +23,7 @@ import { criarArvore } from "../src/ui/tree.js";
 
 let arcs = [];
 let textos = [];
+let marcas = []; // coordenadas de cada fillText: medem a deriva dos rótulos
 let rafCb = null;
 let relogio = 0;
 
@@ -36,7 +37,10 @@ function canvasFalso() {
     createLinearGradient() { return { addColorStop() {} }; },
     createRadialGradient() { return { addColorStop() {} }; },
     arc(x, y, r) { arcs.push({ x, y, r }); },
-    fillText(texto) { textos.push(String(texto)); },
+    fillText(texto, x, y) {
+      textos.push(String(texto));
+      marcas.push({ texto: String(texto), x, y });
+    },
   };
   Object.defineProperty(ctx, "globalAlpha", {
     set(v) { reg.alfa.push(v); },
@@ -80,6 +84,7 @@ function cenario(estado, rotulo) {
   for (let i = 0; i < 12; i += 1) passo();
   arcs = [];
   textos = [];
+  marcas = [];
   tela.__reg.alfa = [];
   tela.__reg.dash = [];
   passo(); // um quadro depois de tudo estabilizado
@@ -201,26 +206,32 @@ verificar(
 console.log("\nCenário 6 — nós derivam no cheio, ficam parados no desligado; poeira obedece");
 const c6 = cenario(base, "deriva e poeira, efeitos cheios");
 verificar("poeira existe no modo cheio", c6.arvore.efeitosInfo().poeira > 0, `${c6.arvore.efeitosInfo().poeira} partículas`);
-const centros = (lista) => lista.filter((a) => a.r > 10).map((a) => Math.round(a.x * 10000));
-arcs = [];
+// Deriva medida pelo X dos rótulos de título (o Y carrega o pulso do raio,
+// que existe até no desligado; selos de ficha são excluídos porque orbitam
+// o centro a raio pulsante; os corpos são curvas traçadas, não arcos).
+const centros = () =>
+  marcas
+    .filter((m) => m.texto !== "–" && !/^\d+$/.test(m.texto))
+    .map((m) => Math.round(m.x * 10000));
+marcas = [];
 c6.passo();
-const fotoA = centros(arcs);
+const fotoA = centros();
 for (let i = 0; i < 8; i += 1) c6.passo();
-arcs = [];
+marcas = [];
 c6.passo();
-const fotoB = centros(arcs);
+const fotoB = centros();
 verificar("nós à deriva mudam de centro entre quadros", fotoA.join() !== fotoB.join());
 const parado = JSON.parse(JSON.stringify(base));
 parado.preferencias = { efeitos: "desligado" };
 const c6b = cenario(parado, "deriva e poeira, efeitos desligados");
 verificar("poeira some no desligado", c6b.arvore.efeitosInfo().poeira === 0);
-arcs = [];
+marcas = [];
 c6b.passo();
-const fotoC = centros(arcs);
+const fotoC = centros();
 for (let i = 0; i < 8; i += 1) c6b.passo();
-arcs = [];
+marcas = [];
 c6b.passo();
-const fotoD = centros(arcs);
+const fotoD = centros();
 verificar("nós parados mantêm o centro entre quadros", fotoC.join() === fotoD.join());
 verificar("nó do grupo segue visível no desligado", textos.includes("Nó do grupo"));
 

@@ -260,8 +260,10 @@ export function criarArvore(canvas, opcoes = {}) {
       filhosPorPai.get(pai).push(no);
     }
 
-    // Grupos em coluna; nós de cada grupo em leque vertical; filhos de nó em
-    // leque horizontal. Âncoras estáveis → sem saltos entre atualizações.
+    // Grupos em coluna; filhos orbitam o pai em aglomerado radial, como no
+    // mockup aprovado — nunca em leque rígido. Âncoras determinísticas
+    // (só estrutura + hash) → sem saltos entre atualizações.
+    const RAIO_ORBITA = 150;
     const ESPACO_X = 250;
     const ESPACO_Y = 110;
     const espaco = { x: ESPACO_X, y: ESPACO_Y };
@@ -298,24 +300,26 @@ export function criarArvore(canvas, opcoes = {}) {
       });
     };
 
-    const percorrer = (id, deslocamentoX, y) => {
+    const percorrer = (id, x, y, raioOrbita) => {
       const no = nos.find((n) => n.id === id);
       if (!no) return;
+      entrada(id, x, y);
       if (no.recolhido) {
-        // Recolhido: o nó fica no lugar (com o selo de contagem); apenas a
+        // Recolhido: o nó fica no lugar (com a ficha de contagem); apenas a
         // subárvore abaixo dele sai de cena.
-        entrada(id, deslocamentoX, y);
         for (const filho of filhosPorPai.get(id) || []) marcarOcultos(filho.id);
         return;
       }
       const filhos = filhosPorPai.get(id) || [];
-      const filhosVisiveis = filhos.filter((f) => !f.recolhido);
-      entrada(id, deslocamentoX, y);
-      filhosVisiveis.forEach((filho, indice) => {
+      // Órbita completa ao redor do pai; direção inicial estável por hash.
+      const inicio = hashNum(id) * Math.PI * 2;
+      filhos.forEach((filho, indice) => {
+        const a = filhos.length > 1 ? inicio + (indice / filhos.length) * Math.PI * 2 : inicio;
         percorrer(
           filho.id,
-          deslocamentoX + espaco.x,
-          y + (indice - (filhosVisiveis.length - 1) / 2) * espaco.y,
+          x + Math.cos(a) * raioOrbita,
+          y + Math.sin(a) * raioOrbita,
+          Math.max(raioOrbita * 0.85, 90),
         );
       });
     };
@@ -336,8 +340,8 @@ export function criarArvore(canvas, opcoes = {}) {
         camada: "grupo",
       });
 
-      filhoIds.forEach((no, indice) => {
-        percorrer(no.id, colunaX, baseY + (indice - (filhoIds.length - 1) / 2) * espaco.y);
+      filhoIds.forEach((no) => {
+        percorrer(no.id, colunaX, baseY, RAIO_ORBITA);
       });
     });
 
@@ -353,7 +357,7 @@ export function criarArvore(canvas, opcoes = {}) {
       const lista = raizes.length ? raizes : orfaos;
       const altura = lista.length * espaco.y;
       lista.forEach((no, indice) => {
-        percorrer(no.id, colunaX, -altura / 2 + indice * espaco.y + espaco.y / 2);
+        percorrer(no.id, colunaX, -altura / 2 + indice * espaco.y + espaco.y / 2, RAIO_ORBITA);
       });
       // Ressalva para ciclos ou nós pendurados em órfãos: ainda visíveis.
       let sobra = 0;
@@ -404,6 +408,30 @@ export function criarArvore(canvas, opcoes = {}) {
       x: (x - camera.x) * camera.zoom + largura / 2,
       y: (y - camera.y) * camera.zoom + altura / 2,
     };
+  }
+
+  /**
+   * Perímetro ondulado do blob (D49): curva fechada traçada ponto a ponto com
+   * duas harmônicas sobre o ângulo, em vez de `arc` perfeito. É isso que
+   * diferencia um blob de um spinner — o contorno nunca é um círculo.
+   * Fichas e anéis de seleção continuam em arco de propósito: contraste entre
+   * o orgânico vivo e o objeto usinado.
+   */
+  function tracarBlob(t, raio, tempo, fase) {
+    ctx.beginPath();
+    const N = 28;
+    for (let i = 0; i <= N; i += 1) {
+      const a = (i / N) * Math.PI * 2;
+      const w =
+        1 +
+        0.055 * Math.sin(3 * a + fase + tempo * 0.0011) +
+        0.035 * Math.sin(5 * a - fase * 1.3 + tempo * 0.0017);
+      const x = t.x + Math.cos(a) * raio * w;
+      const y = t.y + Math.sin(a) * raio * w;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
   }
 
   function telaParaMundo(x, y) {
@@ -639,64 +667,72 @@ export function criarArvore(canvas, opcoes = {}) {
     if (brilho > 0) {
       ctx.save();
       ctx.shadowColor = `rgba(${GIZ}, ${brilho})`;
-      ctx.shadowBlur = 30 * camera.zoom;
+      ctx.shadowBlur = 44 * camera.zoom;
       ctx.fillStyle = `rgba(20, 24, 32, ${alfa})`;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, raio, 0, Math.PI * 2);
+      tracarBlob(t, raio, tempo, p.fase);
       ctx.fill();
       ctx.restore();
     }
 
-    // Corpo: giz escuro com topo iluminado, sem cor por papel.
-    const gradiente = ctx.createRadialGradient(
-      t.x - raio * 0.35,
-      t.y - raio * 0.4,
-      raio * 0.15,
-      t.x,
-      t.y,
-      raio,
-    );
-    gradiente.addColorStop(0, `rgba(52, 58, 70, ${alfa})`);
-    gradiente.addColorStop(1, `rgba(16, 20, 28, ${alfa})`);
-    ctx.fillStyle = gradiente;
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, raio, 0, Math.PI * 2);
-    ctx.fill();
+    const vazio = estadoNo === ESTADO.VAZIO;
 
-    // Hachura do estado, recortada no círculo (efeito desligado = sem relevo).
-    if (passoHachura > 0 && nivelEfeitos() !== "desligado" && ctx.clip) {
+    if (!vazio) {
+      // Corpo: giz escuro com topo iluminado, sem cor por papel.
+      const gradiente = ctx.createRadialGradient(
+        t.x - raio * 0.35,
+        t.y - raio * 0.4,
+        raio * 0.15,
+        t.x,
+        t.y,
+        raio,
+      );
+      gradiente.addColorStop(0, `rgba(52, 58, 70, ${alfa})`);
+      gradiente.addColorStop(1, `rgba(16, 20, 28, ${alfa})`);
+      ctx.fillStyle = gradiente;
+      tracarBlob(t, raio, tempo, p.fase);
+      ctx.fill();
+    }
+
+    // Hachura do estado, recortada no blob e com direção estável por nó
+    // (efeito desligado ou nó vazio = sem relevo).
+    if (!vazio && passoHachura > 0 && nivelEfeitos() !== "desligado" && ctx.clip) {
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, raio * 0.96, 0, Math.PI * 2);
+      tracarBlob(t, raio * 0.96, tempo, p.fase);
       ctx.clip();
+      ctx.translate(t.x, t.y);
+      const giro = -Math.PI / 4 + (hashNum(no.id) - 0.5) * 0.7;
+      ctx.rotate(cruzada ? giro + Math.PI / 4 : giro);
       ctx.strokeStyle = `rgba(${GIZ}, ${alfaHachura})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      const direcoes = cruzada ? [1, -1] : [1];
-      for (const sinal of direcoes) {
-        for (let d = -raio * 2; d <= raio * 2; d += passoHachura) {
-          ctx.moveTo(t.x - raio, t.y + d);
-          ctx.lineTo(t.x + raio, t.y + d - sinal * raio * 2);
+      for (let d = -raio * 1.5; d <= raio * 1.5; d += passoHachura) {
+        ctx.moveTo(-raio * 1.5, d);
+        ctx.lineTo(raio * 1.5, d);
+      }
+      if (cruzada) {
+        ctx.rotate(Math.PI / 2);
+        for (let d = -raio * 1.5; d <= raio * 1.5; d += passoHachura) {
+          ctx.moveTo(-raio * 1.5, d);
+          ctx.lineTo(raio * 1.5, d);
         }
       }
       ctx.stroke();
       ctx.restore();
     }
 
-    // Contorno esboçado: traço triplo de giz com tremor estável por nó.
+    // Contorno esboçado: traço triplo sobre o próprio perímetro ondulado.
     const tremor = (hashNum(`${no.id}:traco`) - 0.5) * 2.4 * camera.zoom;
     const tracejados = {
       [ESTADO.VAZIO]: [4, 5],
       [ESTADO.INCERTO]: [2, 4],
       [ESTADO.NAO_ENCONTRADO]: [5, 4],
     };
-    ctx.lineWidth = 2 * camera.zoom;
+    ctx.lineWidth = (vazio ? 1.6 : 2) * camera.zoom;
     if (tracejados[estadoNo]) ctx.setLineDash(tracejados[estadoNo]);
     else ctx.setLineDash([]);
     ctx.strokeStyle = `rgba(${GIZ}, ${alfaTraco})`;
-    for (const delta of [0, 1.4 * camera.zoom + tremor * 0.3, -1.4 * camera.zoom + tremor * 0.3]) {
-      ctx.beginPath();
-      ctx.arc(t.x + tremor * 0.2, t.y, Math.max(raio + 1.5 * camera.zoom + delta, 1), 0, Math.PI * 2);
+    for (const delta of [1.5 * camera.zoom, 2.9 * camera.zoom + tremor * 0.3, 0.1 * camera.zoom + tremor * 0.3]) {
+      tracarBlob(t, Math.max(raio + delta, 1), tempo, p.fase);
       ctx.stroke();
     }
     ctx.setLineDash([]);
