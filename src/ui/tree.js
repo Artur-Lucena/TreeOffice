@@ -1,15 +1,19 @@
 /**
  * tree.js — renderização orgânica da árvore do TreeOffice.
  *
- * Objetivo da Etapa 2: provar que a árvore pode ser orgânica, animada e estável
- * sem depender de biblioteca externa (D19 continua em aberto). Todo o desenho
- * usa Canvas 2D, servido localmente pela ponte (D25).
+ * Canvas 2D puro, sem dependência externa (D45). Todo o desenho usa a API
+ * 2D servida localmente pela ponte (D25).
  *
  * Regras visuais aplicadas:
  *   D15  três camadas: grupos, nós e dependências, com grafia distinta
  *   D16  chat parado continua visível em estado dormente; ausência de dado
  *        nunca é desenhada como estado
  *   posições são memorizadas: atualizações não provocam saltos
+ *
+ * Onda 1 de efeitos: deriva por ruído coerente (soma de senos com
+ * frequências quase-irracionais), hover que realça a vizinhança, fluxo
+ * animado nas dependências, poeira ambiente e vinheta — com densidade
+ * configurável em `preferencias.efeitos` (cheio/sutil/desligado).
  */
 
 const ESTADO = {
@@ -55,6 +59,28 @@ function lerp(atual, alvo, fator) {
   return atual + (alvo - atual) * fator;
 }
 
+/* ── Onda 1: deriva orgânica por soma quase-periódica ───────────────────────
+ * Frequências quase-irracionais entre si nunca se realinham em ciclo curto:
+ * o movimento parece vivo sem repetir padrão visível. É só renderização —
+ * as âncoras da física não mudam, então não há saltos nem NaN propagado.
+ */
+
+function deriva(fase, tempo, amp) {
+  return (
+    Math.sin(tempo * 0.00023 + fase) +
+    Math.sin(tempo * 0.00041 + fase * 1.3) * 0.6 +
+    Math.sin(tempo * 0.00071 + fase * 0.7) * 0.3
+  ) * amp * 0.53;
+}
+
+/** Amplitude da deriva por estado: ativo respira, dormente quase para. */
+function ampDeriva(estadoNo) {
+  if (estadoNo === ESTADO.ATIVO) return 7;
+  if (estadoNo === ESTADO.INCERTO) return 3;
+  if (estadoNo === ESTADO.DORMENTE) return 2.5;
+  return 1.5;
+}
+
 export function criarArvore(canvas, opcoes = {}) {
   const ctx = canvas.getContext("2d");
   const onSelecionar = opcoes.onSelecionar || (() => {});
@@ -67,6 +93,84 @@ export function criarArvore(canvas, opcoes = {}) {
   const camera = { x: 0, y: 0, zoom: 0.75, alvoX: 0, alvoY: 0, alvoZoom: 0.75 };
   const posicoes = new Map(); // id → {x, y, vx, vy, fase, alvoX, alvoY, camada}
   const arrastando = { ativo: false, x: 0, y: 0, moveu: false };
+
+  /* ── Onda 1: hover, densidade de efeitos e poeira ambiente ─────────────── */
+  let pairado = null;
+  const vizinhos = new Set();
+  let poeira = [];
+  const reduzir =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function nivelEfeitos() {
+    const e = estado.preferencias && estado.preferencias.efeitos;
+    return e === "sutil" || e === "desligado" ? e : "cheio";
+  }
+
+  /** Posição com deriva aplicada (só renderização; a física não vê isso). */
+  function posMundo(id, tempo, amp) {
+    const p = posicoes.get(id);
+    if (!p) return null;
+    const nivel = nivelEfeitos();
+    const a = nivel === "desligado" ? 0 : amp * (nivel === "sutil" ? 0.4 : 1);
+    if (!a || reduzir) return { x: p.x, y: p.y };
+    return {
+      x: p.x + deriva(p.fase, tempo, a),
+      y: p.y + deriva(p.fase * 1.7 + 0.5, tempo, a),
+    };
+  }
+
+  function atualizarVizinhos() {
+    vizinhos.clear();
+    if (!pairado) return;
+    vizinhos.add(pairado);
+    for (const no of estado.nos || []) {
+      if (no.id === pairado && no.grupoPai) vizinhos.add(no.grupoPai);
+      if (no.grupoPai === pairado) vizinhos.add(no.id);
+    }
+    for (const d of estado.dependencias || []) {
+      if (d.origem === pairado) vizinhos.add(d.destino);
+      if (d.destino === pairado) vizinhos.add(d.origem);
+    }
+  }
+
+  function pairar(id) {
+    if (pairado === id) return;
+    pairado = id;
+    atualizarVizinhos();
+    try {
+      canvas.style.cursor = id ? "pointer" : "";
+    } catch {
+      /* canvas falso nos testes não tem estilo */
+    }
+  }
+
+  function esmaecido(id) {
+    return pairado != null && !vizinhos.has(id);
+  }
+
+  function quantPoeira() {
+    const nivel = nivelEfeitos();
+    if (nivel === "desligado") return 0;
+    const teto = nivel === "sutil" ? 25 : 60;
+    return Math.max(12, Math.min(teto, Math.round((largura * altura) / 26000)));
+  }
+
+  function semearPoeira() {
+    const q = quantPoeira();
+    while (poeira.length < q) {
+      poeira.push({
+        x: Math.random() * largura,
+        y: Math.random() * altura,
+        vx: (Math.random() - 0.5) * 0.12,
+        vy: (Math.random() - 0.5) * 0.12,
+        r: 0.6 + Math.random() * 1.4,
+        a: 0.1 + Math.random() * 0.22,
+        f: Math.random() * Math.PI * 2,
+      });
+    }
+    poeira.length = q;
+  }
 
   let largura = 0;
   let altura = 0;
@@ -250,7 +354,7 @@ export function criarArvore(canvas, opcoes = {}) {
     };
   }
 
-  function desenharGalhos() {
+  function desenharGalhos(tempo) {
     const nos = estado.nos || [];
     const grupos = estado.grupos || [];
     ctx.lineCap = "round";
@@ -262,20 +366,24 @@ export function criarArvore(canvas, opcoes = {}) {
     }
 
     for (const { de, para } of conexoes) {
-      const origem = posicoes.get(de);
-      const destino = posicoes.get(para);
-      if (!origem || !destino) continue;
-      if (destino.camada !== "no") continue;
-      // Galho recolhido esconde a subárvore — a aresta também sai de cena.
-      if (ocultos.has(de) || ocultos.has(para)) continue;
-
+      if (destinoForaDeCena(de, para)) continue;
       const paiEhGrupo = grupos.some((g) => g.id === de);
+      const origem = posMundo(de, tempo, 3);
+      const destino = posMundo(para, tempo, ampDeriva(estadoDeId(para)));
+      if (!origem || !destino) continue;
+
       const a = mundoParaTela(origem.x, origem.y);
       const b = mundoParaTela(destino.x, destino.y);
       const hue = hueFromId(para);
+      const tocaHover = pairado != null && (de === pairado || para === pairado);
+      const dim = esmaecido(de) && esmaecido(para);
 
-      ctx.strokeStyle = `hsla(${hue}, 65%, ${paiEhGrupo ? 62 : 58}%, ${paiEhGrupo ? 0.5 : 0.75})`;
-      ctx.lineWidth = (paiEhGrupo ? 5 : 3) * camera.zoom;
+      ctx.save();
+      if (dim) ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = tocaHover
+        ? `hsla(${hue}, 85%, 70%, 0.95)`
+        : `hsla(${hue}, 65%, ${paiEhGrupo ? 62 : 58}%, ${paiEhGrupo ? 0.5 : 0.75})`;
+      ctx.lineWidth = (paiEhGrupo ? 5 : 3) * camera.zoom * (tocaHover ? 1.25 : 1);
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.bezierCurveTo(
@@ -287,19 +395,49 @@ export function criarArvore(canvas, opcoes = {}) {
         b.y,
       );
       ctx.stroke();
+      ctx.restore();
     }
   }
 
-  function desenharDependencias() {
+  function destinoForaDeCena(de, para) {
+    const destino = posicoes.get(para);
+    if (!destino) return true;
+    if (destino.camada !== "no") return true;
+    // Galho recolhido esconde a subárvore — a aresta também sai de cena.
+    if (ocultos.has(de) || ocultos.has(para)) return true;
+    return false;
+  }
+
+  function estadoDeId(id) {
+    const no = (estado.nos || []).find((n) => n.id === id);
+    const vivoAtual = vivo[id];
+    return vivoAtual?.estado || no?.estado || ESTADO.VAZIO;
+  }
+
+  function desenharDependencias(tempo) {
     const deps = estado.dependencias || [];
+    const nivel = nivelEfeitos();
+    // Fluxo animado: o padrão corre ao longo da curva (marching ants).
+    // Desligado congela; sutil corre devagar e sem seta.
+    const periodo = 14; // [6, 8]
+    const velocidade = nivel === "cheio" ? 0.02 : 0.008;
     ctx.save();
     ctx.setLineDash([6, 8]);
+    if (nivel !== "desligado" && !reduzir) ctx.lineDashOffset = -((tempo * velocidade) % periodo);
+    else ctx.lineDashOffset = 0;
     ctx.lineWidth = 1.5 * camera.zoom;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
     for (const dep of deps) {
       const a = posicoes.get(dep.origem);
       const b = posicoes.get(dep.destino);
       if (!a || !b) continue;
+      if (ocultos.has(dep.origem) || ocultos.has(dep.destino)) continue;
+      const tocaHover = pairado != null && (dep.origem === pairado || dep.destino === pairado);
+      const dim = pairado != null && !tocaHover;
+      ctx.strokeStyle = tocaHover
+        ? "rgba(255, 255, 255, 0.9)"
+        : "rgba(255, 255, 255, 0.55)";
+      if (dim) ctx.globalAlpha = 0.2;
+      else ctx.globalAlpha = 1;
       const pa = mundoParaTela(a.x, a.y);
       const pb = mundoParaTela(b.x, b.y);
       const meioX = (pa.x + pb.x) / 2;
@@ -308,6 +446,25 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.moveTo(pa.x, pa.y);
       ctx.quadraticCurveTo(meioX, meioY, pb.x, pb.y);
       ctx.stroke();
+      // Seta de direção na ponta (só no cheio): a tangente da quadrática
+      // no fim é pb − meio.
+      if (nivel === "cheio" && !reduzir) {
+        const tx = pb.x - meioX;
+        const ty = pb.y - meioY;
+        const tam = Math.hypot(tx, ty) || 1;
+        const ux = tx / tam;
+        const uy = ty / tam;
+        const s = 7 * camera.zoom;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(pb.x, pb.y);
+        ctx.lineTo(pb.x - ux * s - uy * s * 0.45, pb.y - uy * s + ux * s * 0.45);
+        ctx.lineTo(pb.x - ux * s + uy * s * 0.45, pb.y - uy * s - ux * s * 0.45);
+        ctx.closePath();
+        ctx.fillStyle = tocaHover ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)";
+        ctx.fill();
+        ctx.setLineDash([6, 8]);
+      }
     }
     ctx.restore();
   }
@@ -335,6 +492,7 @@ export function criarArvore(canvas, opcoes = {}) {
     raio = Math.min(raio, 620 * camera.zoom);
 
     ctx.save();
+    if (esmaecido(grupo.id)) ctx.globalAlpha = 0.25;
     const gradiente = ctx.createRadialGradient(centro.x, centro.y, raio * 0.2, centro.x, centro.y, raio);
     gradiente.addColorStop(0, `${cor}22`);
     gradiente.addColorStop(0.75, `${cor}12`);
@@ -363,8 +521,16 @@ export function criarArvore(canvas, opcoes = {}) {
     if (ocultos.has(no.id)) return;
     if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
     const { estado: estadoNo } = estadoVisual(no);
-    const t = mundoParaTela(p.x, p.y);
+    const centro = posMundo(no.id, tempo, ampDeriva(estadoNo));
+    if (!centro) return;
+    const t = mundoParaTela(centro.x, centro.y);
     const hue = hueFromId(no.id);
+    // Hover fora da vizinhança esmaece (padrão Obsidian); o par não some.
+    const dim = esmaecido(no.id);
+    if (dim) {
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+    }
     // Nascer com escala: criação de chat tem retorno visual imediato (D02).
     const idade = tempo - (Number.isFinite(p.nascidoEm) ? p.nascidoEm : tempo);
     const fracaoEntrada = idade < 0 ? 1 : Math.min(1, idade / 320);
@@ -450,6 +616,17 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.stroke();
     }
 
+    // Hover: anel pulsante que marca o par sob o cursor.
+    if (pairado === no.id && !reduzir) {
+      const pulso = 10 + 2.5 * Math.sin(tempo * 0.006 + p.fase);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.lineWidth = 1.4 * camera.zoom;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, raio + pulso * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     // Recolhido: marcador
     const filhos = (estado.nos || []).filter((n) => n.grupoPai === no.id);
     if (filhos.length) {
@@ -486,6 +663,46 @@ export function criarArvore(canvas, opcoes = {}) {
         ctx.fillText(sub.join(" · "), t.x, t.y + raio + 22 * camera.zoom);
       }
     }
+    if (dim) ctx.restore();
+  }
+
+  function desenharPoeira(tempo) {
+    if (!poeira.length) return;
+    ctx.save();
+    for (const g of poeira) {
+      const cintilar = 0.55 + 0.45 * Math.sin(tempo * 0.0011 + g.f);
+      ctx.globalAlpha = g.a * cintilar;
+      ctx.fillStyle = "rgba(178, 198, 228, 1)";
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function desenharVinheta() {
+    const cx = largura / 2;
+    const cy = altura / 2;
+    const vinheta = ctx.createRadialGradient(
+      cx, cy, Math.min(largura, altura) * 0.42,
+      cx, cy, Math.max(largura, altura) * 0.75,
+    );
+    vinheta.addColorStop(0, "rgba(0, 0, 0, 0)");
+    vinheta.addColorStop(1, "rgba(0, 0, 0, 0.32)");
+    ctx.fillStyle = vinheta;
+    ctx.fillRect(0, 0, largura, altura);
+  }
+
+  function passoPoeira(dt) {
+    if (reduzir || nivelEfeitos() === "desligado") return;
+    for (const g of poeira) {
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+      if (g.x < -4) g.x = largura + 4;
+      if (g.x > largura + 4) g.x = -4;
+      if (g.y < -4) g.y = altura + 4;
+      if (g.y > altura + 4) g.y = -4;
+    }
   }
 
   function desenhar(tempo) {
@@ -499,14 +716,20 @@ export function criarArvore(canvas, opcoes = {}) {
     ctx.fillStyle = fundo;
     ctx.fillRect(0, 0, largura, altura);
 
+    // Movimento reduzido congela o tempo dos efeitos (estático, mas legível).
+    const T = reduzir ? 0 : tempo;
+
+    desenharPoeira(T);
+
     ctx.save();
     ctx.globalAlpha = 0.5;
-    for (const grupo of estado.grupos || []) desenharGrupo(grupo, tempo);
+    for (const grupo of estado.grupos || []) desenharGrupo(grupo, T);
     ctx.restore();
 
-    desenharDependencias();
-    desenharGalhos();
-    for (const no of estado.nos || []) desenharNo(no, tempo);
+    desenharDependencias(T);
+    desenharGalhos(T);
+    for (const no of estado.nos || []) desenharNo(no, T);
+    desenharVinheta();
   }
 
   let ultimo = 0;
@@ -519,6 +742,7 @@ export function criarArvore(canvas, opcoes = {}) {
     camera.zoom = lerp(camera.zoom, camera.alvoZoom, 0.12);
 
     passoFisica(dt);
+    passoPoeira(dt);
     desenhar(tempo);
     requestAnimationFrame(laco);
   }
@@ -549,7 +773,13 @@ export function criarArvore(canvas, opcoes = {}) {
   });
 
   canvas.addEventListener("pointermove", (evento) => {
-    if (!arrastando.ativo) return;
+    if (!arrastando.ativo) {
+      // Sem arrastar, o movimento vira hover: realça a vizinhança.
+      const retangulo = canvas.getBoundingClientRect();
+      const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
+      pairar(no ? no.id : null);
+      return;
+    }
     const dx = evento.clientX - arrastando.x;
     const dy = evento.clientY - arrastando.y;
     if (Math.abs(dx) + Math.abs(dy) > 3) arrastando.moveu = true;
@@ -610,8 +840,11 @@ export function criarArvore(canvas, opcoes = {}) {
     for (const id of [...posicoes.keys()]) {
       if (!idsValidos.has(id)) posicoes.delete(id);
     }
+    if (pairado != null && !idsValidos.has(pairado)) pairar(null);
+    else atualizarVizinhos();
     calcularAncoras();
     inicializarPosicoes();
+    semearPoeira();
   }
 
   function definirVivo(novoVivo) {
@@ -638,9 +871,11 @@ export function criarArvore(canvas, opcoes = {}) {
 
   function ajustar() {
     redimensionar();
+    semearPoeira();
   }
 
   redimensionar();
+  semearPoeira();
   window.addEventListener("resize", ajustar);
   requestAnimationFrame(laco);
 
@@ -650,6 +885,9 @@ export function criarArvore(canvas, opcoes = {}) {
     focar,
     centrar,
     aplicarZoom,
+    pairar,
+    nivelEfeitos,
+    efeitosInfo: () => ({ nivel: nivelEfeitos(), poeira: poeira.length, pairado }),
     selecionar: (id) => {
       selecionado = id;
     },

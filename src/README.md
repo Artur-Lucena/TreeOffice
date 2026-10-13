@@ -21,6 +21,11 @@ persistência com dados simulados — e para isso usa caminhos fictícios
 node src/server/bridge.mjs
 ```
 
+```bash
+node src/server/bridge.mjs --fonte real
+TREEOFFICE_FONTE=real node src/server/bridge.mjs
+```
+
 A ponte imprime um endereço com token, parecido com:
 
 ```text
@@ -39,6 +44,7 @@ Para encerrar: `Ctrl+C`. O estado permanece em `.local/`.
 ```bash
 node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
 node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
+node tests/opencode-client.mjs  # Fase B com serviço simulado (descoberta, paginação, SSE, modo real)
 ```
 
 O smoke cria diretórios temporários descartáveis e exercita autenticação,
@@ -60,6 +66,7 @@ src/
 │   └── mock.mjs       árvore de demonstração e motor de simulação
 ├── server/
 │   ├── bridge.mjs     ponte HTTP: token, origem, recursos estáticos, rotas
+│   ├── opencode-client.mjs  Fase B: descoberta e cliente HTTP somente leitura
 │   └── state-store.mjs  carga, escrita atômica, backup e lock de .local/
 └── ui/
     ├── index.html     página única
@@ -72,6 +79,11 @@ src/
 
 - Árvore orgânica e animada, com grupos, nós e arestas de dependência em
   camadas visualmente distintas (D15).
+- Onda 1 de efeitos (Canvas 2D puro, D45): deriva orgânica por soma
+  quase-periódica (ativo respira, dormente quase para), hover que realça a
+  vizinhança e esmaece o resto, fluxo animado nas dependências com seta de
+  direção, poeira ambiente e vinheta. Densidade em `preferencias.efeitos`
+  (`cheio`, `sutil` ou `desligado`), com `prefers-reduced-motion` respeitado.
 - Estados: ativo, dormente, sem sessão, não encontrado e incerto. Chat parado
   permanece visível; ausência de dado não é desenhada como estado (D16).
 - Navegação: arrastar, zoom na roda, clique para selecionar, duplo clique para
@@ -96,3 +108,34 @@ src/
 - Nenhuma operação de escrita no OpenCode ou no Git existe aqui. Criar chat,
   vincular worktree e criar worktree pertencem às Etapas 4 e 5 do roadmap.
 - O popup demonstra as confirmações; ele não chama API alguma.
+
+## Fase B — dados reais somente leitura
+
+A ponte nasce em simulado. Para ler o serviço OpenCode já em execução
+(sem iniciá-lo, sem criar nada lá fora):
+
+- Na interface: botão "Usar dados reais" alterna a fonte; "Ressincronizar"
+  refaz a leitura completa (D33). O mock continua disponível para teste.
+- Por linha de comando: `--fonte real`, `--opencode-url URL`,
+  `TREEOFFICE_FONTE=real`, `OPENCODE_SERVER_URL=URL`.
+- Descoberta: `$XDG_STATE_HOME/opencode/service.json`,
+  `~/.local/state/opencode/service.json` (ou equivalente no Windows) e
+  senha de `~/.config/opencode/service.json`. A credencial vive só na
+  memória da ponte; nunca vai ao navegador, ao `.local/` ou aos logs.
+
+Rotas novas (todas com o token da ponte; POST também valida Origin/Host):
+
+- `GET /api/opencode/estado` — modo, conexão, versão, contagens, erro.
+- `GET /api/opencode/sessoes?limit&cursor&...` — página de sessões.
+- `GET /api/opencode/projetos` — projetos.
+- `GET /api/opencode/worktrees?projectID=...` — worktrees do projeto.
+- `POST /api/opencode/ressincronizar` — releitura completa.
+- `POST /api/opencode/modo {"modo":"real"|"simulado"}` — alterna a fonte.
+
+`/api/vivo` passa a mapear nós com `sessionID` pelo inventário + SSE
+quando em modo real; sessão ausente vira `nao_encontrado` (D21),
+inventário velho ou com erro vira `incerto` (D32). Eventos servem só para
+vivacidade: queda e reconexão recompõem por releitura, sem apagar nós.
+Em modo real há releitura periódica (60 s) para o inventário não
+envelhecer, re-assinatura do SSE após a leitura voltar a funcionar e
+re-descoberta do serviço (o serviço pode reiniciar em outra porta).

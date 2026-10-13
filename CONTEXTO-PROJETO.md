@@ -71,8 +71,10 @@ não aparecia na tela. A causa foram três defeitos de renderização no
 dia: posições nascidas sem velocidade/fase (coordenadas NaN, que tornavam a
 árvore inteira invisível), nós sem grupo de origem sem âncora própria, e
 subárvore de galho recolhido que continuava desenhada. O teste
-`tests/tree-render.mjs` (11 verificações) cobre os três casos;
-`tests/smoke.mjs` segue com 44 verificações verdes no Linux.
+`tests/tree-render.mjs` cobre os três casos e os efeitos da Onda 1
+(21 verificações); `tests/smoke.mjs` segue com 44 verificações verdes no
+Linux. A Fase B é coberta por `tests/opencode-client.mjs` (27 verificações
+com serviço simulado).
 
 No reteste (12/10/2026) o usuário aprovou: árvore visível, criação, vinculação
 e remoção de vínculo funcionando. A D19 foi encerrada por D45 — p5.js

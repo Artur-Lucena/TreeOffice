@@ -135,7 +135,8 @@ com execução completa no Linux em 12/10/2026 sob Node v22.22.1: **44 ok,
 Etapa 2 concluída em 12/10/2026. Na primeira avaliação visual o usuário
 aprovou a aparência e o fundo, mas relatou que criar um chat não aparecia na
 tela. A investigação encontrou três defeitos de renderização, todos corrigidos
-e cobertos pelo teste `tests/tree-render.mjs` (11 verificações): nós desenhados
+e cobertos pelo teste `tests/tree-render.mjs` (21 verificações, incluindo os
+efeitos da Onda 1): nós desenhados
 em coordenadas NaN (a árvore inteira era invisível no canvas), nós sem grupo de
 origem sem âncora própria, e subárvore de galho recolhido que continuava
 desenhada.
@@ -178,9 +179,12 @@ seus projetos como efeito colateral.
 ## 3. Critérios de aceite candidatos
 
 Cobertura atual dos testes simulados: o smoke (`tests/smoke.mjs`, 44 ok)
-cobre token/origem/host, recursos locais, normalização sem conteúdo privado,
-escrita atômica com backup, lock, modo degradado e porta fixa; o
-`tree-render` (11 ok) cobre nós visíveis, órfãos com âncora e galho recolhido.
+cobre token/origem/host, cookie de subrecursos, recursos locais, normalização
+sem conteúdo privado, escrita atômica com backup, lock, modo degradado e porta
+fixa; o `tree-render` (21 ok) cobre nós visíveis, órfãos com âncora, galho
+recolhido e os efeitos da Onda 1; o `opencode-client` (27 ok) cobre descoberta,
+paginação, SSE, modo real e ausência de vazamento de credencial, tudo contra
+serviço simulado.
 O restante segue pendente de integração real e de validação assistida.
 
 - [ ] Árvore visualmente orgânica e animada, coerente com a referência.

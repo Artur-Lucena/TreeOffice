@@ -43,6 +43,7 @@ let state = null;
 let vivo = {};
 let arvore = null;
 let selecionado = null;
+let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
 
 /* ── Comunicação com a ponte ────────────────────────────────────────────── */
 
@@ -115,16 +116,91 @@ function estadoDoNo(no) {
   return { estado: no.estado, detalhe: "" };
 }
 
+function atualizarFonte() {
+  const alvo = el("fonte");
+  if (alvo) {
+    alvo.textContent =
+      opencode.modo === "real"
+        ? `Fase B · dados reais · ${opencode.nSessoes} sessões`
+        : "simulado · mock local";
+  }
+  const botao = el("btn-fonte");
+  if (botao) botao.textContent = opencode.modo === "real" ? "Usar simulado" : "Usar dados reais";
+}
+
+function textoStatus() {
+  if (opencode.modo !== "real") return "simulado · conectado";
+  if (opencode.erro) return `real · ${opencode.erro}`;
+  if (!opencode.conectado) return "real · conectando…";
+  return `real · ${opencode.nSessoes} sessões · ${opencode.nProjetos} projetos`;
+}
+
+const NIVEIS_EFEITOS = ["cheio", "sutil", "desligado"];
+
+function nivelEfeitosAtual() {
+  const e = state?.preferencias?.efeitos;
+  return NIVEIS_EFEITOS.includes(e) ? e : "cheio";
+}
+
+function atualizarBotaoEfeitos() {
+  const botao = el("btn-efeitos");
+  if (botao) botao.textContent = `Efeitos: ${nivelEfeitosAtual()}`;
+}
+
+async function alternarEfeitos() {
+  if (!state) return;
+  const proximo = NIVEIS_EFEITOS[(NIVEIS_EFEITOS.indexOf(nivelEfeitosAtual()) + 1) % NIVEIS_EFEITOS.length];
+  state.preferencias = { ...(state.preferencias || {}), efeitos: proximo };
+  arvore.definirEstado(state, vivo);
+  atualizarBotaoEfeitos();
+  await salvar();
+}
+
 async function carregar() {
   try {
     const resposta = await api("/api/estado");
     state = resposta.state;
     vivo = mapaVivo(resposta.simulacao);
+    if (resposta.opencode) opencode = resposta.opencode;
     for (const texto of resposta.avisos || []) aviso(texto, "alerta");
     arvore.definirEstado(state, vivo);
-    marcarStatus("protótipo simulado · conectado", "ok");
+    atualizarFonte();
+    atualizarBotaoEfeitos();
+    marcarStatus(textoStatus(), opencode.modo === "real" && !opencode.erro ? "ok" : opencode.erro ? "erro" : "ok");
   } catch (erro) {
     marcarStatus(`falha ao carregar: ${erro.message}`, "erro");
+  }
+}
+
+async function alternarFonte() {
+  try {
+    const proximo = opencode.modo === "real" ? "simulado" : "real";
+    const resposta = await api("/api/opencode/modo", { method: "POST", corpo: { modo: proximo } });
+    opencode = resposta;
+    atualizarFonte();
+    marcarStatus(textoStatus(), opencode.erro ? "erro" : "ok");
+    if (opencode.erro) aviso(`OpenCode: ${opencode.erro}`, "erro");
+    else aviso(proximo === "real" ? "Lendo sessões reais (somente leitura)." : "De volta ao simulado.", "ok");
+    await carregar();
+  } catch (erro) {
+    aviso(`Não foi possível alternar a fonte: ${erro.message}`, "erro");
+  }
+}
+
+async function ressincronizar() {
+  try {
+    const resposta = await api("/api/opencode/ressincronizar", { method: "POST", corpo: {} });
+    opencode = resposta;
+    atualizarFonte();
+    marcarStatus(textoStatus(), opencode.erro ? "erro" : "ok");
+    aviso(
+      opencode.erro
+        ? `Ressincronização falhou: ${opencode.erro}`
+        : `Inventário relido: ${opencode.nSessoes} sessões, ${opencode.nProjetos} projetos.`,
+      opencode.erro ? "erro" : "ok",
+    );
+  } catch (erro) {
+    aviso(`Não foi possível ressincronizar: ${erro.message}`, "erro");
   }
 }
 
@@ -132,6 +208,11 @@ setInterval(async () => {
   try {
     const resposta = await api("/api/vivo");
     vivo = mapaVivo(resposta.vivo);
+    if (resposta.opencode) {
+      opencode = resposta.opencode;
+      atualizarFonte();
+      marcarStatus(textoStatus(), opencode.erro ? "erro" : "");
+    }
     arvore?.definirVivo(vivo);
     if (selecionado) atualizarPainel(selecionado);
   } catch {
@@ -285,9 +366,12 @@ function selecaoCadastros() {
   outro.value = "sem-diretorio";
   outro.textContent = "nenhum diretório (o popup perguntaria depois)";
   s.appendChild(outro);
-  s.value = String(Math.min(fluxo.cadastroIndex, state.cadastros.length - 1));
+  // Sentinela -1 preserva a escolha "sem diretório" entre etapas; NaN de
+  // parseInt quebraria a seleção e o resumo (regressão: TypeError no passo 4).
+  if (fluxo.cadastroIndex < 0 || !state.cadastros.length) s.value = "sem-diretorio";
+  else s.value = String(Math.min(fluxo.cadastroIndex, state.cadastros.length - 1));
   s.addEventListener("change", () => {
-    fluxo.cadastroIndex = Number.parseInt(s.value, 10);
+    fluxo.cadastroIndex = s.value === "sem-diretorio" ? -1 : Number.parseInt(s.value, 10);
   });
   return s;
 }
@@ -310,7 +394,7 @@ function resumoContexto() {
     };
   }
   const cadastro = fluxo.cadastroIndex >= 0 ? state.cadastros[fluxo.cadastroIndex] : null;
-  const semDiretorio = fluxo.cadastroIndex < 0 || !state.cadastros.length;
+  const semDiretorio = fluxo.cadastroIndex < 0 || !state.cadastros.length || !cadastro;
   return {
     linhas: [
       ["Diretório", semDiretorio ? "nenhum (seria perguntado depois)" : cadastro.rotulo || cadastro.caminho],
@@ -414,8 +498,7 @@ function renderPopup() {
 
       const selRepo = selecaoCadastros();
       selRepo.addEventListener("change", () => {
-        const escolhido = state.cadastros[Number.parseInt(selRepo.value, 10)];
-        fluxo.cadastroIndex = Number.parseInt(selRepo.value, 10);
+        const escolhido = state.cadastros[fluxo.cadastroIndex];
         if (escolhido && !fluxo.nome) fluxo.nome = sugestaoNome(escolhido);
         renderPopup();
       });
@@ -467,11 +550,8 @@ function renderPopup() {
       el("pp-titulo").textContent = "Contexto de trabalho";
       el("pp-etapa").textContent = "Etapa 3 de 4 · pasta ou worktree existente";
       fluxo.cadastroIndex = Math.min(fluxo.cadastroIndex, state.cadastros.length - 1);
-      const sel = selecaoCadastros();
-      sel.addEventListener("change", () => {
-        fluxo.cadastroIndex = Number.parseInt(sel.value, 10);
-      });
-      corpo.appendChild(campo("Diretório cadastrado", sel));
+      if (fluxo.cadastroIndex < -1 || Number.isNaN(fluxo.cadastroIndex)) fluxo.cadastroIndex = -1;
+      corpo.appendChild(campo("Diretório cadastrado", selecaoCadastros()));
 
       const wt = document.createElement("input");
       wt.type = "text";
@@ -729,7 +809,7 @@ function iniciar() {
     await salvar();
   });
   el("pn-abrir").addEventListener("click", () => {
-    aviso("Abrir no OpenCode chega na Etapa 3, com a integração validada.", "alerta");
+    aviso("Abrir no OpenCode: na Fase B o painel só lê; a conversa continua na interface do OpenCode (D13).", "alerta");
   });
 
   el("btn-recolher").addEventListener("click", async () => {
@@ -743,6 +823,9 @@ function iniciar() {
   el("btn-zoom-menos").addEventListener("click", () => arvore.aplicarZoom(0.85));
   el("btn-zoom-mais").addEventListener("click", () => arvore.aplicarZoom(1.18));
   el("btn-centralizar").addEventListener("click", () => arvore.centrar());
+  el("btn-fonte")?.addEventListener("click", alternarFonte);
+  el("btn-ressinc")?.addEventListener("click", ressincronizar);
+  el("btn-efeitos")?.addEventListener("click", alternarEfeitos);
 
   document.addEventListener("keydown", (evento) => {
     if (evento.key === "Escape") {

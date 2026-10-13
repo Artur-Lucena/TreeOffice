@@ -15,7 +15,7 @@
         <span class="ponto"></span>
         <div>
           <strong>TreeOffice</strong>
-          <small>Etapa 2 · protótipo com dados simulados</small>
+          <small id="fonte">conectando…</small>
         </div>
       </div>
       <div id="status" class="status">conectando…</div>
@@ -27,6 +27,9 @@
       <button id="btn-zoom-menos" type="button" title="Diminuir zoom">−</button>
       <button id="btn-zoom-mais" type="button" title="Aumentar zoom">+</button>
       <button id="btn-centralizar" type="button" title="Centralizar a árvore">Centralizar</button>
+      <button id="btn-fonte" type="button" title="Alternar entre dados simulados e sessões reais (somente leitura)">Usar dados reais</button>
+      <button id="btn-ressinc" type="button" title="Reler inventário completo do OpenCode (D33)">Ressincronizar</button>
+      <button id="btn-efeitos" type="button" title="Densidade dos efeitos visuais: cheio, sutil ou desligado">Efeitos: cheio</button>
     </div>
 
     <aside id="painel" class="painel oculto" aria-live="polite">
@@ -46,7 +49,7 @@
         <button id="pn-ramificar" class="primario" type="button">Ramificar daqui</button>
         <button id="pn-dependencia" type="button">Marcar dependência</button>
         <button id="pn-recolher" type="button">Recolher galho</button>
-        <button id="pn-abrir" type="button" disabled>Abrir no OpenCode</button>
+        <button id="pn-abrir" type="button" title="Na Fase B o painel só lê; a conversa continua na interface do OpenCode (D13)">Abrir no OpenCode</button>
         <button id="pn-remover" class="perigo" type="button">Remover vínculo visual</button>
       </div>
       <p class="nota" id="pn-nota"></p>

@@ -27,6 +27,7 @@ let rafCb = null;
 let relogio = 0;
 
 function canvasFalso() {
+  const reg = { alfa: [], dash: [] };
   const ctx = {
     setTransform() {}, clearRect() {}, fillRect() {}, save() {}, restore() {},
     beginPath() {}, moveTo() {}, lineTo() {}, closePath() {},
@@ -37,25 +38,37 @@ function canvasFalso() {
     arc(x, y, r) { arcs.push({ x, y, r }); },
     fillText(texto) { textos.push(String(texto)); },
   };
+  Object.defineProperty(ctx, "globalAlpha", {
+    set(v) { reg.alfa.push(v); },
+    get() { return 1; },
+  });
+  Object.defineProperty(ctx, "lineDashOffset", {
+    set(v) { reg.dash.push(v); },
+    get() { return 0; },
+  });
   return {
     getContext: () => ctx,
     addEventListener() {}, setPointerCapture() {}, hasPointerCapture() { return false; },
     releasePointerCapture() {},
     getBoundingClientRect: () => ({ width: 900, height: 600, left: 0, top: 0 }),
+    style: {},
     width: 0, height: 0,
+    __ctx: ctx,
+    __reg: reg,
   };
 }
 
 function cenario(estado, rotulo) {
   globalThis.window = { addEventListener() {}, devicePixelRatio: 1 };
-  globalThis.document = { getElementById: () => canvasFalso() };
+  const tela = canvasFalso();
+  globalThis.document = { getElementById: () => tela };
   globalThis.requestAnimationFrame = (cb) => { rafCb = cb; };
   relogio = 0;
   rafCb = null;
   arcs = [];
   textos = [];
 
-  const arvore = criarArvore(canvasFalso(), {});
+  const arvore = criarArvore(tela, {});
   arvore.definirEstado(estado, {});
 
   const passo = () => {
@@ -67,6 +80,8 @@ function cenario(estado, rotulo) {
   for (let i = 0; i < 12; i += 1) passo();
   arcs = [];
   textos = [];
+  tela.__reg.alfa = [];
+  tela.__reg.dash = [];
   passo(); // um quadro depois de tudo estabilizado
 
   const naoFinitos = arcs.filter(
@@ -75,7 +90,7 @@ function cenario(estado, rotulo) {
   console.log(`\n== ${rotulo} ==`);
   console.log(`  arcs: ${arcs.length} | com NaN: ${naoFinitos.length}`);
   console.log(`  rótulos: ${JSON.stringify([...new Set(textos)])}`);
-  return { arvore, naoFinitos };
+  return { arvore, naoFinitos, tela, passo };
 }
 
 let passou = 0;
@@ -135,6 +150,79 @@ semPai.nos.push({ id: "n_pai_sumiu", titulo: "Pai removido", grupoPai: "n_fantas
 const c3 = cenario(semPai, "grupoPai aponta para id inexistente");
 verificar("nenhum arco com coordenada NaN", c3.naoFinitos.length === 0, `${c3.naoFinitos.length} arcos`);
 verificar("nó com pai inexistente é desenhado", textos.includes("Pai removido"));
+
+/* ── Cenário 4: fluxo animado nas dependências (Onda 1) ───────────────────── */
+console.log("\nCenário 4 — dependência tem fluxo animado no cheio e congela no desligado");
+const comDep = JSON.parse(JSON.stringify(base));
+comDep.dependencias.push({ origem: "n_grupo", destino: "n_orfao" });
+const c4 = cenario(comDep, "uma dependência, efeitos cheios");
+arcs = [];
+c4.tela.__reg.dash = [];
+c4.passo();
+const offsetsCheio = [...c4.tela.__reg.dash];
+c4.tela.__reg.dash = [];
+c4.passo();
+const offsetsCheio2 = [...c4.tela.__reg.dash];
+verificar(
+  "fluxo das dependências avança entre quadros",
+  offsetsCheio.some((o) => o !== 0) && offsetsCheio.join() !== offsetsCheio2.join(),
+  JSON.stringify(offsetsCheio.slice(0, 3)),
+);
+const semEfeito = JSON.parse(JSON.stringify(comDep));
+semEfeito.preferencias = { efeitos: "desligado" };
+const c4b = cenario(semEfeito, "uma dependência, efeitos desligados");
+c4b.passo();
+verificar(
+  "efeitos desligados congelam o fluxo",
+  c4b.tela.__reg.dash.every((o) => o === 0),
+  JSON.stringify(c4b.tela.__reg.dash.slice(0, 3)),
+);
+
+/* ── Cenário 5: hover realça a vizinhança (Onda 1) ────────────────────────── */
+console.log("\nCenário 5 — hover esmaece quem não é vizinho, sem remover ninguém");
+const c5 = cenario(base, "hover sobre o nó do grupo");
+c5.arvore.pairar("n_grupo");
+c5.passo();
+verificar(
+  "hover esmaece não-vizinhos (alfa de esmaecimento registrado)",
+  c5.tela.__reg.alfa.some((a) => a === 0.22),
+  JSON.stringify(c5.tela.__reg.alfa.slice(0, 6)),
+);
+verificar("nó sob hover continua desenhado", textos.includes("Nó do grupo"));
+c5.arvore.pairar(null);
+c5.tela.__reg.alfa = [];
+c5.passo();
+verificar(
+  "sem hover, nenhum esmaecimento",
+  !c5.tela.__reg.alfa.some((a) => a === 0.22),
+);
+
+/* ── Cenário 6: deriva orgânica e poeira (Onda 1) ─────────────────────────── */
+console.log("\nCenário 6 — nós derivam no cheio, ficam parados no desligado; poeira obedece");
+const c6 = cenario(base, "deriva e poeira, efeitos cheios");
+verificar("poeira existe no modo cheio", c6.arvore.efeitosInfo().poeira > 0, `${c6.arvore.efeitosInfo().poeira} partículas`);
+const centros = (lista) => lista.filter((a) => a.r > 10).map((a) => Math.round(a.x * 10000));
+arcs = [];
+c6.passo();
+const fotoA = centros(arcs);
+for (let i = 0; i < 8; i += 1) c6.passo();
+arcs = [];
+c6.passo();
+const fotoB = centros(arcs);
+verificar("nós à deriva mudam de centro entre quadros", fotoA.join() !== fotoB.join());
+const parado = JSON.parse(JSON.stringify(base));
+parado.preferencias = { efeitos: "desligado" };
+const c6b = cenario(parado, "deriva e poeira, efeitos desligados");
+verificar("poeira some no desligado", c6b.arvore.efeitosInfo().poeira === 0);
+arcs = [];
+c6b.passo();
+const fotoC = centros(arcs);
+for (let i = 0; i < 8; i += 1) c6b.passo();
+arcs = [];
+c6b.passo();
+const fotoD = centros(arcs);
+verificar("nós parados mantêm o centro entre quadros", fotoC.join() === fotoD.join());
+verificar("nó do grupo segue visível no desligado", textos.includes("Nó do grupo"));
 
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;
