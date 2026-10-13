@@ -125,6 +125,7 @@ async function main() {
     const saude = await pedir(PORTA, "/api/saude", { headers: com });
     verificar("token válido acessa a API", saude.status === 200 && saude.corpo?.simulado === true);
     verificar("saúde declara a etapa 2 como simulada", saude.corpo?.etapa === 2);
+    verificar("carimbo identifica o código mesmo com árvore descartável", typeof saude.corpo?.versao === "string" && saude.corpo.versao.length > 0);
 
     /* ── Simulação ─────────────────────────────────────────────────────── */
     // Feita antes de qualquer POST, para observar o estado semeado de origem.

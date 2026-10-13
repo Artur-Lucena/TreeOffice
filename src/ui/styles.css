@@ -1,12 +1,12 @@
 /* TreeOffice — Etapa 2. Estilo local, sem fontes ou recursos externos (D25). */
 
 :root {
-  --fundo: #0d1117;
-  --fundo-painel: rgba(17, 24, 35, 0.92);
-  --borda: rgba(255, 255, 255, 0.1);
-  --texto: #e9eef5;
-  --texto-suave: #a0acbe;
-  --destaque: #7cc4ff;
+  --fundo: #111210;
+  --fundo-painel: rgba(23, 24, 21, 0.94);
+  --borda: rgba(232, 230, 222, 0.24);
+  --texto: #e8e6de;
+  --texto-suave: #aba99e;
+  --destaque: #e8e6de;
   --perigo: #ff8787;
   --ok: #7ee0b8;
   --alerta: #ffb86b;
@@ -84,14 +84,22 @@ body {
 
 .marca strong {
   display: block;
-  font-size: 15px;
   letter-spacing: 0.02em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: normal;
 }
 
 .marca small {
   display: block;
   color: var(--texto-suave);
   font-size: 11.5px;
+}
+
+.marca .versao {
+  font-size: 10.5px;
+  opacity: 0.75;
+  font-family: Consolas, "Courier New", monospace;
 }
 
 .status {
@@ -127,7 +135,7 @@ body {
 button {
   font: inherit;
   color: var(--texto);
-  background: rgba(23, 31, 44, 0.92);
+  background: rgba(26, 27, 24, 0.94);
   border: 1px solid var(--borda);
   border-radius: 8px;
   padding: 7px 12px;
@@ -146,9 +154,9 @@ button:disabled {
 }
 
 button.primario {
-  background: rgba(124, 196, 255, 0.16);
-  border-color: rgba(124, 196, 255, 0.45);
-  color: #d8ecff;
+  background: #dedbcf;
+  border-color: #f1eee3;
+  color: #23241e;
 }
 
 button.perigo {
@@ -185,8 +193,10 @@ button.perigo {
 
 .painel-cabeca h2 {
   margin: 0;
-  font-size: 15px;
   line-height: 1.35;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: normal;
+  font-size: 20px;
 }
 
 .painel-cabeca button {
@@ -253,7 +263,8 @@ button.perigo {
   color: var(--texto-suave);
   background: var(--fundo-painel);
   border: 1px solid var(--borda);
-  border-radius: 999px;
+  border-radius: 8px;
+  max-width: min(860px, calc(100vw - 36px));
   padding: 6px 14px;
 }
 
@@ -264,11 +275,12 @@ button.perigo {
 }
 
 .legenda .naipes {
-  letter-spacing: 3px;
+  letter-spacing: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
   color: rgba(235, 232, 224, 0.85);
   border-left: 1px solid var(--borda);
   padding-left: 12px;
-  cursor: help;
 }
 
 .estado {
@@ -279,21 +291,23 @@ button.perigo {
 }
 
 .estado.ativo {
-  background: #7ee0b8;
-  box-shadow: 0 0 8px #7ee0b8;
+  background: #e8e6de;
+  box-shadow: 0 0 8px #e8e6de;
 }
 .estado.dormente {
-  background: #6b7688;
+  background: #706f66;
 }
 .estado.vazio {
   background: transparent;
   border: 1px dashed #6b7688;
 }
 .estado.nao_encontrado {
-  background: #ff8787;
+  background: repeating-linear-gradient(45deg, #aaa89c 0 1px, transparent 1px 3px);
+  border: 1px dashed #aaa89c;
 }
 .estado.incerto {
-  background: #ffb86b;
+  background: transparent;
+  border: 2px dotted #e8e6de;
 }
 
 .dica {
@@ -332,7 +346,9 @@ button.perigo {
 
 .popup h2 {
   margin: 0;
-  font-size: 16px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: normal;
 }
 
 .popup-etapa {
@@ -366,6 +382,21 @@ button.perigo {
   border-radius: 8px;
   padding: 8px 10px;
   width: 100%;
+}
+
+#pn-papel {
+  width: 100%;
+  color: var(--texto);
+  background: #181a16;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  font: inherit;
+  padding: 6px 8px;
+}
+
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 3px;
 }
 
 .campo textarea {
@@ -503,4 +534,9 @@ button.perigo {
   .legenda {
     display: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca .ponto, .aviso { animation: none; }
+  button { transition: none; }
 }

@@ -37,7 +37,7 @@ const NAIPE = {
   estudo: "♣",
 };
 
-function naipeDe(papel) {
+export function naipeDe(papel) {
   return NAIPE[papel] || "";
 }
 
@@ -59,8 +59,9 @@ function hashNum(id) {
  * do Obsidian adaptado — aqui as âncoras continuam autoritárias e a repulsão
  * é só correção de curto alcance, para atualizações nunca provocarem saltos.
  *
- * `corpos`: itens mutáveis {x, y, vx, vy}; `raio` é o raio efetivo comum em
- * unidades de mundo. Soma impulso em vx/vy; integração e amortecimento
+ * `corpos`: itens mutáveis {x, y, vx, vy, raio?, fixo?}; `raio` é o fallback
+ * em unidades de mundo (nunca pixels da câmera). Soma impulso em vx/vy;
+ * integração e amortecimento
  * continuam no passo de física. Pares coincidentes ganham direção estável
  * por índice (sem aleatoriedade, sem NaN). Função pura de física, exportada
  * para teste direto.
@@ -88,15 +89,38 @@ export function aplicarRepulsao(corpos, raio, opcoes = {}) {
         uy = Math.sin(h);
         dist = 0;
       }
-      const minimo = raio * 2 + respiro;
+      const minimo = (a.raio ?? raio) + (b.raio ?? raio) + respiro;
       if (dist < minimo) {
         const f = Math.min((minimo - dist) * forca, teto);
-        a.vx -= ux * f;
-        a.vy -= uy * f;
-        b.vx += ux * f;
-        b.vy += uy * f;
+        if (!a.fixo) { a.vx -= ux * f; a.vy -= uy * f; }
+        if (!b.fixo) { b.vx += ux * f; b.vy += uy * f; }
       }
     }
+  }
+}
+
+// A mola define o layout, não autoriza interpenetração. Resolver o contato
+// depois da integração impede que uma âncora forte anule a colisão.
+function resolverContatos(corpos) {
+  for (let iteracao = 0; iteracao < 12; iteracao++) {
+    let mudou = false;
+    for (let i = 0; i < corpos.length; i++) for (let j = i + 1; j < corpos.length; j++) {
+      const a = corpos[i]; const b = corpos[j];
+      if (a.fixo && b.fixo) continue;
+      const dx = b.x - a.x; const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      const falta = a.raio + b.raio + 12 - dist;
+      if (falta <= 0.001) continue;
+      const angulo = hashNum(`${i}:${j}`) * Math.PI * 2;
+      const ux = dist > 1e-9 ? dx / dist : Math.cos(angulo);
+      const uy = dist > 1e-9 ? dy / dist : Math.sin(angulo);
+      const parteA = a.fixo ? 0 : b.fixo ? 1 : 0.5;
+      const parteB = b.fixo ? 0 : a.fixo ? 1 : 0.5;
+      a.x -= ux * falta * parteA; a.y -= uy * falta * parteA;
+      b.x += ux * falta * parteB; b.y += uy * falta * parteB;
+      mudou = true;
+    }
+    if (!mudou) break;
   }
 }
 
@@ -139,6 +163,7 @@ export function criarArvore(canvas, opcoes = {}) {
   const ctx = canvas.getContext("2d");
   const onSelecionar = opcoes.onSelecionar || (() => {});
   const onAcao = opcoes.onAcao || (() => {});
+  const onErro = opcoes.onErro || ((erro) => console.error("TreeOffice: falha no desenho", erro));
 
   let estado = { grupos: [], nos: [], dependencias: [], preferencias: {} };
   let vivo = {};
@@ -146,7 +171,7 @@ export function criarArvore(canvas, opcoes = {}) {
 
   const camera = { x: 0, y: 0, zoom: 0.75, alvoX: 0, alvoY: 0, alvoZoom: 0.75 };
   const posicoes = new Map(); // id → {x, y, vx, vy, fase, alvoX, alvoY, camada}
-  const arrastando = { ativo: false, x: 0, y: 0, moveu: false };
+  const arrastando = { ativo: false, x: 0, y: 0, inicioX: 0, inicioY: 0, moveu: false, no: null, pointerId: null };
 
   /* ── D49: worktrees compartilhados e granulado do quadro ─────────────── */
   const compartilhados = new Set(); // worktrees com >1 ocupante confirmado
@@ -218,7 +243,7 @@ export function criarArvore(canvas, opcoes = {}) {
     if (!p) return null;
     const nivel = nivelEfeitos();
     const a = nivel === "desligado" ? 0 : amp * (nivel === "sutil" ? 0.4 : 1);
-    if (!a || reduzir) return { x: p.x, y: p.y };
+    if (!a || reduzir || id === arrastando.no) return { x: p.x, y: p.y };
     return {
       x: p.x + deriva(p.fase, tempo, a),
       y: p.y + deriva(p.fase * 1.7 + 0.5, tempo, a),
@@ -348,7 +373,7 @@ export function criarArvore(canvas, opcoes = {}) {
 
     const percorrer = (id, x, y, raioOrbita) => {
       const no = nos.find((n) => n.id === id);
-      if (!no) return;
+      if (!no || visitados.has(id)) return;
       entrada(id, x, y);
       if (no.recolhido) {
         // Recolhido: o nó fica no lugar (com a ficha de contagem); apenas a
@@ -448,9 +473,17 @@ export function criarArvore(canvas, opcoes = {}) {
     const corpos = [];
     for (const [id, p] of posicoes) {
       if (p.camada !== "no" || ocultos.has(id)) continue;
+      const no = estado.nos.find((n) => n.id === id);
+      const base = 26 * (estado.nos.some((n) => n.grupoPai === id) ? 1.15 : 1);
+      // Envelope máximo: crescimento, respiração, contorno ondulado e deriva.
+      // Deve continuar válido em qualquer zoom e durante transições de estado.
+      p.raio = base * 1.3 * 1.085 * 1.09 + 10;
+      p.fixo = id === arrastando.no;
+      const alvoEnergia = energiaDoNo(no, Date.now());
+      p.energia = Number.isFinite(p.energia) ? lerp(p.energia, alvoEnergia, Math.min(1, dt * 0.08)) : alvoEnergia;
       corpos.push(p);
     }
-    aplicarRepulsao(corpos, 26 * camera.zoom);
+    aplicarRepulsao(corpos, 26);
 
     for (const [id, p] of posicoes) {
       // Defesa: entrada incompleta viraria NaN e apagaria o nó da tela.
@@ -458,6 +491,12 @@ export function criarArvore(canvas, opcoes = {}) {
       if (!Number.isFinite(p.y)) p.y = p.alvoY;
       if (!Number.isFinite(p.vx)) p.vx = 0;
       if (!Number.isFinite(p.vy)) p.vy = 0;
+      if (id === arrastando.no) {
+        // Agarrado: fica onde o cursor manda; a mola só volta a valer solto.
+        p.vx = 0;
+        p.vy = 0;
+        continue;
+      }
       const dx = p.alvoX - p.x;
       const dy = p.alvoY - p.y;
       p.vx = (p.vx + dx * atracao) * amortecimento;
@@ -467,6 +506,21 @@ export function criarArvore(canvas, opcoes = {}) {
       if (Math.abs(p.vx) < 0.0008) p.vx = 0;
       if (Math.abs(p.vy) < 0.0008) p.vy = 0;
     }
+    resolverContatos(corpos);
+  }
+
+  /**
+   * Ponto testável do arrasto (D51): desloca a posição em unidades de mundo.
+   * O handler de pointer converte o gesto e chama daqui; soltar devolve o nó
+   * à âncora por mola — arrasto é inspeção, não edição.
+   */
+  function moverNo(id, dxMundo, dyMundo) {
+    const p = posicoes.get(id);
+    if (!p || p.camada !== "no") return false;
+    if (!Number.isFinite(dxMundo) || !Number.isFinite(dyMundo)) return false;
+    p.x += dxMundo;
+    p.y += dyMundo;
+    return true;
   }
 
   /* ── Desenho ────────────────────────────────────────────────────────────── */
@@ -600,6 +654,22 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.moveTo(pa.x, pa.y);
       ctx.quadraticCurveTo(meioX, meioY, pb.x, pb.y);
       ctx.stroke();
+      // Partículas direcionais origem→destino (D52): a dependência "corre".
+      // Paradas com efeitos desligados ou movimento reduzido.
+      if (nivel !== "desligado" && !reduzir) {
+        const qtd = nivel === "cheio" ? 3 : 1;
+        const fase = hashNum(`${dep.origem}>${dep.destino}`);
+        ctx.fillStyle = tocaHover ? "rgba(235,232,224,0.95)" : "rgba(235,232,224,0.7)";
+        for (let i = 0; i < qtd; i += 1) {
+          const tt = (tempo * 0.00012 + fase + i / qtd) % 1;
+          const u = 1 - tt;
+          const px = u * u * pa.x + 2 * u * tt * meioX + tt * tt * pb.x;
+          const py = u * u * pa.y + 2 * u * tt * meioY + tt * tt * pb.y;
+          ctx.beginPath();
+          ctx.arc(px, py, 2 * camera.zoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       // Seta de direção na ponta (só no cheio): a tangente da quadrática
       // no fim é pb − meio.
       if (nivel === "cheio" && !reduzir) {
@@ -629,6 +699,21 @@ export function criarArvore(canvas, opcoes = {}) {
     return { estado, detalhe: vivoAtual?.detalhe || "" };
   }
 
+  /**
+   * Energia do nó (D52): ativo vale 1; os demais decaem do último instante
+   * conhecido até o piso do estado em ~2 min. Só recência, nunca conteúdo.
+   */
+  function energiaDoNo(no, tempo) {
+    const vivoAtual = vivo[no.id];
+    const estado = vivoAtual?.estado || no.estado || ESTADO.VAZIO;
+    if (estado === ESTADO.ATIVO) return 1;
+    const piso = estado === ESTADO.DORMENTE ? 0.35 : 0.2;
+    const desde = vivoAtual?.desde;
+    if (!Number.isFinite(desde)) return piso;
+    const idade = Math.max(tempo - desde, 0);
+    return piso + (1 - piso) * Math.exp(-idade / 45000);
+  }
+
   function desenharGrupo(grupo, tempo) {
     const p = posicoes.get(grupo.id);
     if (!p) return;
@@ -646,6 +731,8 @@ export function criarArvore(canvas, opcoes = {}) {
 
     ctx.save();
     if (esmaecido(grupo.id)) ctx.globalAlpha = 0.25;
+    // Fusão aditiva: territórios e brilhos vizinhos se fundem como um organismo (D52).
+    ctx.globalCompositeOperation = "lighter";
     const gradiente = ctx.createRadialGradient(centro.x, centro.y, raio * 0.2, centro.x, centro.y, raio);
     gradiente.addColorStop(0, `rgba(${GIZ}, 0.10)`);
     gradiente.addColorStop(0.75, `rgba(${GIZ}, 0.05)`);
@@ -692,11 +779,12 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.globalAlpha = 0.22;
     }
     // Nascer com escala: criação de chat tem retorno visual imediato (D02).
-    const idade = tempo - (Number.isFinite(p.nascidoEm) ? p.nascidoEm : tempo);
-    const fracaoEntrada = idade < 0 ? 1 : Math.min(1, idade / 320);
+    const idade = ultimo - (Number.isFinite(p.nascidoEm) ? p.nascidoEm : ultimo);
+    const fracaoEntrada = reduzir || nivelEfeitos() === "desligado" || idade < 0 ? 1 : Math.min(1, idade / 320);
     const escalaEntrada = 1 - (1 - fracaoEntrada) * (1 - fracaoEntrada) * (1 - fracaoEntrada);
-    const raioBase = 26 * camera.zoom * (no.grupoPai && (estado.nos || []).some((n) => n.grupoPai === no.id) ? 1.15 : 1);
-    const raio = raioOrganico(tempo, p.fase, raioBase) * escalaEntrada;
+    const raioBase = 26 * camera.zoom * ((estado.nos || []).some((n) => n.grupoPai === no.id) ? 1.15 : 1);
+    // Tamanho por atividade (D52): o blob cresce trabalhando e murcha parado.
+    const raio = raioOrganico(tempo, p.fase, raioBase) * escalaEntrada * (0.85 + 0.45 * (p.energia ?? energiaDoNo(no, Date.now())));
 
     // Giz monocromático (D49): o estado mora em textura + contorno + brilho.
     let alfa = 1;
@@ -731,9 +819,10 @@ export function criarArvore(canvas, opcoes = {}) {
       passoHachura = 9 * camera.zoom;
     }
 
-    // Aura de giz para o estado ativo.
+    // Aura de giz para o estado ativo (aditiva: funde com vizinhos, D52).
     if (brilho > 0) {
       ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.shadowColor = `rgba(${GIZ}, ${brilho})`;
       ctx.shadowBlur = 44 * camera.zoom;
       ctx.fillStyle = `rgba(20, 24, 32, ${alfa})`;
@@ -806,7 +895,7 @@ export function criarArvore(canvas, opcoes = {}) {
     ctx.setLineDash([]);
 
     // Seleção
-    if (selecionado === no.id) {
+    if (selecionado === no.id || arrastando.no === no.id) {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
       ctx.lineWidth = 1.6 * camera.zoom;
       ctx.beginPath();
@@ -889,13 +978,13 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.stroke();
     }
 
-    // Rótulos em serifa vintage com o naipe do papel (D49).
-    if (camera.zoom > 0.45) {
+    // Naipe ao lado do título: tamanho mínimo legível, inclusive com zoom baixo.
+    const naipe = naipeDe(no.papel);
+    if (camera.zoom > 0.45 || pairado === no.id || selecionado === no.id || arrastando.no === no.id) {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = "rgba(235, 232, 224, 0.95)";
-      ctx.font = `${Math.round(12.5 * camera.zoom)}px ${SERIFA}`;
-      const naipe = naipeDe(no.papel);
+      ctx.font = `${Math.max(14, Math.round(14 * camera.zoom))}px ${SERIFA}`;
       const base = no.titulo.length > 32 ? `${no.titulo.slice(0, 31)}…` : no.titulo;
       const titulo = naipe ? `${base} ${naipe}` : base;
       ctx.fillText(titulo, t.x, t.y + raio + 7 * camera.zoom);
@@ -908,6 +997,12 @@ export function criarArvore(canvas, opcoes = {}) {
         ctx.font = `${Math.round(10.5 * camera.zoom)}px ${SANS}`;
         ctx.fillText(sub.join(" · "), t.x, t.y + raio + 22 * camera.zoom);
       }
+    } else if (naipe) {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = `rgba(${GIZ}, 0.95)`;
+      ctx.font = `16px ${SERIFA}`;
+      ctx.fillText(naipe, t.x, t.y + raio + 6);
     }
     if (dim) ctx.restore();
   }
@@ -957,13 +1052,13 @@ export function criarArvore(canvas, opcoes = {}) {
 
     // Fundo com manchas suaves, para não parecer diagrama estático.
     const fundo = ctx.createLinearGradient(0, 0, largura, altura);
-    fundo.addColorStop(0, "#0d1117");
-    fundo.addColorStop(1, "#111823");
+    fundo.addColorStop(0, "#10110f");
+    fundo.addColorStop(1, "#1a1c18");
     ctx.fillStyle = fundo;
     ctx.fillRect(0, 0, largura, altura);
 
     // Movimento reduzido congela o tempo dos efeitos (estático, mas legível).
-    const T = reduzir ? 0 : tempo;
+    const T = reduzir || nivelEfeitos() === "desligado" ? 0 : tempo;
 
     desenharPoeira(T);
     desenharGrao();
@@ -990,7 +1085,12 @@ export function criarArvore(canvas, opcoes = {}) {
 
     passoFisica(dt);
     passoPoeira(dt);
-    desenhar(tempo);
+    try {
+      desenhar(tempo);
+    } catch (erro) {
+      onErro(erro);
+      return; // Sem spam por quadro e sem falha silenciosa que apaga a tela.
+    }
     requestAnimationFrame(laco);
   }
 
@@ -1005,17 +1105,28 @@ export function criarArvore(canvas, opcoes = {}) {
       const p = posicoes.get(no.id);
       if (!p || p.camada !== "no") continue;
       if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-      const raio = 34;
-      if (Math.hypot(p.x - mundo.x, p.y - mundo.y) <= raio) return no;
+      const centro = posMundo(no.id, ultimo, ampDeriva(estadoDeId(no.id)));
+      const base = 26 * (estado.nos.some((n) => n.grupoPai === no.id) ? 1.15 : 1);
+      const raio = base * (0.85 + 0.45 * (p.energia ?? 1)) * 1.1 + 5;
+      if (Math.hypot(centro.x - mundo.x, centro.y - mundo.y) <= raio) return no;
     }
     return null;
   }
 
   canvas.addEventListener("pointerdown", (evento) => {
+    if (evento.button !== 0 || arrastando.ativo) return;
     arrastando.ativo = true;
     arrastando.moveu = false;
     arrastando.x = evento.clientX;
     arrastando.y = evento.clientY;
+    arrastando.inicioX = evento.clientX;
+    arrastando.inicioY = evento.clientY;
+    arrastando.pointerId = evento.pointerId;
+    // Caiu num nó: modo arrasto-de-nó (D51); caiu no vazio: pan da câmera.
+    const retangulo = canvas.getBoundingClientRect();
+    const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
+    arrastando.no = no ? no.id : null;
+    canvas.style.cursor = "grabbing";
     canvas.setPointerCapture(evento.pointerId);
   });
 
@@ -1027,24 +1138,39 @@ export function criarArvore(canvas, opcoes = {}) {
       pairar(no ? no.id : null);
       return;
     }
+    if (evento.pointerId !== arrastando.pointerId) return;
     const dx = evento.clientX - arrastando.x;
     const dy = evento.clientY - arrastando.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) arrastando.moveu = true;
+    if (Math.hypot(evento.clientX - arrastando.inicioX, evento.clientY - arrastando.inicioY) > 3) arrastando.moveu = true;
     arrastando.x = evento.clientX;
     arrastando.y = evento.clientY;
+    if (arrastando.no) {
+      // O nó segue o cursor; a física continua e os vizinhos reagem ao vivo.
+      moverNo(arrastando.no, dx / camera.zoom, dy / camera.zoom);
+      return;
+    }
     camera.alvoX -= dx / camera.zoom;
     camera.alvoY -= dy / camera.zoom;
   });
 
-  canvas.addEventListener("pointerup", (evento) => {
+  function liberarArrasto(evento, cancelado = false) {
+    if (!arrastando.ativo || evento.pointerId !== arrastando.pointerId) return;
     arrastando.ativo = false;
+    // Soltar devolve o nó à âncora por mola: arrasto é inspeção, não edição.
+    arrastando.no = null;
+    arrastando.pointerId = null;
+    canvas.style.cursor = pairado ? "grab" : "";
     if (canvas.hasPointerCapture(evento.pointerId)) canvas.releasePointerCapture(evento.pointerId);
-    if (arrastando.moveu) return;
+    if (arrastando.moveu || cancelado) return;
     const retangulo = canvas.getBoundingClientRect();
     const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
     selecionado = no ? no.id : null;
     onSelecionar(no);
-  });
+  }
+  canvas.addEventListener("pointerup", (evento) => liberarArrasto(evento));
+  canvas.addEventListener("pointercancel", (evento) => liberarArrasto(evento, true));
+  canvas.addEventListener("lostpointercapture", (evento) => liberarArrasto(evento, true));
+  canvas.addEventListener("pointerleave", () => { if (!arrastando.ativo) pairar(null); });
 
   canvas.addEventListener(
     "wheel",
@@ -1109,9 +1235,15 @@ export function criarArvore(canvas, opcoes = {}) {
   }
 
   function centrar() {
-    camera.alvoX = 0;
-    camera.alvoY = 0;
-    camera.alvoZoom = 0.75;
+    const visiveis = [...posicoes].filter(([id, p]) => p.camada === "no" && !ocultos.has(id)).map(([, p]) => p);
+    if (!visiveis.length) return;
+    const xs = visiveis.map((p) => p.x); const ys = visiveis.map((p) => p.y);
+    const minX = Math.min(...xs); const maxX = Math.max(...xs);
+    const minY = Math.min(...ys); const maxY = Math.max(...ys);
+    camera.alvoX = (minX + maxX) / 2;
+    // Reservar topo para os controles e rodapé para legenda, corpo e títulos.
+    camera.alvoZoom = Math.max(0.25, Math.min(1, (largura - 200) / Math.max(160, maxX - minX), (altura - 310) / Math.max(160, maxY - minY)));
+    camera.alvoY = (minY + maxY) / 2 - 5 / camera.alvoZoom;
   }
 
   function aplicarZoom(fator) {
@@ -1137,6 +1269,7 @@ export function criarArvore(canvas, opcoes = {}) {
     centrar,
     aplicarZoom,
     pairar,
+    moverNo,
     nivelEfeitos,
     efeitosInfo: () => ({ nivel: nivelEfeitos(), poeira: poeira.length, pairado }),
     /** Somente leitura, para testes: cópia das posições atuais. */

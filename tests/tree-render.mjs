@@ -24,24 +24,32 @@ import { criarArvore, aplicarRepulsao } from "../src/ui/tree.js";
 let arcs = [];
 let textos = [];
 let marcas = []; // coordenadas de cada fillText: medem a deriva dos rótulos
+let tracados = [];
 let rafCb = null;
 let relogio = 0;
 
 function canvasFalso() {
   const reg = { alfa: [], dash: [] };
+  const eventos = new Map();
+  let pontos = [];
   const ctx = {
     setTransform() {}, clearRect() {}, fillRect() {}, save() {}, restore() {},
-    beginPath() {}, moveTo() {}, lineTo() {}, closePath() {},
+    beginPath() { pontos = []; },
+    moveTo(x, y) { pontos.push({ x, y }); },
+    lineTo(x, y) { pontos.push({ x, y }); },
+    closePath() {},
     bezierCurveTo() {}, quadraticCurveTo() {}, stroke() {}, fill() {},
-    setLineDash() {}, ellipse() {},
+    setLineDash() {}, ellipse() {}, clip() {}, translate() {}, rotate() {},
+    measureText(texto) { return { width: String(texto).length * 7 }; },
     createLinearGradient() { return { addColorStop() {} }; },
     createRadialGradient() { return { addColorStop() {} }; },
     arc(x, y, r) { arcs.push({ x, y, r }); },
     fillText(texto, x, y) {
       textos.push(String(texto));
-      marcas.push({ texto: String(texto), x, y });
+      marcas.push({ texto: String(texto), x, y, font: ctx.font });
     },
   };
+  ctx.stroke = () => tracados.push({ pontos: [...pontos], estilo: ctx.strokeStyle });
   Object.defineProperty(ctx, "globalAlpha", {
     set(v) { reg.alfa.push(v); },
     get() { return 1; },
@@ -52,7 +60,11 @@ function canvasFalso() {
   });
   return {
     getContext: () => ctx,
-    addEventListener() {}, setPointerCapture() {}, hasPointerCapture() { return false; },
+    addEventListener(tipo, cb) { eventos.set(tipo, cb); },
+    disparar(tipo, dados = {}) {
+      eventos.get(tipo)?.({ pointerId: 1, button: 0, clientX: 0, clientY: 0, preventDefault() {}, ...dados });
+    },
+    setPointerCapture() {}, hasPointerCapture() { return false; },
     releasePointerCapture() {},
     getBoundingClientRect: () => ({ width: 900, height: 600, left: 0, top: 0 }),
     style: {},
@@ -62,12 +74,13 @@ function canvasFalso() {
   };
 }
 
-function cenario(estado, rotulo) {
-  globalThis.window = { addEventListener() {}, devicePixelRatio: 1 };
+function cenario(estado, rotulo, reduzir = false) {
+  globalThis.window = { addEventListener() {}, devicePixelRatio: 1, matchMedia: () => ({ matches: reduzir }) };
   const tela = canvasFalso();
   globalThis.document = { getElementById: () => tela };
   globalThis.requestAnimationFrame = (cb) => { rafCb = cb; };
   relogio = 0;
+  globalThis.performance = { now: () => relogio };
   rafCb = null;
   arcs = [];
   textos = [];
@@ -85,13 +98,15 @@ function cenario(estado, rotulo) {
   arcs = [];
   textos = [];
   marcas = [];
+  tracados = [];
   tela.__reg.alfa = [];
   tela.__reg.dash = [];
   passo(); // um quadro depois de tudo estabilizado
 
-  const naoFinitos = arcs.filter(
-    (a) => !Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(a.r),
-  );
+  const naoFinitos = [
+    ...arcs.filter((a) => !Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(a.r)),
+    ...tracados.flatMap((t) => t.pontos).filter((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y)),
+  ];
   console.log(`\n== ${rotulo} ==`);
   console.log(`  arcs: ${arcs.length} | com NaN: ${naoFinitos.length}`);
   console.log(`  rótulos: ${JSON.stringify([...new Set(textos)])}`);
@@ -173,6 +188,13 @@ verificar(
   offsetsCheio.some((o) => o !== 0) && offsetsCheio.join() !== offsetsCheio2.join(),
   JSON.stringify(offsetsCheio.slice(0, 3)),
 );
+arcs = [];
+c4.passo();
+verificar(
+  "partículas correm na dependência no modo cheio",
+  arcs.filter((a) => a.r === 2 * 0.75).length >= 3,
+  `${arcs.filter((a) => a.r === 2 * 0.75).length} partículas`,
+);
 const semEfeito = JSON.parse(JSON.stringify(comDep));
 semEfeito.preferencias = { efeitos: "desligado" };
 const c4b = cenario(semEfeito, "uma dependência, efeitos desligados");
@@ -181,6 +203,12 @@ verificar(
   "efeitos desligados congelam o fluxo",
   c4b.tela.__reg.dash.every((o) => o === 0),
   JSON.stringify(c4b.tela.__reg.dash.slice(0, 3)),
+);
+arcs = [];
+c4b.passo();
+verificar(
+  "desligado não tem partículas (só poeira zerada e fichas)",
+  arcs.filter((a) => a.r === 2 * 0.75).length === 0,
 );
 
 /* ── Cenário 5: hover realça a vizinhança (Onda 1) ────────────────────────── */
@@ -360,8 +388,108 @@ for (let i = 0; i < pos.length; i += 1) {
     menor = Math.min(menor, Math.hypot(pos[i].x - pos[j].x, pos[i].y - pos[j].y));
   }
 }
-// Diâmetro do corpo em mundo no zoom padrão (2 * 26 * 0.75).
-verificar("corpos não se interpenetram após 30 quadros", menor >= 2 * 26 * 0.75, `menor=${menor.toFixed(1)}`);
+// O zoom é só câmera: o diâmetro físico não encolhe em unidades de mundo.
+verificar("corpos não se interpenetram após 30 quadros", menor >= 2 * 26, `menor=${menor.toFixed(1)}`);
+
+/* ── Cenário 9: arrasto cutuca a física e soltar devolve à âncora (D51) ─── */
+console.log("\nCenário 9 — agarrar, empurrar vizinho, soltar e voltar");
+const c9 = cenario(base, "arrasto em órfão e nó do grupo");
+const pos0 = c9.arvore._debugPosicoes();
+const a0 = pos0.find((p) => p.id === "n_orfao");
+const b0 = pos0.find((p) => p.id === "n_grupo");
+verificar("moverNo desloca imediatamente", c9.arvore.moverNo("n_orfao", b0.x - a0.x, b0.y - a0.y) === true);
+verificar("moverNo recusa delta inválido", c9.arvore.moverNo("n_orfao", NaN, 0) === false);
+verificar("moverNo recusa nó inexistente", c9.arvore.moverNo("n_fantasma", 1, 1) === false);
+
+// Segurar de verdade pelo handler, não alterando internamente o estado de drag.
+const telaDe = (c, p) => {
+  const cam = c.arvore.camera();
+  return { clientX: 450 + (p.x - cam.x) * cam.zoom, clientY: 300 + (p.y - cam.y) * cam.zoom };
+};
+c9.tela.disparar("pointerdown", telaDe(c9, b0));
+c9.passo();
+const paSegurado = c9.arvore._debugPosicoes().find((p) => p.id === "n_orfao");
+verificar("nó agarrado fica no cursor", Math.hypot(paSegurado.x - b0.x, paSegurado.y - b0.y) < 1);
+
+let maxDesloc = 0;
+for (let i = 0; i < 20; i += 1) {
+  c9.passo();
+  const pb = c9.arvore._debugPosicoes().find((p) => p.id === "n_grupo");
+  maxDesloc = Math.max(maxDesloc, Math.hypot(pb.x - b0.x, pb.y - b0.y));
+}
+verificar("vizinho reage ao vivo ao arrasto", maxDesloc > 1.5, `desloc=${maxDesloc.toFixed(1)}`);
+
+c9.tela.disparar("pointerup", telaDe(c9, b0));
+for (let i = 0; i < 80; i += 1) c9.passo();
+const paSolto = c9.arvore._debugPosicoes().find((p) => p.id === "n_orfao");
+verificar(
+  "soltar devolve o nó para perto da âncora",
+  Math.hypot(paSolto.x - a0.x, paSolto.y - a0.y) < 8,
+  `dist=${Math.hypot(paSolto.x - a0.x, paSolto.y - a0.y).toFixed(1)}`,
+);
+
+console.log("\nCenário 10 — gesto lento e cancelamento não prendem o nó");
+const c10 = cenario(base, "gestos pelo handler");
+const no10 = c10.arvore._debugPosicoes().find((p) => p.id === "n_grupo");
+const t10 = telaDe(c10, no10);
+const cam10 = c10.arvore.camera();
+c10.tela.disparar("pointerdown", t10);
+for (let i = 1; i <= 12; i++) c10.tela.disparar("pointermove", { ...t10, clientX: t10.clientX + i * 2 });
+c10.passo();
+verificar("arrasto lento desloca o nó, não a câmera", c10.arvore._debugPosicoes().find((p) => p.id === no10.id).x > no10.x + 20 && c10.arvore.camera().alvoX === cam10.alvoX);
+c10.tela.disparar("pointercancel", t10);
+for (let i = 0; i < 100; i++) c10.passo();
+const cancelado = c10.arvore._debugPosicoes().find((p) => p.id === no10.id);
+verificar("cancelamento libera a mola", Math.hypot(cancelado.x - no10.x, cancelado.y - no10.y) < 2);
+
+console.log("\nCenário 11 — separação vale também em dois níveis e zoom baixo");
+const doisNiveis = structuredClone(denso);
+for (let i = 0; i < 8; i++) for (let k = 0; k < 2; k++) {
+  doisNiveis.nos.push({ id: `n_neto_${i}_${k}`, titulo: `Neto ${i}.${k}`, grupoPai: `n_f${i}`, estado: "ativo" });
+}
+const c11 = cenario(doisNiveis, "ramos próximos");
+c11.arvore.aplicarZoom(0.4);
+for (let i = 0; i < 180; i++) c11.passo();
+const ps11 = c11.arvore._debugPosicoes().filter((p) => p.camada === "no");
+let dist11 = Infinity;
+for (let i = 0; i < ps11.length; i++) for (let j = i + 1; j < ps11.length; j++) dist11 = Math.min(dist11, Math.hypot(ps11[i].x - ps11[j].x, ps11[i].y - ps11[j].y));
+verificar("colisão não depende do zoom nem perde para a mola", dist11 >= 2 * 26 * 1.3 + 12, `dist=${dist11.toFixed(1)}`);
+
+console.log("\nCenário 12 — naipe legível no zoom baixo e energia com relógio real");
+const unico = { grupos: [], nos: [{ id: "n_papel", titulo: "Investigar", papel: "investigacao", estado: "ativo" }], dependencias: [], preferencias: { efeitos: "desligado" } };
+const c12 = cenario(unico, "zoom reduzido");
+c12.arvore.aplicarZoom(0.4);
+for (let i = 0; i < 60; i++) c12.passo();
+verificar("naipe não desaparece no zoom baixo", marcas.some((m) => m.texto.includes("♦") && Number.parseFloat(m.font) >= 14));
+
+const diametroDesenho = () => {
+  const blob = tracados.filter((t) => t.pontos.length >= 28).at(-1);
+  return blob ? Math.max(...blob.pontos.map((p) => p.x)) - Math.min(...blob.pontos.map((p) => p.x)) : 0;
+};
+const recente = cenario(unico, "recência em milissegundos de época");
+recente.arvore.definirVivo({ n_papel: { estado: "dormente", desde: Date.now() } });
+for (let i = 0; i < 90; i++) recente.passo();
+tracados = []; recente.passo();
+const diamRecente = diametroDesenho();
+recente.arvore.definirVivo({ n_papel: { estado: "dormente", desde: Date.now() - 600000 } });
+for (let i = 0; i < 90; i++) recente.passo();
+tracados = []; recente.passo();
+verificar("atividade antiga murcha; Date.now não é confundido com RAF", diametroDesenho() < diamRecente * 0.9);
+
+const quieto = cenario(unico, "movimento reduzido", true);
+tracados = []; quieto.passo();
+const fotoQuieto = JSON.stringify(tracados);
+tracados = []; quieto.passo();
+verificar("movimento reduzido mantém blob e naipe visíveis e sem pulso", fotoQuieto === JSON.stringify(tracados) && textos.some((t) => t.includes("♦")));
+
+console.log("\nCenário 13 — centralizar enquadra os nós em vez de voltar à origem fixa");
+const c13 = cenario(comNaipes, "enquadramento");
+c13.arvore.centrar();
+const cam13 = c13.arvore.camera();
+const pos13 = c13.arvore._debugPosicoes().filter((p) => p.camada === "no");
+const meio13 = (Math.min(...pos13.map((p) => p.x)) + Math.max(...pos13.map((p) => p.x))) / 2;
+verificar("enquadramento usa o centro real do grafo", Math.abs(cam13.alvoX - meio13) < 1);
+verificar("enquadramento reserva espaço para o corpo e rótulos", pos13.every((p) => Math.abs((p.x - cam13.alvoX) * cam13.alvoZoom) < 350 && Math.abs((p.y - cam13.alvoY) * cam13.alvoZoom) < 220));
 
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;

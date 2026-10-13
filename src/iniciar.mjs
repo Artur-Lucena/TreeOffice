@@ -70,7 +70,7 @@ ponte
     const caminho = caminhos(raiz);
     const endereco = `http://127.0.0.1:${ponte.porta}/?token=${ponte.identidade().token}`;
     console.log("");
-    console.log(`TreeOffice — ponte (fonte inicial: ${fonte})`);
+    console.log(`TreeOffice — ponte (fonte inicial: ${fonte}, código: ${ponte.versao() || "local"})`);
     console.log(`  Painel  ${endereco}`);
     console.log(`  Estado  ${caminho.estado}`);
     if (abrir) abrirNavegador(endereco);

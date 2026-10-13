@@ -20,13 +20,14 @@ do usuário em cada portão (D11). Roadmap de execução em
 
 - [AGENTS.md](AGENTS.md): instruções de entrada para assistentes do projeto.
 - [CONTEXTO-PROJETO.md](CONTEXTO-PROJETO.md): histórico, requisitos e limites.
-- [docs/DECISOES.md](docs/DECISOES.md): decisões confirmadas (D01–D46) e propostas abertas.
+- [docs/DECISOES.md](docs/DECISOES.md): decisões confirmadas e propostas abertas.
 - [docs/PLANEJAMENTO.md](docs/PLANEJAMENTO.md): rodadas de decisão, etapas e critérios de aceite.
 - [docs/SEGURANCA.md](docs/SEGURANCA.md): proteção dos projetos existentes.
 - [docs/PESQUISA.md](docs/PESQUISA.md): pesquisa de referência, ecossistema e verificações pendentes.
 - [docs/PLANO-CONSOLIDADO.md](docs/PLANO-CONSOLIDADO.md): arquitetura, contrato de dados, etapas e critérios de aceite.
 - [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md): roadmap de execução da V1 em fases A–F, com portões e autorizações.
 - [src/README.md](src/README.md): como executar e verificar o protótipo.
+- [docs/CORRECOES-UI.md](docs/CORRECOES-UI.md): defeitos de arrasto, colisão e naipes, com evidências do reteste automatizado.
 
 A documentação é mantida no repositório privado
 <https://github.com/Artur-Lucena/TreeOffice>.

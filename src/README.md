@@ -49,6 +49,7 @@ Para encerrar: `Ctrl+C`. O estado permanece em `.local/`.
 node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
 node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
 node tests/opencode-client.mjs  # Fase B com serviço simulado (descoberta, paginação, SSE, modo real)
+node tests/browser-ui.mjs      # navegador real: Node 22+ e Edge/Chromium já instalado
 ```
 
 O comando direto da ponte (`node src/server/bridge.mjs`, mesmas opções menos
@@ -63,6 +64,12 @@ em projetos, chats, worktrees, vault ou no OpenCode.
 O `tree-render` instancia o `tree.js` de verdade com um DOM falso e observa as
 chamadas de `arc`/`fillText` — é o que pega defeitos de renderização que o
 smoke não alcança, como nós desenhados em NaN (invisíveis) ou nós sem âncora.
+
+O `browser-ui` verifica a UI real com dados fictícios, perfil separado e porta
+de teste. Não instala navegador/pacotes e não conecta ao OpenCode. Pode-se
+escolher o executável pela variável `TREEOFFICE_BROWSER`; suas capturas ficam
+em `.local/testes-ui/`, fora do Git. Esse teste exige Node 22+ pelo WebSocket
+nativo; não altera o requisito do servidor.
 
 ## Estrutura
 
@@ -95,8 +102,16 @@ src/
   (`cheio`, `sutil` ou `desligado`), com `prefers-reduced-motion` respeitado.
 - Estados: ativo, dormente, sem sessão, não encontrado e incerto. Chat parado
   permanece visível; ausência de dado não é desenhada como estado (D16).
-- Navegação: arrastar, zoom na roda, clique para selecionar, duplo clique para
-  focar, recolher galho, centralizar.
+- Navegação: arrastar nó empurra seus vizinhos; arrastar fundo move a câmera.
+  Soltar ou cancelar devolve o nó à âncora, sem persistir posição manual.
+  Zoom na roda, clique para selecionar, duplo clique para focar, recolher
+  galho e centralizar/enquadrar continuam disponíveis.
+- Papel/naipe no popup e no painel lateral: ♠ liderança, ♥ execução,
+  ♦ investigação, ♣ estudo; livre sem naipe. É só metadado local, não muda
+  agentes nem inicia trabalho. A legenda mostra o significado dos símbolos.
+- Crescimento/murchamento suaves por estado e recência, partículas nas
+  dependências e halos aditivos. Efeitos podem ser reduzidos/desligados.
+- Carimbo `código <commit> · UI <digest>` para identificar o painel servido.
 - Popup de criação em quatro etapas, com a pergunta sobre worktree, aviso de
   conflito de ocupação e a declaração de que a operação pode executar a
   preparação do projeto (D03, D27, D30).
@@ -117,6 +132,11 @@ src/
 - Nenhuma operação de escrita no OpenCode ou no Git existe aqui. Criar chat,
   vincular worktree e criar worktree pertencem às Etapas 4 e 5 do roadmap.
 - O popup demonstra as confirmações; ele não chama API alguma.
+- A colisão vale para corpos visíveis; textos e territórios não se repelem.
+
+Após atualizar o código, encerre **a ponte do TreeOffice** com `Ctrl+C`,
+rode `node src/iniciar.mjs` novamente e recarregue a aba com `Ctrl+F5`.
+Não é necessário reiniciar o serviço OpenCode para atualizar a UI.
 
 ## Fase B — dados reais somente leitura
 

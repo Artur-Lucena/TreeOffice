@@ -1,5 +1,12 @@
 # Planejamento — estado em 12/10/2026
 
+**Atualização da UI em 13/10/2026:** D51/D52 e
+[CORRECOES-UI](CORRECOES-UI.md) registram arrasto, contato independente do
+zoom, vivacidade e escolha de papel/naipe. Foram acrescentados testes em
+navegador real com dados descartáveis. Isso não autoriza a Fase C nem muda
+os limites de escrita externa. As contagens históricas abaixo correspondem
+às verificações anteriores.
+
 **Estado em 12/10/2026:** protótipo da Etapa 2 concluído e aprovado no reteste;
 adaptação ao Linux concluída; D45 e D46 registradas. Fase B autorizada e em
 andamento, com pesquisa inicial do contrato feita e cliente HTTP ainda por

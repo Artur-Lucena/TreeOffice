@@ -57,6 +57,8 @@ A criação da estrutura não significa aprovação do plano completo.
 | D48 | Comando único de entrada `node src/iniciar.mjs`, que sobe a ponte e abre o painel no navegador. | Abertura automática é cortesia e pode ser desativada (`--sem-abrir`, `TREEOFFICE_NO_OPEN=1`); falha ao abrir nunca derruba a ponte. Sem dependências novas, portátil Windows/Linux. |
 | D49 | Direção de arte giz-cassino com naipes semânticos, aprovada pelo usuário em 13/10/2026. | Naipe codifica papel (♠ liderança, ♥ execução, ♦ investigação, ♣ estudo; livre sem naipe) no lugar da cor; estados em textura + contorno + brilho; ficha de pôquer marca galho recolhido e worktree (dupla quando compartilhado). Tudo procedural em Canvas, sem asset externo (D24, D25). |
 | D50 | Colisão só entre corpos, com âncoras autoritárias, aprovada em 13/10/2026. | Repulsão par a par determinística antes das molas; rótulos livres; irmãos de grupo dividem a órbita (filho único no centro); acessório `_debugPosicoes()` só de leitura para testes. Sem o passe determinístico de grupos — física primeiro. |
+| D51 | Correção dos gestos autorizada em 13/10/2026: arrastar nó empurra os vizinhos; arrastar fundo navega. | Ao soltar/cancelar, volta à âncora por mola. Não persiste posição manual nem realiza operações externas. O contato respeita o tamanho do desenho em unidades de mundo, independentemente do zoom. |
+| D52 | Correções de vivacidade e naipes autorizadas junto dos defeitos da UI. | Recência e estado suavizam o tamanho; partículas percorrem dependências visuais e brilhos usam composição aditiva. Papel/naipe pode ser escolhido na criação ou no painel; livre continua sem naipe. Sem novas dependências nem mudança de agente/modelo/permissões. |
 
 ## Propostas ainda abertas
 

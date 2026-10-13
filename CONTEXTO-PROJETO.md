@@ -20,6 +20,14 @@ já estão.
 
 ## 2. Estado atual
 
+**Atualização em 13/10/2026:** a ponte somente leitura está implementada;
+continua faltando UI para vincular sessões reais (Fase C não autorizada).
+Os defeitos de arrasto, colisão e naipes foram reunidos para correção a pedido
+do usuário. O registro e as verificações desta entrega estão em
+`docs/CORRECOES-UI.md`; D51/D52 registram o escopo. A árvore pessoal não é
+substituída por dados de demonstração durante testes. Os parágrafos abaixo
+preservam o histórico inicial.
+
 A estrutura, a documentação e o protótipo visual foram construídos. O roadmap
 da V1 foi aprovado como base, a Etapa 2 foi concluída e a Fase B (integração
 somente leitura) foi autorizada. O painel ainda usa dados simulados; o cliente

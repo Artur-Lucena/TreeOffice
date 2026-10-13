@@ -6,7 +6,7 @@
  * navegação, popup e persistência (D02, D03, D16, D19, D22).
  */
 
-import { criarArvore } from "./tree.js";
+import { criarArvore, naipeDe } from "./tree.js";
 
 const PAPEL_ROTULO = {
   lideranca: "liderança",
@@ -43,6 +43,7 @@ let state = null;
 let vivo = {};
 let arvore = null;
 let selecionado = null;
+let falhaDesenho = false;
 let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
 
 /* ── Comunicação com a ponte ────────────────────────────────────────────── */
@@ -69,6 +70,10 @@ async function api(caminho, opcoes = {}) {
 
 function marcarStatus(texto, tipo = "") {
   const alvo = el("status");
+  if (falhaDesenho) {
+    texto = "falha no desenho — recarregue o painel; detalhes no console";
+    tipo = "erro";
+  }
   alvo.textContent = texto;
   alvo.className = `status ${tipo}`.trim();
 }
@@ -105,7 +110,9 @@ async function salvar(mensagem) {
 function mapaVivo(simulacao) {
   const saida = {};
   for (const [id, valor] of Object.entries(simulacao || {})) {
-    saida[id] = { estado: valor.estado, detalhe: valor.detalhe };
+    // `desde` alimenta a energia do nó (tamanho por atividade); nada de
+    // conteúdo privado viaja aqui, só estado, detalhe e instante (D23).
+    saida[id] = { estado: valor.estado, detalhe: valor.detalhe, desde: valor.desde };
   }
   return saida;
 }
@@ -167,8 +174,20 @@ async function carregar() {
     atualizarFonte();
     atualizarBotaoEfeitos();
     marcarStatus(textoStatus(), opencode.modo === "real" && !opencode.erro ? "ok" : opencode.erro ? "erro" : "ok");
+    void mostrarVersao();
   } catch (erro) {
     marcarStatus(`falha ao carregar: ${erro.message}`, "erro");
+  }
+}
+
+/** Carimbo do código servido: diz "que versão estou olhando?" num olhar. */
+async function mostrarVersao() {
+  try {
+    const resposta = await api("/api/saude");
+    const alvo = el("versao");
+    if (alvo) alvo.textContent = resposta.versao ? `código ${resposta.versao}` : "código local";
+  } catch {
+    /* saúde indisponível não apaga a árvore (D33) */
   }
 }
 
@@ -238,7 +257,7 @@ function atualizarPainel(no) {
   const { estado, detalhe } = estadoDoNo(no);
   el("pn-titulo").textContent = no.titulo;
   el("pn-estado").textContent = `${ESTADO_ROTULO[estado] || estado}${detalhe ? ` · ${detalhe}` : ""}`;
-  el("pn-papel").textContent = PAPEL_ROTULO[no.papel] || no.papel;
+  el("pn-papel").value = no.papel || "livre";
   el("pn-diretorio").textContent = no.diretorio || "não informado";
   el("pn-worktree").textContent = no.worktree || "nenhum";
   el("pn-sessao").textContent = no.sessionID || "sem sessão vinculada";
@@ -260,6 +279,7 @@ const fluxo = {
   etapa: 1,
   origemId: null,
   titulo: "",
+  papel: "livre",
   instrucoes: "",
   criarWorktree: null,
   cadastroIndex: 0,
@@ -275,6 +295,7 @@ function abrirPopup(origemId) {
   fluxo.etapa = 1;
   fluxo.origemId = origemId;
   fluxo.titulo = "";
+  fluxo.papel = "livre";
   fluxo.instrucoes = "";
   fluxo.criarWorktree = null;
   fluxo.cadastroIndex = 0;
@@ -329,6 +350,20 @@ function entradaTexto(valor, placeholder = "") {
     fluxo.titulo = i.value;
   });
   return i;
+}
+
+function selecaoPapel(valor, aoEscolher) {
+  const s = document.createElement("select");
+  s.setAttribute("aria-label", "Papel organizacional");
+  for (const [papel, rotulo] of Object.entries(PAPEL_ROTULO)) {
+    const o = document.createElement("option");
+    o.value = papel;
+    o.textContent = `${naipeDe(papel)} ${rotulo}`.trim();
+    s.appendChild(o);
+  }
+  s.value = valor;
+  s.addEventListener("change", () => aoEscolher(s.value));
+  return s;
 }
 
 function opcaoRadio(nome, valor, marcado, titulo, descricao) {
@@ -422,6 +457,8 @@ function renderPopup() {
     el("pp-titulo").textContent = `Novo chat${origemTexto}`;
     el("pp-etapa").textContent = "Etapa 1 de 4 · tarefa e instruções";
     corpo.appendChild(campo("Título", entradaTexto(fluxo.titulo, "ex.: revisar a ponte local")));
+    corpo.appendChild(campo("Papel / naipe", selecaoPapel(fluxo.papel, (papel) => { fluxo.papel = papel; }),
+      "Etiqueta visual, não muda agente nem executa tarefas. Livre não tem naipe."));
     caixaTextarea(corpo, "Instruções de entrada (opcional)", fluxo.instrucoes, (valor) => {
       fluxo.instrucoes = valor;
     });
@@ -610,6 +647,7 @@ function renderPopup() {
   };
 
   adicionarLinha("Título", fluxo.titulo);
+  adicionarLinha("Papel", `${naipeDe(fluxo.papel)} ${PAPEL_ROTULO[fluxo.papel]}`.trim());
   adicionarLinha("Instruções", fluxo.instrucoes || "—");
   for (const [rotulo, valor] of linhas) adicionarLinha(rotulo, valor);
   corpo.appendChild(resumo);
@@ -705,7 +743,7 @@ async function criarNo() {
   const no = {
     id: `n_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     titulo: fluxo.titulo.trim(),
-    papel: "livre",
+    papel: fluxo.papel,
     grupoPai: fluxo.origemId,
     sessionID: null,
     diretorio,
@@ -789,13 +827,32 @@ function iniciar() {
       if (no) abrirPainel(no);
       else fecharPainel();
     },
-    onAcao: (tipo) => {
-      if (tipo === "menu" && selecionado) abrirPopup(selecionado.id);
+    onAcao: (tipo, no) => {
+      if (tipo === "menu" && no) abrirPopup(no.id);
+    },
+    onErro: (erro) => {
+      falhaDesenho = true;
+      marcarStatus("falha no desenho — recarregue o painel; detalhes no console", "erro");
+      console.error("TreeOffice: falha no desenho", erro);
     },
   });
 
   el("btn-novo").addEventListener("click", () => abrirPopup(selecionado?.id ?? null));
   el("pn-fechar").addEventListener("click", fecharPainel);
+  const campoPapel = el("pn-papel");
+  campoPapel.replaceChildren(...selecaoPapel("livre", () => {}).children);
+  campoPapel.addEventListener("change", async () => {
+    if (!selecionado || !PAPEL_ROTULO[campoPapel.value]) return;
+    const no = selecionado;
+    const anterior = no.papel;
+    no.papel = campoPapel.value;
+    campoPapel.disabled = true;
+    const ok = await salvar("Papel visual atualizado; agente e sessão não foram alterados.");
+    if (!ok) no.papel = anterior;
+    campoPapel.disabled = false;
+    if (selecionado?.id === no.id) atualizarPainel(no);
+    arvore.definirEstado(state, vivo);
+  });
   el("pn-ramificar").addEventListener("click", () => {
     if (selecionado) abrirPopup(selecionado.id);
   });

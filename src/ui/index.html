@@ -16,6 +16,7 @@
         <div>
           <strong>TreeOffice</strong>
           <small id="fonte">conectando…</small>
+          <small id="versao" class="versao" title="Carimbo do código que serve este painel">…</small>
         </div>
       </div>
       <div id="status" class="status">conectando…</div>
@@ -39,7 +40,7 @@
       </div>
       <dl class="painel-corpo">
         <div><dt>Estado</dt><dd id="pn-estado">—</dd></div>
-        <div><dt>Papel</dt><dd id="pn-papel">—</dd></div>
+        <div><dt><label for="pn-papel">Papel / naipe</label></dt><dd><select id="pn-papel" aria-label="Papel organizacional"></select></dd></div>
         <div><dt>Diretório</dt><dd id="pn-diretorio">—</dd></div>
         <div><dt>Worktree</dt><dd id="pn-worktree">—</dd></div>
         <div><dt>Sessão</dt><dd id="pn-sessao">—</dd></div>
@@ -61,12 +62,15 @@
       <span><i class="estado vazio"></i>sem sessão</span>
       <span><i class="estado nao_encontrado"></i>não encontrado</span>
       <span><i class="estado incerto"></i>incerto</span>
-      <span class="naipes" title="O naipe indica o papel: espadas lidera, copas executa, ouros investiga, paus estuda; sem naipe é livre">♠ ♥ ♦ ♣</span>
+      <span class="naipes">♠ liderança</span>
+      <span class="naipes">♥ execução</span>
+      <span class="naipes">♦ investigação</span>
+      <span class="naipes">♣ estudo</span>
     </div>
 
     <p id="dica" class="dica">
-      arrastar para mover · roda para zoom · clique para selecionar · duplo clique para focar ·
-      botão direito para ações
+      arraste um nó para empurrar os vizinhos · arraste o fundo para navegar · role para ampliar ·
+      ao soltar, o nó volta à âncora
     </p>
 
     <div id="popup" class="popup-oculto" role="dialog" aria-modal="true" aria-labelledby="pp-titulo">

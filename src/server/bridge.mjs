@@ -22,6 +22,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -43,6 +44,25 @@ const DIR_UI = path.resolve(AQUI, "..", "ui");
 
 const PORTA_PADRAO = 4717;
 const LIMITE_CORPO = 1024 * 1024;
+
+/**
+ * Carimbo do código servido: responde "que versão estou olhando?" sem abrir
+ * terminal. Identifica os fontes, não a pasta de dados (--raiz). A revisão
+ * dos recursos também distingue alterações ainda não commitadas.
+ */
+function versaoCodigo() {
+  let commit = "local";
+  try {
+    commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
+      cwd: RAIZ_PROJETO, encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "pipe"],
+    }).trim() || "local";
+  } catch {
+    /* ZIP sem Git: o digest da interface continua identificando o desenho. */
+  }
+  const digest = crypto.createHash("sha256");
+  for (const nome of ["index.html", "styles.css", "app.js", "tree.js"]) digest.update(fs.readFileSync(path.join(DIR_UI, nome)));
+  return `${commit} · UI ${digest.digest("hex").slice(0, 8)}`;
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -120,6 +140,7 @@ export function criarPonte(opcoes = {}) {
   const baseDir = opcoes.raiz ?? RAIZ_PROJETO;
   const fonteInicial = opcoes.fonte === "real" ? "real" : "simulado";
   const opencodeUrlExplicita = opcoes.opencodeUrl || process.env.OPENCODE_SERVER_URL || null;
+  const versao = versaoCodigo();
 
   const identidade = carregarOuCriarIdentidade(baseDir);
   const carregado = loadState(baseDir, { semear: seedDemoState });
@@ -460,7 +481,7 @@ export function criarPonte(opcoes = {}) {
     }
 
     if (url.pathname === "/api/saude") {
-      json(res, 200, { ok: true, etapa: 2, simulado: modo === "simulado", avisos, opencode: resumoOpenCode() });
+      json(res, 200, { ok: true, etapa: 2, simulado: modo === "simulado", avisos, versao, opencode: resumoOpenCode() });
       return;
     }
 
@@ -665,6 +686,7 @@ export function criarPonte(opcoes = {}) {
     estadoAtual: () => state,
     avisos: () => avisos,
     simulacao: () => Object.fromEntries(sim),
+    versao: () => versao,
     opencode: () => resumoOpenCode(),
     ativarModoReal,
     ativarModoSimulado,
