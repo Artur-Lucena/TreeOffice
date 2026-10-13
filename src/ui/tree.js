@@ -54,6 +54,52 @@ function hashNum(id) {
   return (h % 1000) / 1000;
 }
 
+/**
+ * Núcleo da colisão (D50): repulsão par a par entre corpos, espelho da carga
+ * do Obsidian adaptado — aqui as âncoras continuam autoritárias e a repulsão
+ * é só correção de curto alcance, para atualizações nunca provocarem saltos.
+ *
+ * `corpos`: itens mutáveis {x, y, vx, vy}; `raio` é o raio efetivo comum em
+ * unidades de mundo. Soma impulso em vx/vy; integração e amortecimento
+ * continuam no passo de física. Pares coincidentes ganham direção estável
+ * por índice (sem aleatoriedade, sem NaN). Função pura de física, exportada
+ * para teste direto.
+ */
+export function aplicarRepulsao(corpos, raio, opcoes = {}) {
+  const respiro = opcoes.respiro ?? 12;
+  const forca = opcoes.forca ?? 0.15;
+  const teto = opcoes.teto ?? 6;
+  for (let i = 0; i < corpos.length; i += 1) {
+    for (let j = i + 1; j < corpos.length; j += 1) {
+      const a = corpos[i];
+      const b = corpos[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d = Math.hypot(dx, dy);
+      let ux;
+      let uy;
+      let dist = d;
+      if (d > 1e-9) {
+        ux = dx / d;
+        uy = dy / d;
+      } else {
+        const h = hashNum(`${i}:${j}`) * Math.PI * 2;
+        ux = Math.cos(h);
+        uy = Math.sin(h);
+        dist = 0;
+      }
+      const minimo = raio * 2 + respiro;
+      if (dist < minimo) {
+        const f = Math.min((minimo - dist) * forca, teto);
+        a.vx -= ux * f;
+        a.vy -= uy * f;
+        b.vx += ux * f;
+        b.vy += uy * f;
+      }
+    }
+  }
+}
+
 /** Forma orgânica: círculo com modulação harmônica, sem dependências. */
 function raioOrganico(tempo, fase, base) {
   const pulso =
@@ -340,8 +386,21 @@ export function criarArvore(canvas, opcoes = {}) {
         camada: "grupo",
       });
 
-      filhoIds.forEach((no) => {
-        percorrer(no.id, colunaX, baseY, RAIO_ORBITA);
+      filhoIds.forEach((no, indice) => {
+        // Irmãos de grupo dividem a órbita ao redor do centro; filho único
+        // fica no centro (compacto, sem com quem colidir). Sem isso, todos
+        // nasciam na mesma âncora e só a colisão os separaria.
+        if (filhoIds.length < 2) {
+          percorrer(no.id, colunaX, baseY, RAIO_ORBITA);
+          return;
+        }
+        const a = (indice / filhoIds.length) * Math.PI * 2 + hashNum(grupo.id) * Math.PI * 2;
+        percorrer(
+          no.id,
+          colunaX + Math.cos(a) * RAIO_ORBITA,
+          baseY + Math.sin(a) * RAIO_ORBITA,
+          RAIO_ORBITA * 0.85,
+        );
       });
     });
 
@@ -383,6 +442,15 @@ export function criarArvore(canvas, opcoes = {}) {
   function passoFisica(dt) {
     const amortecimento = 0.86;
     const atracao = 0.045;
+
+    // Colisão antes das molas: só corpos visíveis se desgrudam; as âncoras
+    // continuam mandando no global, a repulsão só corrige o local (D50).
+    const corpos = [];
+    for (const [id, p] of posicoes) {
+      if (p.camada !== "no" || ocultos.has(id)) continue;
+      corpos.push(p);
+    }
+    aplicarRepulsao(corpos, 26 * camera.zoom);
 
     for (const [id, p] of posicoes) {
       // Defesa: entrada incompleta viraria NaN e apagaria o nó da tela.
@@ -1071,6 +1139,8 @@ export function criarArvore(canvas, opcoes = {}) {
     pairar,
     nivelEfeitos,
     efeitosInfo: () => ({ nivel: nivelEfeitos(), poeira: poeira.length, pairado }),
+    /** Somente leitura, para testes: cópia das posições atuais. */
+    _debugPosicoes: () => [...posicoes].map(([id, p]) => ({ id, x: p.x, y: p.y, camada: p.camada })),
     selecionar: (id) => {
       selecionado = id;
     },

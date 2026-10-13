@@ -19,7 +19,7 @@
  * Uso:  node tests/tree-render.mjs
  */
 
-import { criarArvore } from "../src/ui/tree.js";
+import { criarArvore, aplicarRepulsao } from "../src/ui/tree.js";
 
 let arcs = [];
 let textos = [];
@@ -258,6 +258,110 @@ verificar("investigação carrega ♦", textos.includes("Pista ♦"));
 verificar("estudo carrega ♣", textos.includes("Livro ♣"));
 const solto = textos.find((t) => t === "Solto");
 verificar("livre não tem naipe", solto !== undefined && !"♠♥♦♣".split("").some((s) => solto.includes(s)));
+
+/* ── Cenário 8: colisão entre corpos (D50) ───────────────────────────────── */
+console.log("\nCenário 8 — repulsão desgruda corpos; âncoras continuam mandando");
+
+// Núcleo puro: par coincidente separa sem NaN nem explosão.
+const par = [
+  { x: 0, y: 0, vx: 0, vy: 0 },
+  { x: 0, y: 0, vx: 0, vy: 0 },
+];
+for (let i = 0; i < 60; i += 1) {
+  aplicarRepulsao(par, 20);
+  for (const c of par) {
+    c.vx *= 0.86;
+    c.vy *= 0.86;
+    c.x += c.vx;
+    c.y += c.vy;
+  }
+}
+const distPar = Math.hypot(par[0].x - par[1].x, par[0].y - par[1].y);
+verificar("par coincidente termina separado", distPar >= 2 * 20 + 12, `dist=${distPar.toFixed(1)}`);
+verificar(
+  "separação sem NaN nem fuga",
+  par.every((c) => [c.x, c.y, c.vx, c.vy].every(Number.isFinite)) && distPar < 10000,
+);
+
+// Par próximo separa; par distante não é tocado.
+const perto = [
+  { x: 0, y: 0, vx: 0, vy: 0 },
+  { x: 10, y: 0, vx: 0, vy: 0 },
+];
+for (let i = 0; i < 60; i += 1) {
+  aplicarRepulsao(perto, 20);
+  for (const c of perto) {
+    c.vx *= 0.86;
+    c.vy *= 0.86;
+    c.x += c.vx;
+    c.y += c.vy;
+  }
+}
+verificar(
+  "par próximo respeita a distância mínima",
+  Math.hypot(perto[0].x - perto[1].x, perto[0].y - perto[1].y) >= 2 * 20 + 12,
+);
+const longe = [
+  { x: 0, y: 0, vx: 0, vy: 0 },
+  { x: 200, y: 0, vx: 0, vy: 0 },
+];
+aplicarRepulsao(longe, 20);
+verificar("par distante não recebe impulso", longe[0].vx === 0 && longe[1].vx === 0);
+
+// Determinismo: mesma entrada, mesma saída (sem aleatoriedade).
+const copia = () => [
+  { x: 0, y: 0, vx: 0, vy: 0 },
+  { x: 5, y: -3, vx: 0, vy: 0 },
+];
+const rodada = () => {
+  const c = copia();
+  for (let i = 0; i < 30; i += 1) {
+    aplicarRepulsao(c, 20);
+    for (const k of c) {
+      k.vx *= 0.86;
+      k.vy *= 0.86;
+      k.x += k.vx;
+      k.y += k.vy;
+    }
+  }
+  return c;
+};
+verificar("repulsão é determinística", JSON.stringify(rodada()) === JSON.stringify(rodada()));
+
+// Integração: irmãos de grupo nascem em âncoras distintas e corpos nunca se
+// interpenetram além de um diâmetro (a distância mínima cheia é limitada
+// pela âncora por desenho — repulsão corrige o local, âncora manda no global).
+const denso = {
+  schemaVersion: 1,
+  grupos: [{ id: "g_denso", titulo: "Denso", papel: "execucao" }],
+  nos: [],
+  dependencias: [],
+  preferencias: {},
+};
+for (let i = 0; i < 8; i += 1) {
+  denso.nos.push({
+    id: `n_f${i}`,
+    titulo: `Filho ${i}`,
+    grupoPai: "g_denso",
+    papel: "execucao",
+    estado: "ativo",
+    recolhido: false,
+  });
+}
+const c8 = cenario(denso, "grupo denso de um nível");
+const posInicial = c8.arvore._debugPosicoes().filter((p) => p.camada === "no");
+const paresIguais = posInicial.filter((p, i, arr) => arr.findIndex((q) => q.x === p.x && q.y === p.y) !== i);
+verificar("irmãos não nascem empilhados", paresIguais.length === 0, `${paresIguais.length} sobrepostos`);
+for (let i = 0; i < 30; i += 1) c8.passo();
+const pos = c8.arvore._debugPosicoes().filter((p) => p.camada === "no" && Number.isFinite(p.x) && Number.isFinite(p.y));
+let menor = Infinity;
+for (let i = 0; i < pos.length; i += 1) {
+  for (let j = i + 1; j < pos.length; j += 1) {
+    menor = Math.min(menor, Math.hypot(pos[i].x - pos[j].x, pos[i].y - pos[j].y));
+  }
+}
+// Diâmetro do corpo em mundo no zoom padrão (2 * 26 * 0.75).
+verificar("corpos não se interpenetram após 30 quadros", menor >= 2 * 26 * 0.75, `menor=${menor.toFixed(1)}`);
 
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;

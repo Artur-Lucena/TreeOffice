@@ -56,6 +56,7 @@ A criação da estrutura não significa aprovação do plano completo.
 | D47 | Blob Office removido da pasta global de plugins por ordem explícita do usuário em 13/10/2026, com backup reversível. | Os 4 arquivos foram movidos para pasta de backup fora de `plugins/`; nada foi copiado para o TreeOffice (D24 segue valendo). Substitui a cláusula de preservação do Blob Office em D09. Para reverter, mover os arquivos de volta e reiniciar o serviço OpenCode. |
 | D48 | Comando único de entrada `node src/iniciar.mjs`, que sobe a ponte e abre o painel no navegador. | Abertura automática é cortesia e pode ser desativada (`--sem-abrir`, `TREEOFFICE_NO_OPEN=1`); falha ao abrir nunca derruba a ponte. Sem dependências novas, portátil Windows/Linux. |
 | D49 | Direção de arte giz-cassino com naipes semânticos, aprovada pelo usuário em 13/10/2026. | Naipe codifica papel (♠ liderança, ♥ execução, ♦ investigação, ♣ estudo; livre sem naipe) no lugar da cor; estados em textura + contorno + brilho; ficha de pôquer marca galho recolhido e worktree (dupla quando compartilhado). Tudo procedural em Canvas, sem asset externo (D24, D25). |
+| D50 | Colisão só entre corpos, com âncoras autoritárias, aprovada em 13/10/2026. | Repulsão par a par determinística antes das molas; rótulos livres; irmãos de grupo dividem a órbita (filho único no centro); acessório `_debugPosicoes()` só de leitura para testes. Sem o passe determinístico de grupos — física primeiro. |
 
 ## Propostas ainda abertas
 
@@ -80,6 +81,7 @@ persistência, instalação e verificação.
 | 9 | Encerramento da Etapa 2 e contrato do serviço | Fechada (D45, D46) |
 | 10 | Substituição do Blob Office e comando de entrada | Fechada (D47, D48) |
 | 11 | Direção de arte giz-cassino | Fechada (D49) |
+| 12 | Colisão entre corpos | Fechada (D50); passe de grupos adiado |
 
 Todas as rodadas de decisão foram fechadas: as Rodadas 1 a 7 em 12/10/2026, a
 Rodada 8 no mesmo dia (retomada no Linux) e a Rodada 9 em 12/10/2026
