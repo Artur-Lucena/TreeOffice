@@ -1,5 +1,7 @@
 # Roadmap da V1 do TreeOffice
 
+**Atualização em 14/10/2026:** UI reformulada e aprovada (D54–D57: tipografia local, naipes centrais, organização livre persistente, fios selecionáveis, diálogos animados). Commit `f8e5ac3` publicado; **190 verificações verdes** (inclui `browser-ui` em Chromium real). Fase B segue somente leitura sem UI de vínculo real; Fases C–F continuam nos portões abaixo.
+
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
 **Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de
 B1 feita e B2 parcial; cliente HTTP ainda não implementado. Trabalho pausado

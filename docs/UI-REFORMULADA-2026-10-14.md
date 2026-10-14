@@ -38,3 +38,5 @@ Suítes reproduzíveis sem instalar pacotes:
 Durante a aplicação, a UI completa também passou por 69 verificações de eventos em DOM simulado usando a normalização real da ponte, e 16 verificações adicionais das animações/arrasto dos diálogos em simulador de Web Animations. Esse harness temporário não é uma dependência do projeto e não substitui avaliação visual no navegador.
 
 A suíte `browser-ui` foi atualizada para o arrasto livre, mas não foi executada neste ambiente: o navegador disponível não alcança a ponte local. Não foi testado um serviço OpenCode real. Sintaxe dos módulos, IDs do HTML e diff são conferidos antes do commit.
+
+**Adendo em 14/10/2026 (Windows):** a `browser-ui` foi executada aqui, em Edge headless com perfil e árvore descartáveis: **14 ok, 0 falhas**. Uma expectativa estava defasada da era D49 (título com sufixo de naipe); com D54 o naipe é estampa central separada, e o teste agora confere título + estampa `♣` no mesmo centro (`tests/browser-ui.mjs`). Total do projeto nesta data: **190 verificações verdes**.
