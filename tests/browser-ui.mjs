@@ -121,7 +121,7 @@ try {
     verificar("painel permite trocar papel existente", await avaliar("document.getElementById('pn-papel').tagName==='SELECT'"));
     await avaliar("{ const s=document.getElementById('pn-papel');s.value='estudo';s.dispatchEvent(new Event('change')); }");
     await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste" && n.papel === "estudo"));
-    verificar("troca de papel mostra ♣ no desenho", await ate(() => avaliar("[...window.__marcas.keys()].some(t=>t==='Investigação de teste ♣')")));
+    verificar("troca de papel mostra ♣ no desenho", await ate(() => avaliar(`(()=>{const m=window.__marcas;const t=m.get("Investigação de teste");const e=m.get("♣");return !!(t&&e&&e.x===t.x);})()`)));
   }
   await avaliar("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
 
@@ -144,7 +144,7 @@ try {
   await ate(async () => Math.hypot((await foto()).pos.find((p) => p.id === "b").x - b.x, (await foto()).pos.find((p) => p.id === "b").y - b.y) > 10);
   verificar("vizinho se afasta do nó agarrado no navegador", true);
   await mouse("mouseReleased", bt.x, bt.y);
-  verificar("ao soltar o nó retorna suavemente à âncora", await ate(async () => { const p=(await foto()).pos.find((p)=>p.id==='a');return Math.hypot(p.x-a.x,p.y-a.y)<4; }));
+  verificar("ao soltar o nó conserva o destino organizado", await ate(async () => { const p=(await foto()).pos.find((p)=>p.id==='a');return Math.hypot(p.x-b.x,p.y-b.y)<4; }));
   await mouse("mouseMoved", 30, 500); await mouse("mousePressed", 30, 500, 1); await mouse("mouseMoved", 90, 500, 1); await mouse("mouseReleased", 90, 500);
   verificar("arrastar fundo ainda move a câmera", (await foto()).camera.alvoX < antes.camera.alvoX - 30);
   await avaliar("document.getElementById('fixture').remove()");

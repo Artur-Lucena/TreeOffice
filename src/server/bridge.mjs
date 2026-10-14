@@ -60,7 +60,7 @@ function versaoCodigo() {
     /* ZIP sem Git: o digest da interface continua identificando o desenho. */
   }
   const digest = crypto.createHash("sha256");
-  for (const nome of ["index.html", "styles.css", "app.js", "tree.js"]) digest.update(fs.readFileSync(path.join(DIR_UI, nome)));
+  for (const nome of ["index.html", "styles.css", "fonts.css", "app.js", "tree.js", "navigation.mjs", "connections.mjs"]) digest.update(fs.readFileSync(path.join(DIR_UI, nome)));
   return `${commit} · UI ${digest.digest("hex").slice(0, 8)}`;
 }
 
@@ -72,6 +72,7 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".ttf": "font/ttf",
 };
 
 /*

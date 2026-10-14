@@ -3,88 +3,94 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TreeOffice — protótipo</title>
+    <title>TreeOffice — seu espaço de trabalho</title>
     <link rel="stylesheet" href="/ui/styles.css" />
     <link rel="icon" href="data:," />
   </head>
   <body>
-    <canvas id="arvore" aria-label="Árvore organizacional animada"></canvas>
-
-    <header id="topo">
-      <div class="marca">
-        <span class="ponto"></span>
-        <div>
-          <strong>TreeOffice</strong>
-          <small id="fonte">conectando…</small>
-          <small id="versao" class="versao" title="Carimbo do código que serve este painel">…</small>
+    <div id="app-shell" class="app-shell">
+      <header id="topo" class="app-header">
+        <div class="marca"><span class="marca-simbolo" aria-hidden="true">♠</span><div><strong>TreeOffice</strong><small>Seu espaço de trabalho</small></div></div>
+        <span class="header-separador" aria-hidden="true"></span>
+        <div class="header-contexto"><span>Organização visual</span><small id="fonte">conectando…</small></div>
+        <div class="header-acoes">
+          <div id="status" class="status" role="status">conectando…</div>
+          <details id="menu-conexao" class="menu-conexao">
+            <summary>Conexão <span aria-hidden="true">⌄</span></summary>
+            <div class="menu-conteudo"><p class="rotulo">Fonte de dados</p><button id="btn-fonte" type="button">Usar dados reais</button><button id="btn-ressinc" type="button">Ressincronizar</button><small id="versao" class="versao">código local</small></div>
+          </details>
+          <button id="btn-novo" class="primario" type="button"><span aria-hidden="true">＋</span> Novo chat</button>
         </div>
-      </div>
-      <div id="status" class="status">conectando…</div>
-    </header>
+      </header>
+      <div class="workspace">
+        <aside id="explorador" class="explorador" aria-label="Explorador da organização">
+          <div class="explorador-titulo"><p class="rotulo">Espaços de trabalho</p><button id="btn-fechar-explorador" class="botao-icone mobile" aria-label="Fechar explorador" type="button">×</button></div>
+          <label class="busca"><span aria-hidden="true">⌕</span><input id="busca-nos" type="search" placeholder="Buscar um nó…" aria-label="Buscar nós e espaços" autocomplete="off" /></label>
+          <p id="explorador-resumo" class="texto-suave" role="status">Carregando sua organização…</p>
+          <nav id="explorador-lista" aria-label="Nós e espaços"></nav>
+          <details class="conexoes-nav"><summary>Conexões</summary><div id="lista-conexoes"></div></details><div class="explorador-rodape"><span class="ponto-local" aria-hidden="true"></span><div>Organização local<small>Os projetos continuam onde estão.</small></div></div>
+        </aside>
+        <main id="cena" class="cena" aria-label="Árvore de trabalho">
+          <div class="cena-cabecalho"><div><p class="rotulo">Visão geral</p><h1 id="cena-titulo">Mapa de trabalho</h1></div><button id="btn-explorador" class="mobile" aria-controls="explorador" aria-expanded="false" type="button">Explorador</button></div>
+          <canvas id="arvore" aria-label="Árvore organizacional animada; selecione os nós também pelo explorador"></canvas>
+          <div class="cena-rodape">
+            <p id="dica" class="dica">Arraste para explorar. Selecione um nó para ver seu contexto.</p>
+            <div id="barra" class="controles-arvore" aria-label="Controles da árvore">
+              <button id="btn-centralizar" type="button">Enquadrar</button><span class="controle-divisor" aria-hidden="true"></span>
+              <button id="btn-zoom-menos" class="botao-icone" type="button" aria-label="Diminuir zoom">−</button><button id="btn-zoom-mais" class="botao-icone" type="button" aria-label="Aumentar zoom">＋</button>
+              <span class="controle-divisor" aria-hidden="true"></span><button id="btn-recolher" type="button">Recolher</button>
+              <button id="btn-efeitos" type="button">Efeitos: cheio</button>
+            </div>
+          </div>
+          <details class="menu-legenda"><summary>Legenda <span aria-hidden="true">⌃</span></summary><div id="legenda" class="legenda"><p class="rotulo">Estado do nó</p><span><i class="estado ativo"></i>ativo</span><span><i class="estado dormente"></i>dormente</span><span><i class="estado vazio"></i>sem sessão</span><span><i class="estado nao_encontrado"></i>não encontrado</span><span><i class="estado incerto"></i>incerto</span><p class="rotulo">Papel organizacional</p><span>♠ liderança</span><span>♥ execução</span><span>♦ investigação</span><span>♣ estudo</span></div></details>
+        </main>
+        <aside id="inspetor" class="inspetor" aria-label="Contexto do nó">
+          <div class="inspetor-titulo"><p class="rotulo">Inspetor</p><span class="texto-suave">Contexto e ações</span></div>
+          <div id="painel-vazio" class="painel-vazio"><span aria-hidden="true">♧</span><h2>Cada nó, um contexto.</h2><p>Selecione um nó na árvore ou no explorador para ver o papel, a sessão e o worktree associado.</p><small>Selecionar não inicia nenhuma tarefa.</small></div>
+          <section id="painel" class="painel oculto" aria-live="polite" aria-label="Nó selecionado">
+            <div class="painel-cabeca"><div><p class="rotulo">Nó selecionado</p><h2 id="pn-titulo">Nó</h2></div><button id="pn-fechar" class="botao-icone" type="button" aria-label="Fechar contexto do nó">×</button></div>
+            <dl class="painel-corpo"><div><dt>Estado</dt><dd id="pn-estado">—</dd></div><div><dt><label for="pn-papel">Papel / naipe</label></dt><dd><select id="pn-papel" aria-label="Papel organizacional"></select></dd></div><div><dt>Diretório</dt><dd id="pn-diretorio">—</dd></div><div><dt>Worktree</dt><dd id="pn-worktree">—</dd></div><div><dt>Sessão</dt><dd id="pn-sessao">—</dd></div><div class="largo"><dt>Instruções de entrada</dt><dd id="pn-instrucoes">—</dd></div></dl>
+            <div class="painel-acoes"><button id="pn-ramificar" class="primario" type="button">Ramificar daqui <span aria-hidden="true">↗</span></button><button id="pn-dependencia" type="button">Marcar dependência</button><button id="pn-recolher" type="button">Recolher galho</button><button id="pn-abrir" type="button" title="A conversa continua na interface do OpenCode">Abrir no OpenCode</button><button id="pn-remover" class="perigo" type="button">Remover vínculo visual</button></div>
+            <p class="nota" id="pn-nota"></p>
+          </section><section id="painel-conexao" class="painel oculto" aria-live="polite" aria-label="Conexão selecionada">
+  <div class="painel-cabeca"><div><p class="rotulo">Conexão selecionada</p><h2 id="lc-titulo">Conexão</h2></div><button id="lc-fechar" class="botao-icone" type="button" aria-label="Fechar conexão">×</button></div>
+  <dl class="painel-corpo">
+    <div><dt>Origem</dt><dd id="lc-origem"></dd></div>
+    <div><dt>Destino</dt><dd id="lc-destino"></dd></div>
+    <div><dt>Tipo</dt><dd id="lc-tipo"></dd></div>
+    <div><dt>Ponto de ramificação</dt><dd id="lc-ponto"></dd></div>
+    <div><dt>Ramificações deste fio</dt><dd id="lc-total"></dd></div>
+  </dl>
+  <form id="lc-info-form" class="conexao-form">
+    <label for="lc-nome">Nome do vínculo</label><input id="lc-nome" maxlength="80" placeholder="Nome opcional" />
+    <label for="lc-notas">Notas</label><textarea id="lc-notas" rows="3" maxlength="1000" placeholder="Contexto desta conexão"></textarea>
+    <button id="lc-salvar" type="button">Salvar informações</button>
+  </form>
+  <div class="painel-acoes"><button id="lc-ramificar" type="button" class="primario">Ramificar desta conexão ↗</button></div>
+  <form id="lc-ramo-form" class="conexao-form oculto">
+    <label for="lc-ramo-nome">Nome do novo módulo</label><input id="lc-ramo-nome" required maxlength="80" placeholder="Nova ramificação" />
+    <label for="lc-ramo-papel">Função / naipe</label>
+    <select id="lc-ramo-papel"><option value="execucao">♥ Execução</option><option value="lideranca">♠ Liderança</option><option value="investigacao">♦ Investigação</option><option value="estudo">♣ Estudo</option><option value="livre">Livre</option></select>
+    <button id="lc-criar" type="button" class="primario">Criar ramificação</button><button id="lc-cancelar" type="button">Cancelar</button>
+  </form>
+  <p id="lc-erro" class="popup-aviso erro" role="alert"></p>
+  <p class="nota">Vínculo visual local. Nenhuma sessão é criada.</p>
+</section>
 
-    <div id="barra">
-      <button id="btn-novo" class="primario" type="button">+ Novo chat</button>
-      <button id="btn-recolher" type="button" title="Recolher ou expandir todos os nós">Recolher</button>
-      <button id="btn-zoom-menos" type="button" title="Diminuir zoom">−</button>
-      <button id="btn-zoom-mais" type="button" title="Aumentar zoom">+</button>
-      <button id="btn-centralizar" type="button" title="Centralizar a árvore">Centralizar</button>
-      <button id="btn-fonte" type="button" title="Alternar entre dados simulados e sessões reais (somente leitura)">Usar dados reais</button>
-      <button id="btn-ressinc" type="button" title="Reler inventário completo do OpenCode (D33)">Ressincronizar</button>
-      <button id="btn-efeitos" type="button" title="Densidade dos efeitos visuais: cheio, sutil ou desligado">Efeitos: cheio</button>
+        </aside>
+      </div>
+      <footer class="app-footer"><span>TreeOffice · local</span><span>Vínculos visuais. Nenhuma execução automática.</span></footer>
+      <div id="popup" class="popup-oculto" role="dialog" aria-modal="true" aria-labelledby="pp-titulo"><div class="popup"><div class="popup-cabecalho"><p class="rotulo">Organize uma nova ramificação</p><h2 id="pp-titulo">Novo chat</h2><p class="popup-etapa" id="pp-etapa">Etapa 1 de 4</p></div><ol id="pp-progresso" class="popup-progresso" aria-label="Etapas de criação"><li>Contexto</li><li>Worktree</li><li>Destino</li><li>Revisão</li></ol><div id="pp-corpo" class="popup-corpo"></div><div class="popup-acoes" id="pp-acoes"></div><p class="popup-aviso" id="pp-aviso"></p></div></div>
+      <div id="preview-dialog" class="popup-oculto" data-aberto="false" role="dialog" aria-modal="true" aria-labelledby="preview-dialog-titulo">
+  <div class="popup">
+    <div class="popup-cabecalho"><p class="rotulo">Ação visual</p><h2 id="preview-dialog-titulo"></h2></div>
+    <div id="preview-dialog-corpo" class="popup-corpo"></div>
+    <div class="popup-acoes"><button id="preview-dialog-cancelar" type="button">Cancelar</button><button id="preview-dialog-confirmar" class="primario" type="button">Confirmar</button></div>
+    <p id="preview-dialog-erro" class="popup-aviso erro" role="alert"></p>
+  </div>
+</div>
+<div id="avisos" class="avisos" aria-live="polite"></div>
     </div>
-
-    <aside id="painel" class="painel oculto" aria-live="polite">
-      <div class="painel-cabeca">
-        <h2 id="pn-titulo">Nó</h2>
-        <button id="pn-fechar" type="button" aria-label="Fechar painel">×</button>
-      </div>
-      <dl class="painel-corpo">
-        <div><dt>Estado</dt><dd id="pn-estado">—</dd></div>
-        <div><dt><label for="pn-papel">Papel / naipe</label></dt><dd><select id="pn-papel" aria-label="Papel organizacional"></select></dd></div>
-        <div><dt>Diretório</dt><dd id="pn-diretorio">—</dd></div>
-        <div><dt>Worktree</dt><dd id="pn-worktree">—</dd></div>
-        <div><dt>Sessão</dt><dd id="pn-sessao">—</dd></div>
-        <div class="largo"><dt>Instruções de entrada</dt><dd id="pn-instrucoes">—</dd></div>
-      </dl>
-      <div class="painel-acoes">
-        <button id="pn-ramificar" class="primario" type="button">Ramificar daqui</button>
-        <button id="pn-dependencia" type="button">Marcar dependência</button>
-        <button id="pn-recolher" type="button">Recolher galho</button>
-        <button id="pn-abrir" type="button" title="Na Fase B o painel só lê; a conversa continua na interface do OpenCode (D13)">Abrir no OpenCode</button>
-        <button id="pn-remover" class="perigo" type="button">Remover vínculo visual</button>
-      </div>
-      <p class="nota" id="pn-nota"></p>
-    </aside>
-
-    <div id="legenda" class="legenda">
-      <span><i class="estado ativo"></i>ativo</span>
-      <span><i class="estado dormente"></i>dormente</span>
-      <span><i class="estado vazio"></i>sem sessão</span>
-      <span><i class="estado nao_encontrado"></i>não encontrado</span>
-      <span><i class="estado incerto"></i>incerto</span>
-      <span class="naipes">♠ liderança</span>
-      <span class="naipes">♥ execução</span>
-      <span class="naipes">♦ investigação</span>
-      <span class="naipes">♣ estudo</span>
-    </div>
-
-    <p id="dica" class="dica">
-      arraste um nó para empurrar os vizinhos · arraste o fundo para navegar · role para ampliar ·
-      ao soltar, o nó volta à âncora
-    </p>
-
-    <div id="popup" class="popup-oculto" role="dialog" aria-modal="true" aria-labelledby="pp-titulo">
-      <div class="popup">
-        <h2 id="pp-titulo">Novo chat</h2>
-        <p class="popup-etapa" id="pp-etapa">Etapa 1 de 4</p>
-        <div id="pp-corpo" class="popup-corpo"></div>
-        <div class="popup-acoes" id="pp-acoes"></div>
-        <p class="popup-aviso" id="pp-aviso"></p>
-      </div>
-    </div>
-
-    <div id="avisos" class="avisos" aria-live="polite"></div>
-
     <script type="module" src="/ui/app.js"></script>
   </body>
 </html>

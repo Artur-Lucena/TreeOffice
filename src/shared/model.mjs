@@ -120,6 +120,10 @@ function normalizaNo(bruto, avisos) {
     estado,
     incerto: bruto.incerto === true,
     posicao: { x: numOu(posicao.x, 0), y: numOu(posicao.y, 0) },
+    posicaoFixada: bruto.posicaoFixada === true,
+    conexaoPai: bruto.conexaoPai && typeof bruto.conexaoPai === "object" && texto(bruto.conexaoPai.id)
+      ? { id: texto(bruto.conexaoPai.id).slice(0, 500), t: Math.max(0.08, Math.min(0.92, numOu(bruto.conexaoPai.t, 0.5))) }
+      : null,
     recolhido: bruto.recolhido === true,
   };
 }
@@ -214,6 +218,34 @@ export function normalizeState(bruto) {
   const preferencias =
     bruto.preferencias && typeof bruto.preferencias === "object" ? { ...bruto.preferencias } : {};
 
+  const idsConexoes = new Set([
+    ...nos.filter(n => n.grupoPai && ids.has(n.grupoPai)).map(n => `ramo:${n.id}`),
+    ...dependenciasUnicas.map(d => `dep:${d.origem}>${d.destino}`),
+  ]);
+  for (const no of nos) {
+    if (no.conexaoPai && (!idsConexoes.has(no.conexaoPai.id) || no.conexaoPai.id === `ramo:${no.id}`)) {
+      avisos.push(`Ramificação de ${no.id} perdeu a conexão de origem; vínculo organizacional mantido.`);
+      no.conexaoPai = null;
+    }
+    const vistos = new Set([`ramo:${no.id}`]);
+    let proxima = no.conexaoPai?.id;
+    while (proxima) {
+      if (vistos.has(proxima)) {
+        no.conexaoPai = null;
+        avisos.push(`Ramificação cíclica de ${no.id} foi convertida em vínculo organizacional.`);
+        break;
+      }
+      vistos.add(proxima);
+      proxima = nos.find(n => `ramo:${n.id}` === proxima)?.conexaoPai?.id;
+    }
+  }
+  // Metadados digitados pelo usuário para os fios; sem leitura de sessões/vault.
+  const conexoesInfo = Object.create(null);
+  for (const [id, info] of Object.entries(bruto.conexoesInfo || {})) {
+    if (!idsConexoes.has(id) || !info || typeof info !== "object") continue;
+    conexoesInfo[id] = { nome: texto(info.nome).slice(0, 80), notas: texto(info.notas).slice(0, 1000) };
+  }
+
   const state = {
     schemaVersion: SCHEMA_VERSION,
     grupos,
@@ -222,6 +254,7 @@ export function normalizeState(bruto) {
     ocupacaoWorktree,
     cadastros,
     preferencias,
+    conexoesInfo,
   };
 
   // Sessões que deixaram de existir ficam marcadas, nunca somem (D21).

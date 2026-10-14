@@ -61,6 +61,15 @@ A criação da estrutura não significa aprovação do plano completo.
 | D52 | Correções de vivacidade e naipes autorizadas junto dos defeitos da UI. | Recência e estado suavizam o tamanho; partículas percorrem dependências visuais e brilhos usam composição aditiva. Papel/naipe pode ser escolhido na criação ou no painel; livre continua sem naipe. Sem novas dependências nem mudança de agente/modelo/permissões. |
 | D53 | Refino giz v2 autorizado em 13/10/2026: retorno suave, galhos em tubo e tipografia. | Soltar inicia planagem que só termina ao chegar devagar (ou no timeout), com trava anti-estalo sobre o deslocamento total do quadro; galhos em halo + núcleo; títulos de grupo espaçados e títulos de nó com brilho tênue, só com fontes do sistema. |
 
+## Atualização aprovada em 14/10/2026
+
+- **D54 — UI minimalista com paleta preservada, Amarante nos títulos e Manrope nos controles.** Naipes estampados dentro dos módulos; fontes OFL servidas localmente, com licenças no repositório. Substitui a tipografia apenas do sistema de D53; não acrescenta framework nem dependência de rede em execução.
+- **D55 — Organização manual livre e persistente.** Módulos deslizam até o cursor e permanecem no destino; colisões separam os corpos; o centro dos grupos acompanha seus membros. Substitui as âncoras autoritárias/retorno de D50, D51 e D53. Posições explicitamente organizadas são salvas em `.local/`, sem alterar sessões ou projetos.
+- **D56 — Conexões selecionáveis com metadados e ramificações visuais.** Fios uniformes, sem partículas, com nome e notas digitados explicitamente pelo usuário. A ramificação conserva um ponto paramétrico da curva de origem. D38 passa a distinguir dependências pelo tipo no inspetor, em vez de pontilhado. D23 permite apenas essas notas visuais digitadas no painel; histórico de conversa, vault, tokens e credenciais continuam excluídos.
+- **D57 — Diálogos arrastáveis e transições com mola, fade e slide.** Referência: Animate UI Dialog/Sheet; implementação própria em JavaScript e Web Animations, respeitando movimento reduzido e efeitos desligados. Módulos e fios aparecem/desaparecem gradualmente ao expandir/recolher galhos; reabrir cancela a saída anterior.
+
+O usuário aprovou aplicar ao projeto e enviar ao GitHub as melhorias avaliadas na prévia. A autorização cobre o código e o Git deste repositório; não autoriza criar sessões/worktrees reais nem modificar a configuração do OpenCode. O fluxo original de novo chat continua perguntando sobre worktree. Ramificar diretamente um fio cria apenas um módulo visual, sem sessão.
+
 ## Propostas ainda abertas
 
 - Completar as verificações V01/V04 e resolver V02 (destino de worktrees configurado pelo projeto), V03 (idempotência), V05 (plugin oficial de sessões) e V06 (preparação do projeto), conforme as evidências e limitações em [PESQUISA](PESQUISA.md) §7.

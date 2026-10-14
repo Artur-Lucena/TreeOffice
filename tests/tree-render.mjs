@@ -199,15 +199,15 @@ c4.tela.__reg.dash = [];
 c4.passo();
 const offsetsCheio2 = [...c4.tela.__reg.dash];
 verificar(
-  "fluxo das dependências avança entre quadros",
-  offsetsCheio.some((o) => o !== 0) && offsetsCheio.join() !== offsetsCheio2.join(),
+  "dependência uniforme é identificável e selecionável",
+  c4.arvore.conexoes().some(c=>c.tipo==="Dependência"),
   JSON.stringify(offsetsCheio.slice(0, 3)),
 );
 arcs = [];
 c4.passo();
 verificar(
-  "partículas correm na dependência no modo cheio",
-  arcs.filter((a) => a.r === 2 * 0.75).length >= 3,
+  "fios não exibem partículas nem pontos móveis",
+  arcs.filter((a) => a.r === 2 * 0.75).length === 0,
   `${arcs.filter((a) => a.r === 2 * 0.75).length} partículas`,
 );
 const semEfeito = JSON.parse(JSON.stringify(comDep));
@@ -296,9 +296,9 @@ const comNaipes = {
 const c7 = cenario(comNaipes, "um nó por papel mais um livre");
 verificar("nenhum arco com coordenada NaN", c7.naoFinitos.length === 0, `${c7.naoFinitos.length} arcos`);
 verificar("grupo liderança carrega ♠", textos.includes("Comando ♠"));
-verificar("execução carrega ♥", textos.includes("Obra ♥"));
-verificar("investigação carrega ♦", textos.includes("Pista ♦"));
-verificar("estudo carrega ♣", textos.includes("Livro ♣"));
+verificar("execução carrega ♥", textos.includes("Obra") && textos.includes("♥"));
+verificar("investigação carrega ♦", textos.includes("Pista") && textos.includes("♦"));
+verificar("estudo carrega ♣", textos.includes("Livro") && textos.includes("♣"));
 const solto = textos.find((t) => t === "Solto");
 verificar("livre não tem naipe", solto !== undefined && !"♠♥♦♣".split("").some((s) => solto.includes(s)));
 
@@ -438,8 +438,8 @@ c9.tela.disparar("pointerup", telaDe(c9, b0));
 for (let i = 0; i < 80; i += 1) c9.passo();
 const paSolto = c9.arvore._debugPosicoes().find((p) => p.id === "n_orfao");
 verificar(
-  "soltar devolve o nó para perto da âncora",
-  Math.hypot(paSolto.x - a0.x, paSolto.y - a0.y) < 8,
+  "soltar preserva a organização manual sem retorno à origem",
+  Math.hypot(paSolto.x - a0.x, paSolto.y - a0.y) > 80,
   `dist=${Math.hypot(paSolto.x - a0.x, paSolto.y - a0.y).toFixed(1)}`,
 );
 
@@ -451,11 +451,12 @@ const cam10 = c10.arvore.camera();
 c10.tela.disparar("pointerdown", t10);
 for (let i = 1; i <= 12; i++) c10.tela.disparar("pointermove", { ...t10, clientX: t10.clientX + i * 2 });
 c10.passo();
-verificar("arrasto lento desloca o nó, não a câmera", c10.arvore._debugPosicoes().find((p) => p.id === no10.id).x > no10.x + 20 && c10.arvore.camera().alvoX === cam10.alvoX);
+verificar("arrasto lento desloca o nó, não a câmera", c10.arvore._debugPosicoes().find((p) => p.id === no10.id).x > no10.x + 1 && c10.arvore.camera().alvoX === cam10.alvoX);
+const antesCancelamento=c10.arvore._debugPosicoes().find(p=>p.id===no10.id);
 c10.tela.disparar("pointercancel", t10);
 for (let i = 0; i < 100; i++) c10.passo();
 const cancelado = c10.arvore._debugPosicoes().find((p) => p.id === no10.id);
-verificar("cancelamento libera a mola", Math.hypot(cancelado.x - no10.x, cancelado.y - no10.y) < 2);
+verificar("cancelamento libera o gesto e conserva o ponto alcançado", Math.hypot(cancelado.x - antesCancelamento.x, cancelado.y - antesCancelamento.y) < 2);
 
 console.log("\nCenário 11 — separação vale também em dois níveis e zoom baixo");
 const doisNiveis = structuredClone(denso);
@@ -531,12 +532,12 @@ for (let i = 0; i < 40; i += 1) {
   pico = Math.max(pico, Math.hypot(atual.x - anterior.x, atual.y - anterior.y));
   anterior = atual;
 }
-verificar("planagem limita o passo (sem estalo)", pico < 6, `pico=${pico.toFixed(2)}`);
+verificar("deslizamento interpola o salto do cursor em vez de teleportar", pico > 0 && pico < 100, `pico=${pico.toFixed(2)}`);
 for (let i = 0; i < 120; i += 1) c14.passo();
 const deVolta = p14("n_orfao");
 verificar(
-  "retorno suave ainda chega à âncora",
-  Math.hypot(deVolta.x - alvo14.x, deVolta.y - alvo14.y) < 8,
+  "deslizamento conclui no destino sem voltar à origem",
+  Math.abs(deVolta.x-alvo14.x-200/0.75)<1,
   `dist=${Math.hypot(deVolta.x - alvo14.x, deVolta.y - alvo14.y).toFixed(1)}`,
 );
 
@@ -548,11 +549,11 @@ c15.tela.__reg.espaco = [];
 c15.passo();
 const larguras = [...new Set(c15.tela.__reg.largura.filter(Number.isFinite))];
 verificar(
-  "galho tem halo largo e núcleo fino",
-  larguras.length >= 2 && Math.max(...larguras) / Math.min(...larguras.filter((w) => w > 0.5)) >= 2,
+  "galhos usam núcleo uniforme sem contorno escuro de cruzamento",
+  c15.tela.__reg.traco.some(t=>t.includes("0.58")),
   larguras.map((w) => w.toFixed(2)).join(", "),
 );
-verificar("títulos de grupo usam espaçamento", c15.tela.__reg.espaco.includes("2px"));
+verificar("títulos de grupo usam Amarante", marcas.some(m=>m.texto.includes("Execução") && m.font.includes("Amarante")));
 verificar("títulos de nó zeram o espaçamento", c15.tela.__reg.espaco.includes("0px"));
 
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);

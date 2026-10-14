@@ -49,6 +49,9 @@ Para encerrar: `Ctrl+C`. O estado permanece em `.local/`.
 node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
 node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
 node tests/opencode-client.mjs  # Fase B com serviço simulado (descoberta, paginação, SSE, modo real)
+node tests/navigation.mjs       # explorador: grupos, busca, órfãos, ciclos e ausência de mutação
+node tests/tree-interactions.mjs # seleção de fios, ramificação, arrasto e restauração de posições
+node tests/visual-state.mjs      # normalização e persistência dos metadados visuais
 node tests/browser-ui.mjs      # navegador real: Node 22+ e Edge/Chromium já instalado
 ```
 

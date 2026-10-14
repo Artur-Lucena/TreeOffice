@@ -44,8 +44,8 @@ export function naipeDe(papel) {
 /* Giz sobre quadro-negro: tudo em tons de giz quente; o único acento é o
  * brilho do estado ativo. Estados vivem em textura + contorno, não em cor. */
 const GIZ = "232, 230, 222";
-const SERIFA = `Georgia, 'Times New Roman', serif`;
-const SANS = `"Segoe UI", system-ui, sans-serif`;
+const SERIFA = `"Amarante", "Segoe UI", serif`;
+const SANS = `"Manrope", "Segoe UI", system-ui, sans-serif`;
 
 function hashNum(id) {
   let h = 0;
@@ -162,6 +162,10 @@ function ampDeriva(estadoNo) {
 export function criarArvore(canvas, opcoes = {}) {
   const ctx = canvas.getContext("2d");
   const onSelecionar = opcoes.onSelecionar || (() => {});
+  const onOrganizar = opcoes.onOrganizar || (()=>{});
+  let organizacaoPendente=false;
+  const onSelecionarConexao = opcoes.onSelecionarConexao || (()=>{});
+  let conexaoSelecionada=null, conexaoPairada=null;
   const onAcao = opcoes.onAcao || (() => {});
   const onErro = opcoes.onErro || ((erro) => console.error("TreeOffice: falha no desenho", erro));
 
@@ -241,6 +245,7 @@ export function criarArvore(canvas, opcoes = {}) {
   function posMundo(id, tempo, amp) {
     const p = posicoes.get(id);
     if (!p) return null;
+    if (p.camada === "grupo") return {x:p.x,y:p.y};
     const nivel = nivelEfeitos();
     const a = nivel === "desligado" ? 0 : amp * (nivel === "sutil" ? 0.4 : 1);
     if (!a || reduzir || id === arrastando.no) return { x: p.x, y: p.y };
@@ -355,7 +360,12 @@ export function criarArvore(canvas, opcoes = {}) {
      */
     const entrada = (id, x, y) => {
       const novo = !posicoes.has(id);
-      const atual = posicoes.get(id) || { x, y, vx: 0, vy: 0 };
+      const modelo=(estado.nos || []).find(no=>no.id===id);
+      const inicial=modelo?.posicaoFixada ? modelo.posicao : null;
+      const atual = posicoes.get(id) || {
+        x:Number.isFinite(inicial?.x)?inicial.x:x,
+        y:Number.isFinite(inicial?.y)?inicial.y:y,vx:0,vy:0,
+      };
       visitados.add(id);
       posicoes.set(id, {
         ...atual,
@@ -465,100 +475,73 @@ export function criarArvore(canvas, opcoes = {}) {
   }
 
   function passoFisica(dt) {
-    const amortecimento = 0.86;
-    const atracao = 0.045;
-    // Planagem pós-soltura (D53): mola fraca + freio forte ≈ convergência
-    // crítica — aproxima sem oscilar nem teleportar.
-    const amortecimentoSuave = 0.93;
-    const atracaoSuave = 0.012;
-
-    // Colisão antes das molas: só corpos visíveis se desgrudam; as âncoras
-    // continuam mandando no global, a repulsão só corrige o local (D50).
     const corpos = [];
     for (const [id, p] of posicoes) {
       if (p.camada !== "no" || ocultos.has(id)) continue;
       const no = estado.nos.find((n) => n.id === id);
       const base = 26 * (estado.nos.some((n) => n.grupoPai === id) ? 1.15 : 1);
-      // Envelope máximo: crescimento, respiração, contorno ondulado e deriva.
-      // Deve continuar válido em qualquer zoom e durante transições de estado.
       p.raio = base * 1.3 * 1.085 * 1.09 + 10;
-      p.fixo = id === arrastando.no;
+      p.fixo = id === arrastando.no || !!p.entrega;
       const alvoEnergia = energiaDoNo(no, Date.now());
-      p.energia = Number.isFinite(p.energia) ? lerp(p.energia, alvoEnergia, Math.min(1, dt * 0.08)) : alvoEnergia;
+      p.energia = Number.isFinite(p.energia) ? lerp(p.energia, alvoEnergia, 1 - Math.exp(-dt * 0.06)) : alvoEnergia;
       corpos.push(p);
     }
-    aplicarRepulsao(corpos, 26);
-
-    // Trava anti-estalo (D53): deslocamento máximo por quadro durante a
-    // planagem, medido sobre o deslocamento TOTAL (mola + repulsão + contato).
-    // O contato é resolvido depois do loop, então a trava também vem depois.
-    const LIMITE_PASSO = 4;
-    const passoQ = Math.min(dt, 3);
-    const planantes = new Map();
+    aplicarRepulsao(corpos, 26, {forca: 0.055 * dt, teto: 2 * dt, respiro: 18});
     for (const [id, p] of posicoes) {
-      if ((p.planagem || 0) > 0) planantes.set(id, { ox: p.x, oy: p.y });
-    }
-
-    for (const [id, p] of posicoes) {
-      // Defesa: entrada incompleta viraria NaN e apagaria o nó da tela.
       if (!Number.isFinite(p.x)) p.x = p.alvoX;
       if (!Number.isFinite(p.y)) p.y = p.alvoY;
       if (!Number.isFinite(p.vx)) p.vx = 0;
       if (!Number.isFinite(p.vy)) p.vy = 0;
-      if (id === arrastando.no) {
-        // Agarrado: fica onde o cursor manda; a mola só volta a valer solto.
-        p.vx = 0;
-        p.vy = 0;
+      const destinoArrasto = id === arrastando.no ? p.alvoArrasto : p.entrega;
+      if (destinoArrasto) {
+        const fator = reduzir ? 1 : 1 - Math.exp(-dt * 0.34);
+        p.x = lerp(p.x, destinoArrasto.x, fator);
+        p.y = lerp(p.y, destinoArrasto.y, fator);
+        p.vx = 0; p.vy = 0;
+        if (id !== arrastando.no && Math.hypot(p.x-destinoArrasto.x,p.y-destinoArrasto.y)<0.08) {
+          p.x=destinoArrasto.x; p.y=destinoArrasto.y;
+          p.entrega=null; p.fixo=false;
+        }
         continue;
       }
-      const planando = (p.planagem || 0) > 0;
-      const mola = planando ? atracaoSuave : atracao;
-      const freio = planando ? amortecimentoSuave : amortecimento;
-      const dx = p.alvoX - p.x;
-      const dy = p.alvoY - p.y;
-      p.vx = (p.vx + dx * mola) * freio;
-      p.vy = (p.vy + dy * mola) * freio;
-      const passo = Math.min(dt, 3);
-      p.x += p.vx * passo;
-      p.y += p.vy * passo;
-      if (planando) {
-        // Fim da planagem só ao chegar devagar (ou no timeout): entrega em
-        // repouso para a mola cheia não somar com a velocidade acumulada e
-        // estalar no quadro da troca.
-        const daAncora = Math.hypot(p.alvoX - p.x, p.alvoY - p.y);
-        const vel = Math.hypot(p.vx, p.vy);
-        p.planagem -= 1;
-        if (p.planagem <= 0 || (daAncora < 12 && vel < 1.5)) {
-          p.planagem = 0;
-          p.vx = 0;
-          p.vy = 0;
-        }
-      }
-      if (Math.abs(p.vx) < 0.0008) p.vx = 0;
-      if (Math.abs(p.vy) < 0.0008) p.vy = 0;
+      // Grupos não são pinos: seu centro é calculado a partir dos módulos.
+      if (p.camada === "grupo") {p.vx=0; p.vy=0; continue;}
+      const mola = 0;
+      const freio = Math.pow(0.78, dt);
+      p.vx = (p.vx + (p.alvoX - p.x) * mola * dt) * freio;
+      p.vy = (p.vy + (p.alvoY - p.y) * mola * dt) * freio;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (Math.abs(p.vx) < 0.002) p.vx = 0;
+      if (Math.abs(p.vy) < 0.002) p.vy = 0;
     }
     resolverContatos(corpos);
+    atualizarCentrosDosGrupos();
+    if (organizacaoPendente && !arrastando.ativo && corpos.every(p=>!p.entrega && Math.hypot(p.vx,p.vy)<0.1)) {
+      organizacaoPendente=false;
+      onOrganizar([...posicoes].filter(([,p])=>p.camada==="no").map(([id,p])=>({id,x:p.x,y:p.y})));
+    }
+  }
 
-    for (const [id, ini] of planantes) {
-      const p = posicoes.get(id);
-      if (!p) continue;
-      const sx = p.x - ini.ox;
-      const sy = p.y - ini.oy;
-      const tamanho = Math.hypot(sx, sy);
-      if (tamanho > LIMITE_PASSO) {
-        // Velocidade acompanha o corte para não acumular e estalar depois.
-        p.x = ini.ox + (sx / tamanho) * LIMITE_PASSO;
-        p.y = ini.oy + (sy / tamanho) * LIMITE_PASSO;
-        p.vx = (sx / tamanho) * (LIMITE_PASSO / passoQ);
-        p.vy = (sy / tamanho) * (LIMITE_PASSO / passoQ);
-      }
+  function atualizarCentrosDosGrupos() {
+    for (const grupo of estado.grupos || []) {
+      const centro = posicoes.get(grupo.id);
+      if (!centro) continue;
+      const membros = (estado.nos || [])
+        .filter(no => no.grupoPai === grupo.id && !ocultos.has(no.id))
+        .map(no => posicoes.get(no.id))
+        .filter(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+      if (!membros.length) continue;
+      centro.x = membros.reduce((s,p) => s+p.x,0)/membros.length;
+      centro.y = membros.reduce((s,p) => s+p.y,0)/membros.length;
+      centro.alvoX=centro.x; centro.alvoY=centro.y;
+      centro.vx=0; centro.vy=0;
     }
   }
 
   /**
    * Ponto testável do arrasto (D51): desloca a posição em unidades de mundo.
-   * O handler de pointer converte o gesto e chama daqui; soltar devolve o nó
-   * à âncora por mola — arrasto é inspeção, não edição.
+   * O handler converte o gesto; as posições ficam livres e podem ser persistidas pelo controlador.
    */
   function moverNo(id, dxMundo, dyMundo) {
     const p = posicoes.get(id);
@@ -609,58 +592,115 @@ export function criarArvore(canvas, opcoes = {}) {
     };
   }
 
-  function desenharGalhos(tempo) {
-    const nos = estado.nos || [];
-    const grupos = estado.grupos || [];
-    ctx.lineCap = "round";
+  function pontoDaCurva(curva, t) {
+    const u=1-t, {a,c1,c2,b}=curva;
+    return {x:u*u*u*a.x+3*u*u*t*c1.x+3*u*t*t*c2.x+t*t*t*b.x,
+      y:u*u*u*a.y+3*u*u*t*c1.y+3*u*t*t*c2.y+t*t*t*b.y};
+  }
 
-    const conexoes = [];
-    for (const no of nos) {
-      if (!no.grupoPai) continue;
-      conexoes.push({ de: no.grupoPai, para: no.id });
+  function geometriasDasConexoes(tempo=ultimo) {
+    const descritores=new Map();
+    for (const no of estado.nos || []) {
+      if (no.grupoPai) descritores.set(`ramo:${no.id}`,{
+        id:`ramo:${no.id}`,de:no.grupoPai,para:no.id,
+        tipo:no.conexaoPai ? "Ramificação de conexão" : "Vínculo organizacional",
+        conexaoPai:no.conexaoPai,
+      });
     }
-
-    for (const { de, para } of conexoes) {
-      if (destinoForaDeCena(de, para)) continue;
-      const paiEhGrupo = grupos.some((g) => g.id === de);
-      const origem = posMundo(de, tempo, 3);
-      const destino = posMundo(para, tempo, ampDeriva(estadoDeId(para)));
-      if (!origem || !destino) continue;
-
-      const a = mundoParaTela(origem.x, origem.y);
-      const b = mundoParaTela(destino.x, destino.y);
-      const tocaHover = pairado != null && (de === pairado || para === pairado);
-      const dim = esmaecido(de) && esmaecido(para);
-
-      ctx.save();
-      if (dim) ctx.globalAlpha = 0.18;
-      // Tubo de giz (D53): halo largo e suave + núcleo fino e brilhante.
-      const baseW = (paiEhGrupo ? 5 : 3) * camera.zoom * (tocaHover ? 1.25 : 1);
-      const traco = () => {
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.bezierCurveTo(
-          a.x + (b.x - a.x) * 0.35,
-          a.y,
-          b.x - (b.x - a.x) * 0.35,
-          b.y,
-          b.x,
-          b.y,
-        );
+    for (const dep of estado.dependencias || []) {
+      const id=`dep:${dep.origem}>${dep.destino}`;
+      descritores.set(id,{id,de:dep.origem,para:dep.destino,tipo:"Dependência"});
+    }
+    const prontas=new Map(), calculando=new Set();
+    const resolver=id=>{
+      if (prontas.has(id)) return prontas.get(id);
+      const d=descritores.get(id);
+      if (!d || calculando.has(id) || destinoForaDeCena(d.de,d.para)) return null;
+      calculando.add(id);
+      let a;
+      if (d.conexaoPai) {
+        const pai=resolver(d.conexaoPai.id);
+        if (pai) a=pontoDaCurva(pai,Math.max(0.08,Math.min(0.92,d.conexaoPai.t??0.5)));
+      } else a=posMundo(d.de,tempo,ampDeriva(estadoDeId(d.de)));
+      const b=posMundo(d.para,tempo,ampDeriva(estadoDeId(d.para)));
+      calculando.delete(id);
+      if (!a || !b) return null;
+      const dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||1;
+      const curvatura=Math.min(26/camera.zoom,dist*0.08);
+      const curva={...d,a,b,
+        c1:{x:a.x+dx*0.32-dy/dist*curvatura,y:a.y+dy*0.22+dx/dist*curvatura},
+        c2:{x:a.x+dx*0.68-dy/dist*curvatura,y:a.y+dy*0.78+dx/dist*curvatura},
       };
-      ctx.lineCap = "round";
-      ctx.strokeStyle = `rgba(${GIZ}, ${tocaHover ? 0.3 : paiEhGrupo ? 0.14 : 0.2})`;
-      ctx.lineWidth = baseW * 2.4;
-      traco();
-      ctx.stroke();
-      ctx.strokeStyle = tocaHover
-        ? `rgba(${GIZ}, 0.95)`
-        : `rgba(${GIZ}, ${paiEhGrupo ? 0.45 : 0.65})`;
-      ctx.lineWidth = baseW * 0.85;
-      traco();
-      ctx.stroke();
-      ctx.restore();
+      prontas.set(id,curva);return curva;
+    };
+    for (const id of descritores.keys()) resolver(id);
+    return [...prontas.values()];
+  }
+
+  function infoDaConexao(curva,t=0.5) {
+    const ponto=pontoDaCurva(curva,t);
+    const anterior=pontoDaCurva(curva,Math.max(0,t-0.01));
+    const seguinte=pontoDaCurva(curva,Math.min(1,t+0.01));
+    const dx=seguinte.x-anterior.x,dy=seguinte.y-anterior.y;
+    const tamanho=Math.hypot(dx,dy)||1;
+    let comprimento=0,p=curva.a;
+    for (let i=1;i<=40;i++) {const q=pontoDaCurva(curva,i/40);comprimento+=Math.hypot(q.x-p.x,q.y-p.y);p=q;}
+    return {id:curva.id,de:curva.de,para:curva.para,tipo:curva.tipo,conexaoPai:curva.conexaoPai,
+      t,x:ponto.x,y:ponto.y,nx:-dy/tamanho,ny:dx/tamanho,comprimento};
+  }
+
+  function conexaoEm(x,y) {
+    const tolerancia=window.matchMedia?.("(pointer: coarse)").matches ? 20 : 10;
+    let melhor=null, distanciaMelhor=tolerancia;
+    for (const curva of geometriasDasConexoes()) {
+      if(ocultos.has(curva.de)||ocultos.has(curva.para))continue;
+      let anterior=mundoParaTela(curva.a.x,curva.a.y);
+      for (let i=1;i<=64;i++) {
+        const ponto=pontoDaCurva(curva,i/64);
+        const atual=mundoParaTela(ponto.x,ponto.y);
+        const dx=atual.x-anterior.x,dy=atual.y-anterior.y;
+        const u=Math.max(0,Math.min(1,((x-anterior.x)*dx+(y-anterior.y)*dy)/(dx*dx+dy*dy||1)));
+        const d=Math.hypot(x-anterior.x-u*dx,y-anterior.y-u*dy);
+        if (d<distanciaMelhor) {distanciaMelhor=d;melhor=infoDaConexao(curva,(i-1+u)/64);}
+        anterior=atual;
+      }
     }
+    return melhor;
+  }
+
+  function selecionarConexao(id,t=0.5) {
+    const curva=geometriasDasConexoes().find(c=>c.id===id);
+    if (!curva || ocultos.has(curva.de) || ocultos.has(curva.para)) return null;
+    selecionado=null; conexaoSelecionada=id;
+    const info=infoDaConexao(curva,Math.max(0.08,Math.min(0.92,t)));
+    onSelecionarConexao(info);
+    return info;
+  }
+
+  function desenharGalhos(tempo) {
+    const curvas=geometriasDasConexoes(tempo);
+    const tracar=c=>{
+      const a=mundoParaTela(c.a.x,c.a.y),b=mundoParaTela(c.b.x,c.b.y);
+      const c1=mundoParaTela(c.c1.x,c.c1.y),c2=mundoParaTela(c.c2.x,c.c2.y);
+      ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(c1.x,c1.y,c2.x,c2.y,b.x,b.y);
+    };
+    ctx.save();ctx.setLineDash([]);ctx.lineCap="round";ctx.lineJoin="round";ctx.shadowBlur=0;
+    ctx.lineWidth=Math.max(2,Math.min(3.2,2.6*camera.zoom));
+    const nivelDe=c=>Math.round(Math.min(posicoes.get(c.de)?.visibilidade??1,posicoes.get(c.para)?.visibilidade??1)*12);
+    for(let nivel=1;nivel<=12;nivel++) {
+      const lote=curvas.filter(c=>nivelDe(c)===nivel);
+      if(!lote.length)continue;
+      ctx.strokeStyle=`rgba(${GIZ}, ${0.58*nivel/12})`;ctx.beginPath();
+      for (const curva of lote) tracar(curva);
+      ctx.stroke();
+      const realces=lote.filter(c=>c.id===conexaoSelecionada || c.id===conexaoPairada);
+      if (realces.length) {
+        ctx.strokeStyle=`rgba(${GIZ}, ${0.95*nivel/12})`;ctx.beginPath();
+        for (const curva of realces) tracar(curva);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function destinoForaDeCena(de, para) {
@@ -668,7 +708,8 @@ export function criarArvore(canvas, opcoes = {}) {
     if (!destino) return true;
     if (destino.camada !== "no") return true;
     // Galho recolhido esconde a subárvore — a aresta também sai de cena.
-    if (ocultos.has(de) || ocultos.has(para)) return true;
+    if ((ocultos.has(de) && (posicoes.get(de)?.visibilidade??0)<0.002) ||
+        (ocultos.has(para) && (destino.visibilidade??0)<0.002)) return true;
     return false;
   }
 
@@ -679,74 +720,7 @@ export function criarArvore(canvas, opcoes = {}) {
   }
 
   function desenharDependencias(tempo) {
-    const deps = estado.dependencias || [];
-    const nivel = nivelEfeitos();
-    // Fluxo animado: o padrão corre ao longo da curva (marching ants).
-    // Desligado congela; sutil corre devagar e sem seta.
-    const periodo = 14; // [6, 8]
-    const velocidade = nivel === "cheio" ? 0.02 : 0.008;
-    ctx.save();
-    ctx.setLineDash([6, 8]);
-    if (nivel !== "desligado" && !reduzir) ctx.lineDashOffset = -((tempo * velocidade) % periodo);
-    else ctx.lineDashOffset = 0;
-    ctx.lineWidth = 1.5 * camera.zoom;
-    for (const dep of deps) {
-      const a = posicoes.get(dep.origem);
-      const b = posicoes.get(dep.destino);
-      if (!a || !b) continue;
-      if (ocultos.has(dep.origem) || ocultos.has(dep.destino)) continue;
-      const tocaHover = pairado != null && (dep.origem === pairado || dep.destino === pairado);
-      const dim = pairado != null && !tocaHover;
-      ctx.strokeStyle = tocaHover
-        ? "rgba(255, 255, 255, 0.9)"
-        : "rgba(255, 255, 255, 0.55)";
-      if (dim) ctx.globalAlpha = 0.2;
-      else ctx.globalAlpha = 1;
-      const pa = mundoParaTela(a.x, a.y);
-      const pb = mundoParaTela(b.x, b.y);
-      const meioX = (pa.x + pb.x) / 2;
-      const meioY = Math.min(pa.y, pb.y) - 60 * camera.zoom;
-      ctx.beginPath();
-      ctx.moveTo(pa.x, pa.y);
-      ctx.quadraticCurveTo(meioX, meioY, pb.x, pb.y);
-      ctx.stroke();
-      // Partículas direcionais origem→destino (D52): a dependência "corre".
-      // Paradas com efeitos desligados ou movimento reduzido.
-      if (nivel !== "desligado" && !reduzir) {
-        const qtd = nivel === "cheio" ? 3 : 1;
-        const fase = hashNum(`${dep.origem}>${dep.destino}`);
-        ctx.fillStyle = tocaHover ? "rgba(235,232,224,0.95)" : "rgba(235,232,224,0.7)";
-        for (let i = 0; i < qtd; i += 1) {
-          const tt = (tempo * 0.00012 + fase + i / qtd) % 1;
-          const u = 1 - tt;
-          const px = u * u * pa.x + 2 * u * tt * meioX + tt * tt * pb.x;
-          const py = u * u * pa.y + 2 * u * tt * meioY + tt * tt * pb.y;
-          ctx.beginPath();
-          ctx.arc(px, py, 2 * camera.zoom, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      // Seta de direção na ponta (só no cheio): a tangente da quadrática
-      // no fim é pb − meio.
-      if (nivel === "cheio" && !reduzir) {
-        const tx = pb.x - meioX;
-        const ty = pb.y - meioY;
-        const tam = Math.hypot(tx, ty) || 1;
-        const ux = tx / tam;
-        const uy = ty / tam;
-        const s = 7 * camera.zoom;
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.moveTo(pb.x, pb.y);
-        ctx.lineTo(pb.x - ux * s - uy * s * 0.45, pb.y - uy * s + ux * s * 0.45);
-        ctx.lineTo(pb.x - ux * s + uy * s * 0.45, pb.y - uy * s - ux * s * 0.45);
-        ctx.closePath();
-        ctx.fillStyle = tocaHover ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)";
-        ctx.fill();
-        ctx.setLineDash([6, 8]);
-      }
-    }
-    ctx.restore();
+    // Incluídas no mesmo traçado uniforme dos galhos.
   }
 
   function estadoVisual(no) {
@@ -813,9 +787,9 @@ export function criarArvore(canvas, opcoes = {}) {
     // Título em serifa vintage com o naipe do papel (D49), espaçado (D53).
     const naipe = naipeDe(grupo.papel);
     ctx.fillStyle = "rgba(235, 232, 224, 0.88)";
-    ctx.font = `${Math.round(14 * camera.zoom)}px ${SERIFA}`;
+    ctx.font = `500 ${Math.max(12, Math.round(14 * camera.zoom))}px ${SERIFA}`;
     ctx.textAlign = "center";
-    if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     ctx.fillText(naipe ? `${grupo.titulo} ${naipe}` : grupo.titulo, centro.x, centro.y - raio * 0.82 - 10 * camera.zoom);
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
   }
@@ -824,7 +798,8 @@ export function criarArvore(canvas, opcoes = {}) {
     const p = posicoes.get(no.id);
     if (!p || p.camada !== "no") return;
     // Recolhido: a subárvore existe no estado, mas não é desenhada.
-    if (ocultos.has(no.id)) return;
+    const visibilidade=p.visibilidade??1;
+    if (visibilidade<0.002) return;
     if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
     const { estado: estadoNo } = estadoVisual(no);
     const centro = posMundo(no.id, tempo, ampDeriva(estadoNo));
@@ -832,17 +807,15 @@ export function criarArvore(canvas, opcoes = {}) {
     const t = mundoParaTela(centro.x, centro.y);
     // Hover fora da vizinhança esmaece (padrão Obsidian); o par não some.
     const dim = esmaecido(no.id);
-    if (dim) {
-      ctx.save();
-      ctx.globalAlpha = 0.22;
-    }
+    ctx.save();
+    ctx.globalAlpha=(dim?0.22:1)*visibilidade;
     // Nascer com escala: criação de chat tem retorno visual imediato (D02).
     const idade = ultimo - (Number.isFinite(p.nascidoEm) ? p.nascidoEm : ultimo);
     const fracaoEntrada = reduzir || nivelEfeitos() === "desligado" || idade < 0 ? 1 : Math.min(1, idade / 320);
     const escalaEntrada = 1 - (1 - fracaoEntrada) * (1 - fracaoEntrada) * (1 - fracaoEntrada);
     const raioBase = 26 * camera.zoom * ((estado.nos || []).some((n) => n.grupoPai === no.id) ? 1.15 : 1);
     // Tamanho por atividade (D52): o blob cresce trabalhando e murcha parado.
-    const raio = raioOrganico(tempo, p.fase, raioBase) * escalaEntrada * (0.85 + 0.45 * (p.energia ?? energiaDoNo(no, Date.now())));
+    const raio = raioOrganico(reduzir || nivelEfeitos() === "desligado" ? 0 : tempo * 0.65, p.fase, raioBase) * escalaEntrada * (0.82 + visibilidade*0.18) * (0.85 + 0.45 * (p.energia ?? energiaDoNo(no, Date.now())));
 
     // Giz monocromático (D49): o estado mora em textura + contorno + brilho.
     let alfa = 1;
@@ -853,7 +826,7 @@ export function criarArvore(canvas, opcoes = {}) {
     let cruzada = false;
 
     if (estadoNo === ESTADO.ATIVO) {
-      brilho = 0.35 + 0.25 * Math.sin(tempo * 0.004 + p.fase);
+      brilho = reduzir || nivelEfeitos() === "desligado" ? 0.3 : 0.35 + 0.13 * Math.sin(tempo * 0.0018 + p.fase);
       alfaHachura = 0.26;
       passoHachura = 7 * camera.zoom;
     } else if (estadoNo === ESTADO.DORMENTE) {
@@ -962,8 +935,8 @@ export function criarArvore(canvas, opcoes = {}) {
     }
 
     // Hover: anel pulsante que marca o par sob o cursor.
-    if (pairado === no.id && !reduzir) {
-      const pulso = 10 + 2.5 * Math.sin(tempo * 0.006 + p.fase);
+    if (pairado === no.id) {
+      const pulso = 10 + (reduzir || nivelEfeitos() === "desligado" ? 0 : 1.5 * Math.sin(tempo * 0.0025 + p.fase));
       ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
       ctx.lineWidth = 1.4 * camera.zoom;
       ctx.setLineDash([]);
@@ -1036,9 +1009,25 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.stroke();
     }
 
-    // Naipe ao lado do título: tamanho mínimo legível, inclusive com zoom baixo.
-    // Brilho tênue no título (D53); espaçamento zerado aqui (grupos usam 2px).
+    // Estampa central, como a marca de uma bola de bilhar.
     const naipe = naipeDe(no.papel);
+    if (naipe && raio > 0.5) {
+      ctx.save();
+      ctx.shadowBlur = 0;
+      const estampa = raio * 0.62;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, estampa, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(235, 232, 224, 0.97)";
+      ctx.fill();
+      ctx.fillStyle = "#171b16";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `${Math.max(1, raio * 1.03)}px "Segoe UI Symbol", "DejaVu Sans", serif`;
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+      ctx.fillText(naipe, t.x, t.y + raio * 0.025, estampa * 1.5);
+      ctx.restore();
+    }
+    // O título continua fora da esfera; a função fica estampada no centro.
     if (camera.zoom > 0.45 || pairado === no.id || selecionado === no.id || arrastando.no === no.id) {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
@@ -1046,7 +1035,7 @@ export function criarArvore(canvas, opcoes = {}) {
       ctx.font = `${Math.max(14, Math.round(14 * camera.zoom))}px ${SERIFA}`;
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
       const base = no.titulo.length > 32 ? `${no.titulo.slice(0, 31)}…` : no.titulo;
-      const titulo = naipe ? `${base} ${naipe}` : base;
+      const titulo = base;
       ctx.save();
       ctx.shadowColor = `rgba(${GIZ}, 0.45)`;
       ctx.shadowBlur = 5 * camera.zoom;
@@ -1061,14 +1050,8 @@ export function criarArvore(canvas, opcoes = {}) {
         ctx.font = `${Math.round(10.5 * camera.zoom)}px ${SANS}`;
         ctx.fillText(sub.join(" · "), t.x, t.y + raio + 22 * camera.zoom);
       }
-    } else if (naipe) {
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillStyle = `rgba(${GIZ}, 0.95)`;
-      ctx.font = `16px ${SERIFA}`;
-      ctx.fillText(naipe, t.x, t.y + raio + 6);
     }
-    if (dim) ctx.restore();
+    ctx.restore();
   }
 
   function desenharPoeira(tempo) {
@@ -1143,11 +1126,20 @@ export function criarArvore(canvas, opcoes = {}) {
     const dt = ultimo ? Math.min((tempo - ultimo) / 16.666, 3) : 1;
     ultimo = tempo;
 
-    camera.x = lerp(camera.x, camera.alvoX, 0.12);
-    camera.y = lerp(camera.y, camera.alvoY, 0.12);
-    camera.zoom = lerp(camera.zoom, camera.alvoZoom, 0.12);
+    const suavidade = reduzir ? 1 : 1 - Math.exp(-dt * 0.11);
+    camera.x = lerp(camera.x, camera.alvoX, suavidade);
+    camera.y = lerp(camera.y, camera.alvoY, suavidade);
+    camera.zoom = lerp(camera.zoom, camera.alvoZoom, suavidade);
 
-    passoFisica(dt);
+    for (const [id,p] of posicoes) {
+      if (p.camada!=="no") continue;
+      const alvo=ocultos.has(id)?0:1;
+      const fator=reduzir || nivelEfeitos()==="desligado" ? 1 : 1-Math.exp(-dt*0.22);
+      p.visibilidade=lerp(p.visibilidade??1,alvo,fator);
+      if(Math.abs(p.visibilidade-alvo)<0.002)p.visibilidade=alvo;
+    }
+    const subpassos = Math.max(1, Math.ceil(dt * 2));
+    for (let i = 0; i < subpassos; i++) passoFisica(dt / subpassos);
     passoPoeira(dt);
     try {
       desenhar(tempo);
@@ -1190,6 +1182,13 @@ export function criarArvore(canvas, opcoes = {}) {
     const retangulo = canvas.getBoundingClientRect();
     const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
     arrastando.no = no ? no.id : null;
+    arrastando.conexao = no ? null : conexaoEm(evento.clientX-retangulo.left,evento.clientY-retangulo.top);
+    if (no) {
+      const p = posicoes.get(no.id);
+      p.alvoArrasto = {x:p.x,y:p.y};
+      p.entrega = null;
+      p.vx=0; p.vy=0;
+    }
     canvas.style.cursor = "grabbing";
     canvas.setPointerCapture(evento.pointerId);
   });
@@ -1200,6 +1199,8 @@ export function criarArvore(canvas, opcoes = {}) {
       const retangulo = canvas.getBoundingClientRect();
       const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
       pairar(no ? no.id : null);
+      conexaoPairada=no ? null : conexaoEm(evento.clientX-retangulo.left,evento.clientY-retangulo.top)?.id ?? null;
+      canvas.style.cursor=conexaoPairada ? "pointer" : no ? "grab" : "";
       return;
     }
     if (evento.pointerId !== arrastando.pointerId) return;
@@ -1209,8 +1210,12 @@ export function criarArvore(canvas, opcoes = {}) {
     arrastando.x = evento.clientX;
     arrastando.y = evento.clientY;
     if (arrastando.no) {
-      // O nó segue o cursor; a física continua e os vizinhos reagem ao vivo.
-      moverNo(arrastando.no, dx / camera.zoom, dy / camera.zoom);
+      // O cursor move o destino; o corpo desliza suavemente até ele.
+      const p = posicoes.get(arrastando.no);
+      if (p?.alvoArrasto) {
+        p.alvoArrasto.x += dx / camera.zoom;
+        p.alvoArrasto.y += dy / camera.zoom;
+      }
       return;
     }
     camera.alvoX -= dx / camera.zoom;
@@ -1220,15 +1225,25 @@ export function criarArvore(canvas, opcoes = {}) {
   function liberarArrasto(evento, cancelado = false) {
     if (!arrastando.ativo || evento.pointerId !== arrastando.pointerId) return;
     arrastando.ativo = false;
-    // Soltar inicia a planagem: retorno suave em vez de estalo (D53). Só vale
-    // se o nó saiu do lugar; clique simples não precisa planar.
+    // Soltar deixa o módulo na nova posição, sem retorno à origem.
     const solto = posicoes.get(arrastando.no);
-    if (arrastando.no && arrastando.moveu && solto) solto.planagem = 240;
+    if (arrastando.no && arrastando.moveu && solto) {
+      solto.entrega = cancelado ? null : {...solto.alvoArrasto};
+      if (!cancelado) organizacaoPendente=true;
+      solto.alvoArrasto = null;
+      solto.vx = 0;
+      solto.vy = 0;
+    }
     arrastando.no = null;
     arrastando.pointerId = null;
     canvas.style.cursor = pairado ? "grab" : "";
     if (canvas.hasPointerCapture(evento.pointerId)) canvas.releasePointerCapture(evento.pointerId);
-    if (arrastando.moveu || cancelado) return;
+    if (arrastando.moveu || cancelado) {arrastando.conexao=null;return;}
+    if (arrastando.conexao) {
+      const info=arrastando.conexao;arrastando.conexao=null;
+      selecionarConexao(info.id,info.t);return;
+    }
+    conexaoSelecionada=null;
     const retangulo = canvas.getBoundingClientRect();
     const no = noEm(evento.clientX - retangulo.left, evento.clientY - retangulo.top);
     selecionado = no ? no.id : null;
@@ -1237,7 +1252,7 @@ export function criarArvore(canvas, opcoes = {}) {
   canvas.addEventListener("pointerup", (evento) => liberarArrasto(evento));
   canvas.addEventListener("pointercancel", (evento) => liberarArrasto(evento, true));
   canvas.addEventListener("lostpointercapture", (evento) => liberarArrasto(evento, true));
-  canvas.addEventListener("pointerleave", () => { if (!arrastando.ativo) pairar(null); });
+  canvas.addEventListener("pointerleave", () => { if (!arrastando.ativo) {pairar(null);conexaoPairada=null;} });
 
   canvas.addEventListener(
     "wheel",
@@ -1284,6 +1299,7 @@ export function criarArvore(canvas, opcoes = {}) {
     else atualizarVizinhos();
     calcularAncoras();
     inicializarPosicoes();
+    atualizarCentrosDosGrupos();
     computarCompartilhados();
     semearPoeira();
     semearGrao();
@@ -1309,7 +1325,7 @@ export function criarArvore(canvas, opcoes = {}) {
     const minY = Math.min(...ys); const maxY = Math.max(...ys);
     camera.alvoX = (minX + maxX) / 2;
     // Reservar topo para os controles e rodapé para legenda, corpo e títulos.
-    camera.alvoZoom = Math.max(0.25, Math.min(1, (largura - 200) / Math.max(160, maxX - minX), (altura - 310) / Math.max(160, maxY - minY)));
+    camera.alvoZoom = Math.max(0.25, Math.min(1, (largura - (opcoes.margemX ?? 200)) / Math.max(160, maxX - minX), (altura - (opcoes.margemY ?? 310)) / Math.max(160, maxY - minY)));
     camera.alvoY = (minY + maxY) / 2 - 5 / camera.alvoZoom;
   }
 
@@ -1327,6 +1343,10 @@ export function criarArvore(canvas, opcoes = {}) {
   semearPoeira();
   semearGrao();
   window.addEventListener("resize", ajustar);
+  if (typeof ResizeObserver === "function") {
+    const observador = new ResizeObserver(ajustar);
+    observador.observe(canvas);
+  }
   requestAnimationFrame(laco);
 
   return {
@@ -1340,8 +1360,15 @@ export function criarArvore(canvas, opcoes = {}) {
     nivelEfeitos,
     efeitosInfo: () => ({ nivel: nivelEfeitos(), poeira: poeira.length, pairado }),
     /** Somente leitura, para testes: cópia das posições atuais. */
-    _debugPosicoes: () => [...posicoes].map(([id, p]) => ({ id, x: p.x, y: p.y, camada: p.camada })),
+    _debugPosicoes: () => [...posicoes].map(([id, p]) => ({ id, x: p.x, y: p.y, camada: p.camada, visibilidade:p.visibilidade??1 })),
+    conexoes: () => geometriasDasConexoes().filter(c=>!ocultos.has(c.de)&&!ocultos.has(c.para)).map(c=>infoDaConexao(c)),
+    selecionarConexao,
+    pontoConexao: (id,t=0.5) => {
+      const c=geometriasDasConexoes().find(c=>c.id===id);
+      return c ? infoDaConexao(c,t) : null;
+    },
     selecionar: (id) => {
+      conexaoSelecionada=null;
       selecionado = id;
     },
     camera: () => ({ ...camera }),

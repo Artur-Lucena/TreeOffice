@@ -247,6 +247,12 @@ async function main() {
 
     const css = await pedir(PORTA, "/ui/styles.css", { headers: com });
     verificar("estilo é servido localmente", css.status === 200 && css.texto.includes("TreeOffice"));
+    const fontes = await pedir(PORTA, "/ui/fonts.css", { headers: com });
+    verificar("fontes não dependem de CDN", fontes.status === 200 && fontes.texto.includes("/ui/assets/fonts/") && !fontes.texto.includes("https://"));
+    const amarante = await pedir(PORTA, "/ui/assets/fonts/amarante-1.ttf", { headers: com });
+    verificar("Amarante é servida localmente", amarante.status === 200 && amarante.texto.length > 1000);
+    const conexoes = await pedir(PORTA, "/ui/connections.mjs", { headers: com });
+    verificar("módulo de ramificação é servido", conexoes.status === 200 && conexoes.texto.includes("criarRamoDaConexao"));
 
     const appJs = await pedir(PORTA, "/ui/app.js", { headers: com });
     verificar("lógica da interface é servida localmente", appJs.status === 200 && appJs.texto.includes("criarArvore"));
@@ -280,6 +286,15 @@ async function main() {
 
     /* ── Persistência atômica e backup ─────────────────────────────────── */
     console.log("\nPersistência (D20, D22)");
+    const visual = { ...emptyState(), grupos: [{id:"g_visual",titulo:"Grupo"}], nos:[
+      {id:"n_visual",titulo:"Organizado",grupoPai:"g_visual",posicao:{x:321,y:-45},posicaoFixada:true},
+      {id:"n_ramo",titulo:"Ramificação",grupoPai:"n_visual",conexaoPai:{id:"ramo:n_visual",t:0.42}},
+    ], conexoesInfo:{"ramo:n_visual":{nome:"Fluxo",notas:"Nota visual de teste"}} };
+    const salvoVisual = await pedir(PORTA, "/api/estado", {method:"POST",headers:jsonCom,corpo:{state:visual}});
+    const visualEmDisco = loadState(raiz).state;
+    verificar("organização manual atravessa a API e o disco", salvoVisual.status===200 && visualEmDisco.nos[0].posicaoFixada && visualEmDisco.nos[0].posicao.x===321);
+    verificar("ramificação no fio atravessa a API e o disco", visualEmDisco.nos[1].conexaoPai?.id==="ramo:n_visual" && visualEmDisco.nos[1].conexaoPai?.t===0.42);
+    verificar("informações dos fios atravessam a API e o disco", visualEmDisco.conexoesInfo["ramo:n_visual"]?.notas==="Nota visual de teste");
     const base = emptyState();
     base.nos = [{ id: "n_a", titulo: "A", simulado: false, estado: ESTADO.DORMENTE }];
     await pedir(PORTA, "/api/estado", { method: "POST", headers: jsonCom, corpo: { state: base } });

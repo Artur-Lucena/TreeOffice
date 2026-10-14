@@ -20,6 +20,8 @@ já estão.
 
 ## 2. Estado atual
 
+**Atualização em 14/10/2026:** UI reformulada e aprovada pelo usuário após avaliação de prévias interativas. D54–D57 registram tipografia local, naipes centrais, posições livres persistidas, fios uniformes e selecionáveis, ramificações nos fios e diálogos animados/arrastáveis. Foi autorizado aplicar e enviar essas mudanças ao repositório. A integração com OpenCode permanece somente leitura; criação de módulos continua visual/simulada. Detalhes e testes em `docs/UI-REFORMULADA-2026-10-14.md`.
+
 **Atualização em 13/10/2026:** a ponte somente leitura está implementada;
 continua faltando UI para vincular sessões reais (Fase C não autorizada).
 Os defeitos de arrasto, colisão e naipes foram reunidos para correção a pedido
