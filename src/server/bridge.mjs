@@ -163,7 +163,44 @@ export function criarPonte(opcoes = {}) {
   // mesmo pedido (clique duplo, retry) nunca cria duas sessões (D34).
   const sessoesCriadas = new Map();
   // Voos em andamento por chave: pedidos simultâneos aguardam o mesmo voo.
-  const criacoesEmAndamento = new Map();  let ressincEmAndamento = null;
+  const criacoesEmAndamento = new Map();
+  // Fase D (D1): mesmo mecanismo para worktrees criados.
+  const worktreesCriados = new Map();
+  const worktreesEmAndamento = new Map();
+
+  /**
+   * Responde com idempotência: feito anterior é repetido, voos simultâneos
+   * compartilham a mesma ação, pane vira 502 sem presumir sucesso (D32).
+   */
+  async function responderIdempotente(res, feitos, voos, chave, acao) {
+    const feito = feitos.get(chave);
+    if (feito) {
+      json(res, 201, { ...feito, repetida: true });
+      return;
+    }
+    let voo = voos.get(chave);
+    if (!voo) {
+      voo = (async () => {
+        try {
+          const registro = await acao();
+          feitos.set(chave, registro);
+          if (feitos.size > 500) {
+            const maisAntiga = feitos.keys().next();
+            if (!maisAntiga.done) feitos.delete(maisAntiga.value);
+          }
+          return registro;
+        } finally {
+          voos.delete(chave);
+        }
+      })();
+      voos.set(chave, voo);
+    }
+    try {
+      json(res, 201, await voo);
+    } catch (erro) {
+      json(res, 502, { erro: erro?.message || "falha na operação" });
+    }
+  }  let ressincEmAndamento = null;
   let reconexaoTimer = null;
   const RESSINC_MS = Number.isFinite(opcoes.ressincMs) ? opcoes.ressincMs : 60_000;
   const SSE_TENTATIVA_MS = 5000;
@@ -645,35 +682,51 @@ export function criarPonte(opcoes = {}) {
           return;
         }
       }
-      const repetida = sessoesCriadas.get(chave);
-      if (repetida) {
-        json(res, 201, { sessionID: repetida.sessionID, titulo: repetida.titulo, repetida: true });
-        return;
-      }
-      let voo = criacoesEmAndamento.get(chave);
-      if (!voo) {
-        voo = (async () => {
-          try {
-            const sessao = await clienteOpenCode.criarSessao({ titulo });
-            const registro = { sessionID: sessao.id, titulo: sessao.title || titulo };
-            sessoesCriadas.set(chave, registro);
-            if (sessoesCriadas.size > 500) {
-              const maisAntiga = sessoesCriadas.keys().next();
-              if (!maisAntiga.done) sessoesCriadas.delete(maisAntiga.value);
-            }
-            return registro;
-          } finally {
-            criacoesEmAndamento.delete(chave);
-          }
-        })();
-        criacoesEmAndamento.set(chave, voo);
-      }
-      try {
-        json(res, 201, await voo);
-      } catch (erro) {
-        json(res, 502, { erro: erro?.message || "falha ao criar sessão" });
-      }
+      await responderIdempotente(res, sessoesCriadas, criacoesEmAndamento, chave, async () => {
+        const sessao = await clienteOpenCode.criarSessao({ titulo });
+        return { sessionID: sessao.id, titulo: sessao.title || titulo };
+      });
       return;
+    }
+
+    /* Fase D: criar worktree real sob confirmação explícita (D1) */
+      /* Só em modo real. projectID e chave obrigatórios; from/branch/directory/name
+       * vão ao worktree.create (estratégia canônica + setup do projeto, D30). */
+      if (req.method === "POST" && url.pathname === "/api/opencode/worktrees") {
+        if (!origemValida(req, url)) {
+          json(res, 403, { erro: "origem ou host não autorizado" });
+          return;
+        }
+        if (modo !== "real" || !clienteOpenCode) {
+          json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });
+          return;
+        }
+        let corpo;
+        try {
+          corpo = await lerCorpo(req);
+        } catch (erro) {
+          json(res, 400, { erro: erro.message });
+          return;
+        }
+        const projectID = typeof corpo?.projectID === "string" ? corpo.projectID.trim() : "";
+        const chaveWt = typeof corpo?.chave === "string" ? corpo.chave.trim() : "";
+        if (!projectID) {
+          json(res, 400, { erro: "projectID é obrigatório" });
+          return;
+        }
+        if (!chaveWt) {
+          json(res, 400, { erro: "chave de idempotência é obrigatória" });
+          return;
+        }
+        const pedido = { projectID };
+        for (const campo of ["from", "branch", "directory", "name"]) {
+          if (typeof corpo?.[campo] === "string" && corpo[campo].trim()) pedido[campo] = corpo[campo].trim();
+        }
+        await responderIdempotente(res, worktreesCriados, worktreesEmAndamento, chaveWt, async () => {
+          const criado = await clienteOpenCode.criarWorktree(pedido);
+          return { directory: criado.directory, projectID };
+        });
+        return;
     }
 
     if (req.method === "POST" && url.pathname === "/api/estado") {

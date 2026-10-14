@@ -40,6 +40,8 @@ function verificar(nome, condicao, detalhe = "") {
 }
 
 const SENHA_FALSA = "fake-password-para-teste-123";
+let wtCriados = 0;
+let ultimoWorktree = null;
 const SESSOES_FALSAS = [
   { id: "ses_a", projectID: "proj_a", title: "Alfa", outcome: null, time: { created: 1, updated: Date.now(), idle: Date.now() }, location: { directory: "/fake/a" } },
   { id: "ses_b", projectID: "proj_a", title: "Bravo", outcome: "succeeded", time: { created: 1, updated: Date.now() - 10_000_000, idle: Date.now() - 10_000_000 }, location: { directory: "/fake/a" } },
@@ -103,7 +105,7 @@ function criarFalso() {
       res.end(JSON.stringify({ data: fatia, cursor: { previous: null, next } }));
       return;
     }
-    if (url.pathname === "/api/worktree") {
+    if (url.pathname === "/api/worktree" && req.method !== "POST") {
       const projectID = url.searchParams.get("projectID") || "";
       if (!projectID) {
         res.writeHead(400, { "content-type": "application/json" });
@@ -113,6 +115,29 @@ function criarFalso() {
       const dados = projectID === "proj_a" ? [{ directory: "/fake/a/wt/1" }] : [];
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(dados));
+      return;
+    }
+    if (url.pathname === "/api/worktree" && req.method === "POST") {
+      let corpo = "";
+      for await (const parte of req) corpo += parte;
+      let pedido = null;
+      try {
+        pedido = JSON.parse(corpo || "{}");
+      } catch { /* inválido vira 400 abaixo */ }
+      if (!pedido || typeof pedido.projectID !== "string" || !pedido.projectID) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ erro: "projectID é obrigatório" }));
+        return;
+      }
+      if (pedido.name === "forçar-erro") {
+        res.writeHead(500, { "content-type": "application/json" });
+        res.end(JSON.stringify({ erro: "pane simulada" }));
+        return;
+      }
+      wtCriados += 1;
+      ultimoWorktree = pedido;
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ directory: `/fake/wt/${wtCriados}` }));
       return;
     }
     if (url.pathname === "/api/event") {
@@ -306,6 +331,28 @@ async function main() {
       tituloVazioFalhou = true;
     }
     verificar("título vazio é recusado", tituloVazioFalhou);
+
+    /* ── Fase D: criação de worktree (RED: cliente ainda não cria) ────── */
+    console.log("\nCriação de worktree (Fase D)");
+    const wtExiste = typeof cliente.criarWorktree === "function";
+    verificar("cliente expõe criarWorktree", wtExiste);
+    const wtNovo = wtExiste
+      ? await cliente.criarWorktree({ projectID: "proj_a", branch: "main", name: "wt-painel" })
+      : null;
+    verificar("worktree criado devolve diretório", !!wtNovo?.directory, wtNovo ? wtNovo.directory : "sem método");
+    verificar(
+      "ponte envia origem, branch e nome",
+      ultimoWorktree?.projectID === "proj_a" && ultimoWorktree?.branch === "main" && ultimoWorktree?.name === "wt-painel",
+      JSON.stringify(ultimoWorktree),
+    );
+    let wtSemProjetoFalhou = false;
+    try {
+      if (wtExiste) await cliente.criarWorktree({ projectID: "" });
+      else throw new Error("sem método");
+    } catch {
+      wtSemProjetoFalhou = true;
+    }
+    verificar("projectID vazio é recusado", wtSemProjetoFalhou);
 
     const gravado = fs.readFileSync(path.join(localDir(raiz), "state.json"), "utf8");
     verificar("estado gravado não contém credencial", !gravado.includes(SENHA_FALSA));

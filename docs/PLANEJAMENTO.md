@@ -193,7 +193,7 @@ recolhido, efeitos da Onda 1, naipes por papel, colisão entre corpos, arrasto
 com retorno suave, galhos em tubo e tipografia; o `opencode-client` (27 ok) cobre descoberta,
 paginação, SSE, modo real e ausência de vazamento de credencial, tudo contra
 serviço simulado.
-**Atualização em 14/10/2026 (Fase C, D58):** smoke 51 ok; opencode-client 31 ok (inclui criarSessao); novo opencode-escrita 13 ok (ponte cria sessões com auth, idempotência inclusive concorrente, e pane sem vazar credencial, contra serviço falso); total do projeto 207 verificações. C1 validado contra serviço real v2.0.28 em 14/10/2026.
+**Atualização em 14/10/2026 (Fase C, D58):** smoke 51 ok; opencode-client 31 ok (inclui criarSessao); novo opencode-escrita 13 ok (ponte cria sessões com auth, idempotência inclusive concorrente, e pane sem vazar credencial, contra serviço falso); total do projeto 207 verificações; com a Fase D, 221 (opencode-client 35, opencode-escrita 23). C1 validado contra serviço real v2.0.28 em 14/10/2026.
 O restante segue pendente de integração real e de validação assistida.
 
 - [ ] Árvore visualmente orgânica e animada, coerente com a referência.

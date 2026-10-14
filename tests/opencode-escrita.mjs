@@ -32,6 +32,7 @@ function verificar(nome, condicao, detalhe = "") {
 
 const SENHA_FALSA = "fake-senha-escrita-456";
 let criadas = 0;
+let wtCriados = 0;
 
 function authOk(req) {
   const esperado = `Basic ${Buffer.from(`opencode:${SENHA_FALSA}`, "utf8").toString("base64")}`;
@@ -89,6 +90,27 @@ function criarFalso() {
       criadas += 1;
       res.writeHead(201, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: `ses_real_${criadas}`, title: titulo }));
+      return;
+    }
+    if (url.pathname === "/api/worktree" && req.method === "POST") {
+      const texto = await lerCorpoFalso(req);
+      let pedido = null;
+      try {
+        pedido = JSON.parse(texto || "{}");
+      } catch { /* inválido vira 400 */ }
+      if (!pedido || typeof pedido.projectID !== "string" || !pedido.projectID) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ erro: "projectID é obrigatório" }));
+        return;
+      }
+      if (pedido.name === "forçar-erro") {
+        res.writeHead(500, { "content-type": "application/json" });
+        res.end(JSON.stringify({ erro: "pane simulada" }));
+        return;
+      }
+      wtCriados += 1;
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ directory: `/fake/wt/${wtCriados}` }));
       return;
     }
     res.writeHead(404, { "content-type": "application/json" });
@@ -166,7 +188,6 @@ async function main() {
 
     const pane = await pedir(PORTA, "/api/opencode/sessoes", { method: "POST", headers: jsonCom, corpo: { titulo: "forçar-erro", chave: "chave-erro" } });
     verificar("pane no serviço vira 502 sem vazar credencial", pane.status === 502 && !pane.texto.includes(SENHA_FALSA), `status=${pane.status}`);
-
     const antesConcorrente = criadas;
     const [c1, c2] = await Promise.all([
       pedir(PORTA, "/api/opencode/sessoes", { method: "POST", headers: jsonCom, corpo: { titulo: "Concorrente", chave: "chave-race" } }),
@@ -177,6 +198,56 @@ async function main() {
       c1.status === 201 && c2.status === 201 && c1.corpo?.sessionID === c2.corpo?.sessionID && criadas === antesConcorrente + 1,
       `c1=${c1.corpo?.sessionID} c2=${c2.corpo?.sessionID} criadas=${criadas}`,
     );
+
+    /* ── Fase D: criar worktree (RED: ponte ainda não cria) ─────────── */
+    console.log("\nCriação de worktree (Fase D)");
+    const wtBase = { projectID: "proj_a", branch: "main", name: "wt-1", chave: "wt-chave-1" };
+
+    const wtSemToken = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: { "content-type": "application/json", origin: `http://127.0.0.1:${PORTA}` }, corpo: wtBase });
+    verificar("sem token é recusado (401)", wtSemToken.status === 401, `status=${wtSemToken.status}`);
+
+    const wtOrigem = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: { ...com, "content-type": "application/json", origin: "http://site-estranho.com" }, corpo: wtBase });
+    verificar("origem estranha é recusada (403)", wtOrigem.status === 403, `status=${wtOrigem.status}`);
+
+    const wtSemProjeto = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: { ...wtBase, projectID: "" } });
+    verificar("projectID vazio é recusado (400)", wtSemProjeto.status === 400, `status=${wtSemProjeto.status}`);
+
+    const wtSemChave = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: { ...wtBase, chave: "" } });
+    verificar("chave vazia é recusada (400)", wtSemChave.status === 400, `status=${wtSemChave.status}`);
+
+    const wtPrimeiro = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: wtBase });
+    verificar("criação devolve diretório (201)", wtPrimeiro.status === 201 && wtPrimeiro.corpo?.directory === "/fake/wt/1", `status=${wtPrimeiro.status} corpo=${JSON.stringify(wtPrimeiro.corpo)}`);
+    verificar("resposta não vaza credencial", !wtPrimeiro.texto.includes(SENHA_FALSA));
+
+    const wtReplay = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: wtBase });
+    verificar("mesma chave não duplica (D1)", wtReplay.status === 201 && wtReplay.corpo?.directory === "/fake/wt/1" && wtCriados === 1, `criados=${wtCriados}`);
+
+    const antesRace = wtCriados;
+    const [w1, w2] = await Promise.all([
+      pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: { ...wtBase, name: "wt-race", chave: "wt-chave-race" } }),
+      pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: { ...wtBase, name: "wt-race", chave: "wt-chave-race" } }),
+    ]);
+    verificar(
+      "simultâneos com a mesma chave criam um só",
+      w1.status === 201 && w2.status === 201 && w1.corpo?.directory === w2.corpo?.directory && wtCriados === antesRace + 1,
+      `criados=${wtCriados}`,
+    );
+
+    const wtPane = await pedir(PORTA, "/api/opencode/worktrees", { method: "POST", headers: jsonCom, corpo: { ...wtBase, name: "forçar-erro", chave: "wt-chave-erro" } });
+    verificar("pane no serviço vira 502 sem vazar credencial", wtPane.status === 502 && !wtPane.texto.includes(SENHA_FALSA), `status=${wtPane.status}`);
+
+    const PORTA_SIM = PORTA + 9;
+    const raizSim = fs.mkdtempSync(path.join(os.tmpdir(), "treeoffice-fased-sim-"));
+    const ponteSim = criarPonte({ porta: PORTA_SIM, raiz: raizSim, opencodeUrl: `http://127.0.0.1:${falso.address().port}` });
+    await ponteSim.iniciar();
+    try {
+      const tokenSim = ponteSim.identidade().token;
+      const jsonSim = { authorization: `Bearer ${tokenSim}`, "content-type": "application/json", origin: `http://127.0.0.1:${PORTA_SIM}` };
+      const wtEmSimulado = await pedir(PORTA_SIM, "/api/opencode/worktrees", { method: "POST", headers: jsonSim, corpo: wtBase });
+      verificar("modo simulado não cria worktree (409)", wtEmSimulado.status === 409, `status=${wtEmSimulado.status}`);
+    } finally {
+      await ponteSim.parar();
+    }
   } finally {
     await ponte.parar();
     falso.close();

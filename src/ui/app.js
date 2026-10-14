@@ -413,6 +413,7 @@ const fluxo = {
   conflito: null,
   confirmarConflito: false,
   chave: "",
+  projetoID: "",
 };
 
 function abrirPopup(origemId) {
@@ -434,6 +435,7 @@ function abrirPopup(origemId) {
   fluxo.destino = "";
   fluxo.conflito = null;
   fluxo.confirmarConflito = false;
+  fluxo.projetoID = "";
   renderPopup();
   el("popup").dataset.aberto = "true";abrirModalAnimadoUI(el("popup"));
   el("pp-corpo").querySelector("input, select, textarea, button")?.focus();
@@ -664,6 +666,7 @@ function renderPopup() {
         avisoAlvo.className = "popup-aviso erro";
         return;
       }
+      fluxo.projetoID = "";
       fluxo.etapa = 3;
       renderPopup();
     }));
@@ -758,7 +761,35 @@ function renderPopup() {
       fluxo.etapa = 2;
       renderPopup();
     }));
-    acoes.appendChild(botao("Continuar", "primario", () => {
+    acoes.appendChild(botao("Continuar", "primario", async () => {
+      // Fase D: em modo real, criar worktree exige o projeto do OpenCode cuja
+      // pasta canônica é o diretório escolhido (D28 — sem projeto não há criação).
+      fluxo.projetoID = "";
+      if (fluxo.criarWorktree && opencode.modo === "real") {
+        const cadastro = state.cadastros[fluxo.cadastroIndex];
+        if (!cadastro) {
+          avisoAlvo.textContent = "Escolha o repositório antes de continuar.";
+          avisoAlvo.className = "popup-aviso erro";
+          return;
+        }
+        let projetos = [];
+        try {
+          const resposta = await api("/api/opencode/projetos");
+          projetos = resposta.data || resposta || [];
+        } catch (erro) {
+          avisoAlvo.textContent = `Não foi possível ler os projetos (${erro.message}).`;
+          avisoAlvo.className = "popup-aviso erro";
+          return;
+        }
+        const normal = (p) => String(p || "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+        const achado = projetos.find((p) => normal(p.canonical || p.directory) === normal(cadastro.caminho));
+        if (!achado) {
+          avisoAlvo.textContent = "Esse diretório não é um projeto conhecido do OpenCode; cadastre-o lá ou vincule um worktree existente.";
+          avisoAlvo.className = "popup-aviso erro";
+          return;
+        }
+        fluxo.projetoID = achado.id;
+      }
       fluxo.conflito = fluxo.worktreeExistente
         ? state.ocupacaoWorktree.find((o) => o.worktree === fluxo.worktreeExistente) || null
         : null;
@@ -792,6 +823,10 @@ function renderPopup() {
   adicionarLinha("Título", fluxo.titulo);
   adicionarLinha("Papel", `${naipeDe(fluxo.papel)} ${PAPEL_ROTULO[fluxo.papel]}`.trim());
   adicionarLinha("Instruções", fluxo.instrucoes || "—");
+  if (fluxo.criarWorktree && opencode.modo === "real" && fluxo.projetoID) {
+    adicionarLinha("Projeto OpenCode", `${fluxo.projetoID.slice(0, 8)}…`);
+    adicionarLinha("Worktree novo", `${fluxo.nome || "(nome automático)"} a partir de ${fluxo.referencia || "origem do projeto"}`);
+  }
   for (const [rotulo, valor] of linhas) adicionarLinha(rotulo, valor);
   corpo.appendChild(resumo);
 
@@ -831,10 +866,17 @@ function renderPopup() {
   alerta.className = "dica-campo";
   alerta.textContent =
     opencode.modo === "real"
-      ? "Modo real: confirmar cria uma sessão nova no OpenCode, sem histórico herdado. Worktree novo continua desabilitado até a Fase D — vincule um existente."
+      ? "Modo real: confirmar cria uma sessão nova no OpenCode, sem histórico herdado — e o worktree novo, se pedido, pela estratégia do projeto."
       : "Protótipo: o nó é criado apenas no registro do painel. Nenhuma sessão, worktree ou branch " +
         "é criado no OpenCode ou no Git nesta etapa.";
   corpo.appendChild(alerta);
+  if (fluxo.criarWorktree && opencode.modo === "real" && fluxo.projetoID) {
+    const setup = document.createElement("div");
+    setup.className = "dica-campo";
+    setup.textContent =
+      "Criar o worktree executa a estratégia canônica do projeto e pode rodar o script de preparação dele (D30).";
+    corpo.appendChild(setup);
+  }
 
   acoes.appendChild(botao("Voltar", "", () => {
     fluxo.etapa = 3;
@@ -911,12 +953,35 @@ async function criarNo() {
     recolhido: false,
   };
 
-  // Fase C (C1): em modo real, a confirmação cria a sessão de verdade.
+  // Fase C (C1) + Fase D (D1): em modo real, a confirmação cria de verdade.
   let mensagem = "Nó criado apenas no painel (protótipo). Nenhuma sessão foi criada no OpenCode.";
   if (opencode.modo === "real") {
+    // D1: worktree novo nasce antes da sessão; o caminho vinculado é o real.
     if (fluxo.criarWorktree) {
-      aviso("Criar worktree novo ainda não está habilitado (Fase D); volte e vincule um existente.", "alerta");
-      return;
+      if (!fluxo.projetoID) {
+        aviso("Sem projeto do OpenCode não há worktree novo; volte e escolha o repositório.", "alerta");
+        return;
+      }
+      try {
+        const wt = await api("/api/opencode/worktrees", {
+          method: "POST",
+          corpo: {
+            projectID: fluxo.projetoID,
+            branch: fluxo.referencia || undefined,
+            name: fluxo.nome || undefined,
+            directory: fluxo.destino || undefined,
+            chave: `${fluxo.chave}:wt`,
+          },
+        });
+        no.worktree = wt.directory;
+      } catch (erro) {
+        // D32: para na primeira falha parcial, relata e não repete.
+        no.incerto = true;
+        state.nos.push(no);
+        await salvar(`Worktree não criado (${erro.message}); vínculo guardado como incerto.`);
+        fecharPopup();
+        return;
+      }
     }
     try {
       const resposta = await api("/api/opencode/sessoes", {
@@ -925,7 +990,9 @@ async function criarNo() {
       });
       no.sessionID = resposta.sessionID;
       no.simulado = false;
-      mensagem = "Sessão criada no OpenCode e vinculada ao nó.";
+      mensagem = no.worktree
+        ? "Worktree e sessão criados no OpenCode e vinculados ao nó."
+        : "Sessão criada no OpenCode e vinculada ao nó.";
     } catch (erro) {
       // D32: falha parcial vira incerto — relata, sem presumir nem repetir.
       no.incerto = true;
@@ -934,9 +1001,10 @@ async function criarNo() {
   }
 
   state.nos.push(no);
-  if (worktree) {
+  const wtVinculado = no.worktree || worktree;
+  if (wtVinculado) {
     state.ocupacaoWorktree.push({
-      worktree,
+      worktree: wtVinculado,
       noID: no.id,
       confirmadoEm: new Date().toISOString(),
     });

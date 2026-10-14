@@ -189,9 +189,8 @@ export function criarClienteOpenCode(servico) {
 
     /**
      * Fase C (C1): cria uma sessão nova no serviço, sem histórico herdado.
-     * Contrato: `POST /session` com `{ title }`; a resposta traz `{ id, ... }`
-     * (ou `{ data: { id, ... } }`). Confirmar os nomes exatos contra o serviço
-     * real quando houver um disponível (pendência registrada em D58).
+     * Contrato real (`session.create`, validado em v2.0.28): `POST /session`
+     * com `{ title, ... }`; responde `{ data: Session.Info }`.
      */
     async criarSessao({ titulo } = {}) {
       const nome = typeof titulo === "string" ? titulo.trim() : "";
@@ -202,6 +201,27 @@ export function criarClienteOpenCode(servico) {
         throw new Error("Serviço não devolveu id da sessão criada.");
       }
       return sessao;
+    },
+
+    /**
+     * Fase D (D1): cria um worktree no projeto pela estratégia canônica dele.
+     * Contrato real (`worktree.create`): `POST /worktree` com `{ projectID,
+     * from?, branch?, directory?, name? }`; responde `Worktree.Info`
+     * (`{ directory }`). A operação pode executar o script de preparação do
+     * projeto (D30) — a ponte só chama sob confirmação explícita do popup.
+     */
+    async criarWorktree({ projectID, from, branch, directory, name } = {}) {
+      if (!projectID || typeof projectID !== "string") throw new Error("projectID é obrigatório para criar worktree.");
+      const corpo = { projectID };
+      if (from) corpo.from = from;
+      if (branch) corpo.branch = branch;
+      if (directory) corpo.directory = directory;
+      if (name) corpo.name = name;
+      const resposta = await postJson(url, password, "/api/worktree", corpo);
+      if (!resposta || typeof resposta.directory !== "string" || !resposta.directory) {
+        throw new Error("Serviço não devolveu o diretório do worktree criado.");
+      }
+      return resposta;
     },
 
     /**

@@ -62,7 +62,8 @@ A criação da estrutura não significa aprovação do plano completo.
 | D53 | Refino giz v2 autorizado em 13/10/2026: retorno suave, galhos em tubo e tipografia. | Soltar inicia planagem que só termina ao chegar devagar (ou no timeout), com trava anti-estalo sobre o deslocamento total do quadro; galhos em halo + núcleo; títulos de grupo espaçados e títulos de nó com brilho tênue, só com fontes do sistema. |
 | D58 | Fase C autorizada em 14/10/2026: criar sessão real e vincular worktree existente, com área de testes descartável em `area-testes/`. | `POST /api/session` no cliente; `POST /api/opencode/sessoes` na ponte só em modo real, com título/chave/diretório validados e idempotência por chave (inclusive com pedidos simultâneos); popup gera a chave por fluxo, cria de verdade em modo real, bloqueia worktree novo (Fase D) e marca incerto sem repetir em pane (D32). Contrato exato do `POST /session` validado contra serviço real (v2.0.28) em
 14/10/2026: `{ title }` → `{ id, ... }`; sessão criada aparece no inventário;
-replay idempotente devolve a mesma. |
+replay idempotente devolve a mesma.
+| D59 | Fase D autorizada em 14/10/2026 junto das melhorias pesadas: criar worktree novo pela estratégia do projeto. | `POST /api/worktree` no cliente (`worktree.create` real: `{projectID, from?, branch?, directory?, name?}` → `{directory}`); `POST /api/opencode/worktrees` na ponte só em modo real, com idempotência e voo compartilhado via ajudante comum; popup resolve o projeto pela pasta canônica, declara o setup (D30) e cria worktree antes da sessão, parando na primeira pane (D32). Contrato lido do `/openapi.json` real. Validação ao vivo só em descartável, ainda pendente. |
 
 ## Atualização aprovada em 14/10/2026
 
