@@ -90,7 +90,7 @@ pelo projeto.
 **Portão de saída:** fluxo completo validado em descartáveis, incluindo falhas
 provocadas.
 
-**Atualização em 14/10/2026 (D58, parcial):** C1 implementado (ponte cria sessão real em modo real, com chave de idempotência e guarda de Fase D); C2 vincular-existente segue só local com aviso de conflito (D27); C3 incerto sem retry automático; C4 com voo compartilhado. Tudo validado contra serviço simulado + navegador real (207 checks); falta validar contra serviço OpenCode de verdade e testar worktrees na área descartável.
+**Atualização em 14/10/2026 (D58, parcial):** C1 implementado (ponte cria sessão real em modo real, com chave de idempotência e guarda de Fase D); C2 vincular-existente segue só local com aviso de conflito (D27); C3 incerto sem retry automático; C4 com voo compartilhado. Tudo validado contra serviço simulado + navegador real (207 checks); validado contra serviço real v2.0.28 em 14/10/2026 (sessão criada, visível e idempotente); resta testar worktrees na área descartável.
 
 ## Fase D — criar novos worktrees (Etapa 5)
 
