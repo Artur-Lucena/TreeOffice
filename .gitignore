@@ -13,6 +13,10 @@ coverage/
 *.log
 /.local/
 
+# Área de testes descartável da Fase C: só o aviso é versionado.
+/area-testes/*
+!/area-testes/README.md
+
 # Arquivos do sistema operacional.
 .DS_Store
 Thumbs.db

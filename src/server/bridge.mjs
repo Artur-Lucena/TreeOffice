@@ -159,7 +159,11 @@ export function criarPonte(opcoes = {}) {
   const vivacidade = new Map();
   let assinaturaSSE = null;
   let sseOk = false;
-  let ressincEmAndamento = null;
+  // Fase C (C4): chave de idempotência → sessão criada. Só memória: repetir o
+  // mesmo pedido (clique duplo, retry) nunca cria duas sessões (D34).
+  const sessoesCriadas = new Map();
+  // Voos em andamento por chave: pedidos simultâneos aguardam o mesmo voo.
+  const criacoesEmAndamento = new Map();  let ressincEmAndamento = null;
   let reconexaoTimer = null;
   const RESSINC_MS = Number.isFinite(opcoes.ressincMs) ? opcoes.ressincMs : 60_000;
   const SSE_TENTATIVA_MS = 5000;
@@ -595,6 +599,80 @@ export function criarPonte(opcoes = {}) {
         return;
       }
       json(res, 200, await ativarModoSimulado());
+      return;
+    }
+
+    /* ── Fase C: criar sessão real sob ação explícita (C1, C3, C4) ──────────
+     * Só em modo real. `chave` (idempotência, gerada pelo popup) repetida
+     * devolve a mesma sessão sem criar outra. Falha vira 502 com mensagem;
+     * o painel marca o nó como incerto em vez de presumir ou repetir (D32).
+     */
+    if (req.method === "POST" && url.pathname === "/api/opencode/sessoes") {
+      if (!origemValida(req, url)) {
+        json(res, 403, { erro: "origem ou host não autorizado" });
+        return;
+      }
+      if (modo !== "real" || !clienteOpenCode) {
+        json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });
+        return;
+      }
+      let corpo;
+      try {
+        corpo = await lerCorpo(req);
+      } catch (erro) {
+        json(res, 400, { erro: erro.message });
+        return;
+      }
+      const titulo = typeof corpo?.titulo === "string" ? corpo.titulo.trim() : "";
+      const chave = typeof corpo?.chave === "string" ? corpo.chave.trim() : "";
+      if (!titulo) {
+        json(res, 400, { erro: "título é obrigatório" });
+        return;
+      }
+      if (!chave) {
+        json(res, 400, { erro: "chave de idempotência é obrigatória" });
+        return;
+      }
+      if (corpo?.directory !== undefined && corpo?.directory !== null && corpo?.directory !== "") {
+        let ehDir = false;
+        try {
+          ehDir = (await fs.promises.stat(String(corpo.directory))).isDirectory();
+        } catch {
+          ehDir = false;
+        }
+        if (!ehDir) {
+          json(res, 400, { erro: "diretório inexistente" });
+          return;
+        }
+      }
+      const repetida = sessoesCriadas.get(chave);
+      if (repetida) {
+        json(res, 201, { sessionID: repetida.sessionID, titulo: repetida.titulo, repetida: true });
+        return;
+      }
+      let voo = criacoesEmAndamento.get(chave);
+      if (!voo) {
+        voo = (async () => {
+          try {
+            const sessao = await clienteOpenCode.criarSessao({ titulo });
+            const registro = { sessionID: sessao.id, titulo: sessao.title || titulo };
+            sessoesCriadas.set(chave, registro);
+            if (sessoesCriadas.size > 500) {
+              const maisAntiga = sessoesCriadas.keys().next();
+              if (!maisAntiga.done) sessoesCriadas.delete(maisAntiga.value);
+            }
+            return registro;
+          } finally {
+            criacoesEmAndamento.delete(chave);
+          }
+        })();
+        criacoesEmAndamento.set(chave, voo);
+      }
+      try {
+        json(res, 201, await voo);
+      } catch (erro) {
+        json(res, 502, { erro: erro?.message || "falha ao criar sessão" });
+      }
       return;
     }
 

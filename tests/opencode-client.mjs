@@ -58,7 +58,7 @@ function authOk(req) {
 }
 
 function criarFalso() {
-  const servidor = http.createServer((req, res) => {
+  const servidor = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://127.0.0.1");
     if (!authOk(req)) {
       res.writeHead(401, { "content-type": "application/json" });
@@ -73,6 +73,25 @@ function criarFalso() {
     if (url.pathname === "/api/project") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(PROJETOS_FALSOS));
+      return;
+    }
+    if (url.pathname === "/api/session" && req.method === "POST") {
+      let corpo = "";
+      for await (const parte of req) corpo += parte;
+      let pedido = null;
+      try {
+        pedido = JSON.parse(corpo || "{}");
+      } catch { /* corpo inválido vira 400 abaixo */ }
+      const titulo = typeof pedido?.title === "string" ? pedido.title.trim() : "";
+      if (!titulo) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ erro: "title é obrigatório" }));
+        return;
+      }
+      const nova = { id: `ses_nova_${SESSOES_FALSAS.length}`, projectID: "proj_a", title: titulo, outcome: null, time: { created: Date.now(), updated: Date.now(), idle: Date.now() }, location: { directory: "/fake/a" } };
+      SESSOES_FALSAS.push(nova);
+      res.writeHead(201, { "content-type": "application/json" });
+      res.end(JSON.stringify(nova));
       return;
     }
     if (url.pathname === "/api/session") {
@@ -270,6 +289,23 @@ async function main() {
       if (xdgSalvo === undefined) delete process.env.XDG_STATE_HOME;
       else process.env.XDG_STATE_HOME = xdgSalvo;
     }
+
+    /* ── Fase C: criação de sessão (por último: o falso ganha 1 sessão) ── */
+    console.log("\nCriação de sessão (Fase C)");
+    const criarExiste = typeof cliente.criarSessao === "function";
+    verificar("cliente expõe criarSessao", criarExiste);
+    const nova = criarExiste ? await cliente.criarSessao({ titulo: "Nova via painel" }) : null;
+    verificar("sessão criada devolve id", !!nova?.id, nova ? `id=${nova.id}` : "sem método");
+    const todasDepois = criarExiste ? await cliente.listarTodasSessoes({ limit: 50, maxPaginas: 10 }) : [];
+    verificar("sessão criada aparece no inventário", todasDepois.some((s) => s.id === nova?.id), `${todasDepois.length} sessões`);
+    let tituloVazioFalhou = false;
+    try {
+      if (criarExiste) await cliente.criarSessao({ titulo: "   " });
+      else throw new Error("sem método");
+    } catch {
+      tituloVazioFalhou = true;
+    }
+    verificar("título vazio é recusado", tituloVazioFalhou);
 
     const gravado = fs.readFileSync(path.join(localDir(raiz), "state.json"), "utf8");
     verificar("estado gravado não contém credencial", !gravado.includes(SENHA_FALSA));

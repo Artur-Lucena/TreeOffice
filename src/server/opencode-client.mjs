@@ -2,8 +2,9 @@
  * opencode-client.mjs — cliente HTTP somente leitura do serviço OpenCode.
  *
  * Fase B (D12, D46): a ponte fala com o serviço local por HTTP com o `fetch`
- * do próprio Node, sem dependência nova. Só GET: nada aqui cria, altera ou
- * remove sessão, projeto ou worktree.
+ * do próprio Node, sem dependência nova. Leitura por GET; a única escrita é
+ * `criarSessao` (Fase C, C1), chamada só pela ponte em modo real com ação
+ * explícita do usuário. Nada aqui altera ou remove sessão, projeto ou worktree.
  *
  * Descoberta (sem iniciar serviço automaticamente):
  *   1. `opcoes.url` ou `OPENCODE_SERVER_URL` (explícito vence);
@@ -119,6 +120,32 @@ async function getJson(url, password, caminho, params = {}) {
   }
 }
 
+async function postJson(url, password, caminho, corpo) {
+  const alvo = new URL(caminho, `${url}/`);
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), TIMEOUT_MS);
+  try {
+    const resposta = await fetch(alvo, {
+      method: "POST",
+      headers: { ...cabecalhoAuth(password), accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify(corpo),
+      signal: controle.signal,
+    });
+    if (resposta.status === 401) throw new Error("Serviço recusou a credencial (401).");
+    const texto = await resposta.text();
+    let dados = null;
+    try {
+      dados = texto ? JSON.parse(texto) : null;
+    } catch {
+      throw new Error(`Serviço respondeu ${resposta.status} com corpo inválido em ${caminho}.`);
+    }
+    if (!resposta.ok) throw new Error(dados?.erro || dados?.error || `Serviço respondeu ${resposta.status} em ${caminho}.`);
+    return dados;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Cria o cliente somente leitura a partir do serviço descoberto. */
 export function criarClienteOpenCode(servico) {
   const { url, password } = servico;
@@ -158,6 +185,23 @@ export function criarClienteOpenCode(servico) {
     listarWorktrees(projectID) {
       if (!projectID) throw new Error("projectID é obrigatório para listar worktrees.");
       return getJson(url, password, "/api/worktree", { projectID });
+    },
+
+    /**
+     * Fase C (C1): cria uma sessão nova no serviço, sem histórico herdado.
+     * Contrato: `POST /session` com `{ title }`; a resposta traz `{ id, ... }`
+     * (ou `{ data: { id, ... } }`). Confirmar os nomes exatos contra o serviço
+     * real quando houver um disponível (pendência registrada em D58).
+     */
+    async criarSessao({ titulo } = {}) {
+      const nome = typeof titulo === "string" ? titulo.trim() : "";
+      if (!nome) throw new Error("Título é obrigatório para criar a sessão.");
+      const resposta = await postJson(url, password, "/api/session", { title: nome });
+      const sessao = resposta?.data && typeof resposta.data === "object" ? resposta.data : resposta;
+      if (!sessao || typeof sessao.id !== "string" || !sessao.id) {
+        throw new Error("Serviço não devolveu id da sessão criada.");
+      }
+      return sessao;
     },
 
     /**

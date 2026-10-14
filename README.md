@@ -32,13 +32,14 @@ chats; ler seu vault; mudar qualquer configuração. Ver
 ## Onde estamos
 
 Interface reformulada e aprovada em 14/10/2026 (D54–D57). Fase A concluída,
-Fase B lendo o OpenCode em modo somente leitura. Fases C–F aguardam sua
-autorização, uma por vez. O plano completo está em
+Fase B lendo o OpenCode em modo somente leitura, Fase C parcial (criar sessão
+real com idempotência; validar contra serviço de verdade ainda pendente).
+Fases D–F aguardam sua autorização, uma por vez. O plano completo está em
 [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md).
 
 ## Testes
 
-**190 verificações, todas verdes** (14/10/2026, com navegador real e dados
+**207 verificações, todas verdes** (14/10/2026, com navegador real e dados
 descartáveis):
 
 ```bash
@@ -47,7 +48,8 @@ node tests/tree-render.mjs      # 55 — desenho, naipes, tipografia
 node tests/tree-interactions.mjs # 23 — gestos, fios, ramificações
 node tests/navigation.mjs       # 8 — explorador e busca
 node tests/visual-state.mjs     # 12 — normalização e persistência
-node tests/opencode-client.mjs  # 27 — leitura do OpenCode simulado
+node tests/opencode-client.mjs  # 31 — leitura + criarSessao contra simulado
+node tests/opencode-escrita.mjs  # 13 — ponte cria sessões (Fase C) contra falso
 node tests/browser-ui.mjs       # 14 — regressões no Chromium real
 ```
 

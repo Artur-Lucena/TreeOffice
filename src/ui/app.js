@@ -412,10 +412,15 @@ const fluxo = {
   destino: "",
   conflito: null,
   confirmarConflito: false,
+  chave: "",
 };
 
 function abrirPopup(origemId) {
   focoAnteriorPopup = document.activeElement;
+  // Chave de idempotência do fluxo (C4): repetir o pedido nunca duplica.
+  fluxo.chave = crypto.randomUUID
+    ? crypto.randomUUID()
+    : `fluxo-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
   fluxo.etapa = 1;
   fluxo.origemId = origemId;
   fluxo.titulo = "";
@@ -825,8 +830,10 @@ function renderPopup() {
   const alerta = document.createElement("div");
   alerta.className = "dica-campo";
   alerta.textContent =
-    "Protótipo: o nó é criado apenas no registro do painel. Nenhuma sessão, worktree ou branch " +
-    "é criado no OpenCode ou no Git nesta etapa.";
+    opencode.modo === "real"
+      ? "Modo real: confirmar cria uma sessão nova no OpenCode, sem histórico herdado. Worktree novo continua desabilitado até a Fase D — vincule um existente."
+      : "Protótipo: o nó é criado apenas no registro do painel. Nenhuma sessão, worktree ou branch " +
+        "é criado no OpenCode ou no Git nesta etapa.";
   corpo.appendChild(alerta);
 
   acoes.appendChild(botao("Voltar", "", () => {
@@ -835,13 +842,21 @@ function renderPopup() {
   }));
   acoes.appendChild(botao("Cancelar", "", fecharPopup));
   acoes.appendChild(
-    botao("Criar chat", "primario", async () => {
+    botao("Criar chat", "primario", async (evento) => {
       if (fluxo.conflito && !fluxo.confirmarConflito) {
         avisoAlvo.textContent = "Confirme o compartilhamento do worktree ou volte para escolher outro.";
         avisoAlvo.className = "popup-aviso erro";
         return;
       }
-      await criarNo();
+      // Proteção contra clique duplo: a chave do fluxo já impede duplicar.
+      const botaoCriar = evento?.currentTarget;
+      if (botaoCriar?.disabled) return;
+      if (botaoCriar) botaoCriar.disabled = true;
+      try {
+        await criarNo();
+      } finally {
+        if (botaoCriar) botaoCriar.disabled = false;
+      }
     }),
   );
 }
@@ -896,6 +911,28 @@ async function criarNo() {
     recolhido: false,
   };
 
+  // Fase C (C1): em modo real, a confirmação cria a sessão de verdade.
+  let mensagem = "Nó criado apenas no painel (protótipo). Nenhuma sessão foi criada no OpenCode.";
+  if (opencode.modo === "real") {
+    if (fluxo.criarWorktree) {
+      aviso("Criar worktree novo ainda não está habilitado (Fase D); volte e vincule um existente.", "alerta");
+      return;
+    }
+    try {
+      const resposta = await api("/api/opencode/sessoes", {
+        method: "POST",
+        corpo: { titulo: no.titulo, directory: no.diretorio || undefined, chave: fluxo.chave },
+      });
+      no.sessionID = resposta.sessionID;
+      no.simulado = false;
+      mensagem = "Sessão criada no OpenCode e vinculada ao nó.";
+    } catch (erro) {
+      // D32: falha parcial vira incerto — relata, sem presumir nem repetir.
+      no.incerto = true;
+      mensagem = `Sessão não criada (${erro.message}); vínculo guardado como incerto.`;
+    }
+  }
+
   state.nos.push(no);
   if (worktree) {
     state.ocupacaoWorktree.push({
@@ -905,7 +942,7 @@ async function criarNo() {
     });
   }
 
-  const ok = await salvar("Nó criado apenas no painel (protótipo). Nenhuma sessão foi criada no OpenCode.");
+  const ok = await salvar(mensagem);
   fecharPopup();
   if (ok) {
     arvore.definirEstado(state, vivo);
