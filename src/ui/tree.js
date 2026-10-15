@@ -479,6 +479,10 @@ export function criarArvore(canvas, opcoes = {}) {
     for (const [id, p] of posicoes) {
       if (p.camada !== "no" || ocultos.has(id)) continue;
       const no = estado.nos.find((n) => n.id === id);
+      // O app filtra `state.nos` no mesmo objeto que a árvore guarda e só
+      // chama `definirEstado` após o POST: a posição do removido sobrevive
+      // até lá. Ignorar aqui; a purga acontece no `definirEstado`.
+      if (!no) continue;
       const base = 26 * (estado.nos.some((n) => n.grupoPai === id) ? 1.15 : 1);
       p.raio = base * 1.3 * 1.085 * 1.09 + 10;
       p.fixo = id === arrastando.no || !!p.entrega;

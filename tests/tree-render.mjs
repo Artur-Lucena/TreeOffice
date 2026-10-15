@@ -556,6 +556,29 @@ verificar(
 verificar("títulos de grupo usam Amarante", marcas.some(m=>m.texto.includes("Execução") && m.font.includes("Amarante")));
 verificar("títulos de nó zeram o espaçamento", c15.tela.__reg.espaco.includes("0px"));
 
+/* ── Cenário 16: remover vínculo não mata o laço (regressão 15/10/2026) ────
+ * O app filtra `state.nos` no MESMO objeto que a árvore guarda e só chama
+ * `definirEstado` depois do POST (salvarAgora). O quadro no meio do caminho
+ * lançava em `energiaDoNo(undefined)` e o laço morria antes de reagendar. */
+console.log("\nCenário 16 — remoção de nó mantém o laço vivo");
+const estado16 = JSON.parse(JSON.stringify(base));
+const c16 = cenario(estado16, "remoção");
+estado16.nos = estado16.nos.filter((n) => n.id !== "n_grupo");
+let quebrou16 = false;
+try {
+  c16.passo();
+} catch {
+  quebrou16 = true;
+}
+verificar("quadro na janela transitória não lança", !quebrou16);
+verificar("laço reagendado após a remoção", rafCb != null);
+c16.arvore.definirEstado(estado16, {});
+for (let i = 0; i < 8; i += 1) c16.passo();
+textos = [];
+c16.passo();
+verificar("nó restante continua desenhado", textos.includes("Nó sem grupo"));
+verificar("nó removido some do desenho", !textos.includes("Nó do grupo"));
+
 console.log(`\nResultado: ${passou} ok, ${falhou} falha${falhou === 1 ? "" : "s"}.`);
 if (falhou) process.exitCode = 1;
 console.log("\nNenhum projeto real, chat, worktree, vault ou OpenCode foi tocado.");

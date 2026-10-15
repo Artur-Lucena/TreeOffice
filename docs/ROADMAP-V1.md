@@ -1,6 +1,6 @@
 # Roadmap da V1 do TreeOffice
 
-**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**; com a importação seletiva (B5, D62), **248 verificações** (diálogo refinado com rótulos e metadados: **252**). Fase E cumprida (D60); Fase F em validação assistida (D61); demais portões abaixo.
+**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**; com a importação seletiva (B5, D62), **248 verificações** (diálogo refinado com rótulos e metadados: **252**; correção da remoção que matava o laço: **256**). Fase E cumprida (D60); Fase F em validação assistida (D61); demais portões abaixo.
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
 **Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de

@@ -43,12 +43,12 @@ andamento com sua autorização (D61). O plano completo está em
 
 ## Testes
 
-**252 verificações, todas verdes** (15/10/2026, com navegador real e dados
+**256 verificações, todas verdes** (15/10/2026, com navegador real e dados
 descartáveis):
 
 ```bash
 node tests/smoke.mjs            # 51 — ponte, token, persistência
-node tests/tree-render.mjs      # 55 — desenho, naipes, tipografia
+node tests/tree-render.mjs      # 59 — desenho, naipes, tipografia, remoção sem matar o laço
 node tests/tree-interactions.mjs # 23 — gestos, fios, ramificações
 node tests/navigation.mjs       # 8 — explorador e busca
 node tests/visual-state.mjs     # 14 — normalização e persistência
