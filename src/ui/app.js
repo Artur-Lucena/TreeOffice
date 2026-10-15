@@ -51,6 +51,80 @@ let focoAnteriorPopup = null;
 let falhaDesenho = false;
 let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
 
+let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
+
+/* ── Histórico de ações visuais (undo/redo) ─────────────────────────────── */
+const historicoAcoes = [];
+let indiceHistorico = -1;
+const MAX_HISTORICO = 50;
+
+function registrarAcao(acao) {
+  // Remove ações futuras se estamos no meio do histórico
+  historicoAcoes.splice(indiceHistorico + 1);
+  historicoAcoes.push({ ...acao, timestamp: Date.now() });
+  if (historicoAcoes.length > MAX_HISTORICO) historicoAcoes.shift();
+  else indiceHistorico = historicoAcoes.length - 1;
+  atualizarBotoesDesfazerRefazer();
+}
+
+async function desfazer() {
+  if (indiceHistorico < 0) return;
+  const acao = historicoAcoes[indiceHistorico];
+  try {
+    await aplicarAcaoInversa(acao);
+    indiceHistorico--;
+    atualizarBotoesDesfazerRefazer();
+    await salvar("Ação desfeita.");
+  } catch (erro) {
+    aviso(`Não foi possível desfazer: ${erro.message}`, "erro");
+  }
+}
+
+async function refazer() {
+  if (indiceHistorico >= historicoAcoes.length - 1) return;
+  const proximo = historicoAcoes[indiceHistorico + 1];
+  try {
+    await aplicarAcao(proximo);
+    indiceHistorico++;
+    atualizarBotoesDesfazerRefazer();
+    await salvar("Ação refeita.");
+  } catch (erro) {
+    aviso(`Não foi possível refazer: ${erro.message}`, "erro");
+  }
+}
+
+async function aplicarAcaoInversa(acao) {
+  switch (acao.tipo) {
+    case "renomear": {
+      const no = state.nos.find(n => n.id === acao.id);
+      if (no) { no.titulo = acao.anterior; atualizarPainel(no); arvore.definirEstado(state, vivo); }
+      break;
+    }
+    // Adicionar mais tipos conforme necessário
+  }
+  arvore.definirEstado(state, vivo);
+  atualizarExplorador();
+}
+
+async function aplicarAcao(acao) {
+  switch (acao.tipo) {
+    case "renomear": {
+      const no = state.nos.find(n => n.id === acao.id);
+      if (no) { no.titulo = acao.posterior; atualizarPainel(no); arvore.definirEstado(state, vivo); }
+      break;
+    }
+  }
+  arvore.definirEstado(state, vivo);
+  atualizarExplorador();
+}
+
+function atualizarBotoesDesfazerRefazer() {
+  const btnDesfazer = el("btn-desfazer");
+  const btnRefazer = el("btn-refazer");
+  if (btnDesfazer) btnDesfazer.disabled = indiceHistorico < 0;
+  if (btnRefazer) btnRefazer.disabled = indiceHistorico >= historicoAcoes.length - 1;
+}
+
 /* ── Comunicação com a ponte ────────────────────────────────────────────── */
 
 async function api(caminho, opcoes = {}) {
@@ -1113,6 +1187,75 @@ async function criarNo() {
   }
 }
 
+/* ── P4: Exportar/Importar organização ──────────────────────────────────── */
+
+function exportarOrganizacao() {
+  const dados = {
+    versao: 1,
+    exportadoEm: new Date().toISOString(),
+    nos: state.nos.map(n => ({
+      id: n.id,
+      titulo: n.titulo,
+      papel: n.papel,
+      grupoPai: n.grupoPai,
+      sessionID: n.sessionID,
+      diretorio: n.diretorio,
+      worktree: n.worktree,
+      instrucoes: n.instrucoes,
+      simulado: n.simulado,
+      recolhido: n.recolhido,
+      conexaoPai: n.conexaoPai,
+      posicaoFixada: n.posicaoFixada,
+    })),
+    grupos: state.grupos.map(g => ({ id: g.id, titulo: g.titulo, papel: g.papel, recolhido: g.recolhido })),
+    dependencias: state.dependencias,
+    conexoesInfo: state.conexoesInfo,
+    preferencias: state.preferencias,
+  };
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `treeoffice-organizacao-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  aviso("Organização exportada.", "ok");
+}
+
+async function importarOrganizacao() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const texto = await file.text();
+      const dados = JSON.parse(texto);
+      if (!dados.nos || !dados.grupos) throw Error("Arquivo inválido: faltam nós ou grupos.");
+      // Validação básica
+      for (const n of dados.nos) if (!n.id || !n.titulo) throw Error("Nó inválido no arquivo.");
+      for (const g of dados.grupos) if (!g.id || !g.titulo) throw Error("Grupo inválido no arquivo.");
+      // Aplica
+      state.nos = dados.nos;
+      state.grupos = dados.grupos;
+      state.dependencias = dados.dependencias || [];
+      state.conexoesInfo = dados.conexoesInfo || {};
+      state.preferencias = dados.preferencias || state.preferencias;
+      historicoAcoes.length = 0;
+      indiceHistorico = -1;
+      atualizarBotoesDesfazerRefazer();
+      arvore.definirEstado(state, vivo);
+      atualizarExplorador();
+      await salvar("Organização importada.");
+      aviso("Organização importada com sucesso.", "ok");
+    } catch (erro) {
+      aviso(`Falha ao importar: ${erro.message}`, "erro");
+    }
+  };
+  input.click();
+}
+
 /* ── Fase B (B5): importação seletiva de chats reais ──────────────────────
  * Lista as sessões ainda não vinculadas e traz as escolhidas como nós, uma
  * a uma por decisão explícita — nunca em massa e nunca sozinha. Os nós
@@ -1306,7 +1449,11 @@ function iniciar() {
 
   ligarControlesConexoes();ligarControlesLocal();ligarArrastoDialogosUI();
   el("btn-novo").addEventListener("click", () => abrirPopup(selecionado?.id ?? null));
+  el("btn-desfazer")?.addEventListener("click", desfazer);
+  el("btn-refazer")?.addEventListener("click", refazer);
   el("btn-acompanhar")?.addEventListener("click", abrirImportacao);
+  el("btn-exportar")?.addEventListener("click", exportarOrganizacao);
+  el("btn-importar")?.addEventListener("click", importarOrganizacao);
   el("busca-nos")?.addEventListener("input", atualizarExplorador);
   el("btn-explorador")?.addEventListener("click", () => {
     const aberto = el("app-shell").classList.toggle("nav-aberta");
@@ -1345,6 +1492,7 @@ function iniciar() {
   });
   el("pn-vincular").addEventListener("click", abrirVincularSessao);
   el("pn-desvincular").addEventListener("click", desvincularSessao);
+  el("pn-renomear").addEventListener("click", renomearSelecionado);
 
   el("btn-recolher").addEventListener("click", async () => {
     const algumAberto = state.nos.some((n) => !n.recolhido && state.nos.some((f) => f.grupoPai === n.id));
@@ -1374,6 +1522,11 @@ function iniciar() {
       if (el("popup").dataset.aberto === "true") fecharPopup();
       else fecharPainel();
       fecharExplorador();
+    }
+    // Undo/Redo: Ctrl+Z / Ctrl+Shift+Z
+    if ((evento.ctrlKey || evento.metaKey) && evento.key === "z") {
+      evento.preventDefault();
+      if (evento.shiftKey) refazer(); else desfazer();
     }
   });
 
@@ -1729,6 +1882,21 @@ function desvincularSessao() {
     if (!await salvar("Sessão desvinculada do módulo.")) throw Error("Não foi possível salvar.");
     fecharDialogoLocal();
   });
+
+function renomearSelecionado() {
+  if (!selecionado) return;
+  const novo = prompt("Novo nome para “" + selecionado.titulo + "”: ", selecionado.titulo);
+  if (!novo || !novo.trim() || novo.trim() === selecionado.titulo) return;
+  const antigo = selecionado.titulo;
+  selecionado.titulo = novo.trim();
+  atualizarPainel(selecionado);
+  arvore.definirEstado(state, vivo);
+  registrarAcao({ tipo: "renomear", id: selecionado.id, anterior: antigo, posterior: selecionado.titulo });
+  if (!await salvar("Módulo renomeado para “" + selecionado.titulo + "”.")) throw Error("Não foi possível salvar.");
+  atualizarExplorador();
+}
+
+
 }
 
 function posicaoNovaRamificacao(origemId) {
