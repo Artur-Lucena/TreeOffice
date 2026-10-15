@@ -32,9 +32,9 @@ chats; ler seu vault; mudar qualquer configuração. Ver
 ## Onde estamos
 
 Interface reformulada e aprovada em 14/10/2026 (D54–D57). Fase A concluída,
-Fase B lendo o OpenCode em modo somente leitura, Fase C parcial (criar sessão
-real com idempotência, validada contra serviço de verdade) e Fase D parcial
-(criar worktree novo, validada contra simulado; ao vivo só em descartável).
+Fase B lendo o OpenCode em modo somente leitura, Fase C pronta (criar sessão
+real com idempotência, validada contra serviço de verdade) e Fase D pronta
+(criar worktree novo, validada ao vivo em descartável).
 Fases E–F aguardam sua autorização, uma por vez. O plano completo está em
 [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md).
 

@@ -103,7 +103,7 @@ provocadas.
 **Portão de saída:** criação de worktree validada em descartável com preparação
 conhecida; popup aprovado.
 
-**Atualização em 14/10/2026 (D59, parcial):** endpoint, cliente e popup implementados e validados contra simulado + navegador real (221 checks); contrato lido do openapi.json real. Falta validar ao vivo num repositório descartável conhecido do OpenCode.
+**Atualização em 14/10/2026 (D59, parcial):** endpoint, cliente e popup implementados e validados contra simulado + navegador real (221 checks); contrato lido do openapi.json real. **Validado ao vivo em 14/10/2026** em area-testes/demo (projeto registrado via CLI, config global intacta): worktree criado via ponte + E2E com sessão real vinculada e branch intacta. Portão de saída cumprido em descartável.
 
 ## Fase E — Tucofre e dependências (Etapa 6)
 
