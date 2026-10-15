@@ -50,8 +50,7 @@ let selecionado = null;
 let focoAnteriorPopup = null;
 let falhaDesenho = false;
 let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
-
-let opencode = { modo: "simulado", conectado: false, nSessoes: 0, nProjetos: 0, atualizadoEm: null, erro: null };
+const selecaoMultipla = new Set();
 
 /* ── Histórico de ações visuais (undo/redo) ─────────────────────────────── */
 const historicoAcoes = [];
@@ -386,8 +385,11 @@ function atualizarIndicadoresDoExplorador() {
     const { estado } = estadoDoNo(no);
     const indicador = botao.querySelector(".estado");
     if (indicador) indicador.className = `estado ${estado}`;
-    botao.setAttribute("aria-pressed", String(selecionado?.id === no.id));
-    botao.setAttribute("aria-label", `${no.titulo} — ${ESTADO_ROTULO[estado] || estado}`);
+    const selecionadoUnico = selecionado?.id === no.id;
+    const emMultipla = selecaoMultipla.has(no.id);
+    botao.setAttribute("aria-pressed", String(selecionadoUnico || emMultipla));
+    botao.classList.toggle("multi-selecao", emMultipla);
+    botao.setAttribute("aria-label", `${no.titulo} — ${ESTADO_ROTULO[estado] || estado}${emMultipla ? " (na seleção múltipla)" : ""}`);
   }
 }
 
@@ -437,7 +439,16 @@ function atualizarExplorador() {
       } else {
         botao.append(naipe, nome, indicador);
       }
-      botao.addEventListener("click", () => {
+      botao.addEventListener("click", (e) => {
+        // Multi-seleção: Shift+Click adiciona/remove da seleção múltipla
+        if (e.shiftKey) {
+          if (selecaoMultipla.has(no.id)) selecaoMultipla.delete(no.id);
+          else selecaoMultipla.add(no.id);
+          atualizarIndicadoresDoExplorador();
+          return;
+        }
+        // Seleção simples: limpa multi-seleção
+        selecaoMultipla.clear();
         // Revelar antecessores é navegação visual local, sem salvar ou tocar em sessões.
         let pai = state.nos.find((item) => item.id === no.grupoPai);
         const vistos = new Set([no.id]);
@@ -1527,6 +1538,24 @@ function iniciar() {
     if ((evento.ctrlKey || evento.metaKey) && evento.key === "z") {
       evento.preventDefault();
       if (evento.shiftKey) refazer(); else desfazer();
+    }
+    // Navegação: +/- zoom, 0 reset, F focar selecionado, G centralizar, setas pan
+    if (!evento.ctrlKey && !evento.metaKey && !evento.altKey) {
+      if (evento.key === "+" || evento.key === "=") { evento.preventDefault(); arvore.aplicarZoom(1.18); }
+      else if (evento.key === "-" || evento.key === "_") { evento.preventDefault(); arvore.aplicarZoom(0.85); }
+      else if (evento.key === "0") { evento.preventDefault(); arvore.aplicarZoom(1); arvore.centrar(); }
+      else if (evento.key === "f" || evento.key === "F") { if (selecionado) arvore.focar(selecionado.id); }
+      else if (evento.key === "g" || evento.key === "G") { evento.preventDefault(); arvore.centrar(); }
+      else if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(evento.key)) {
+        evento.preventDefault();
+        const passo = evento.shiftKey ? 100 : 30;
+        switch (evento.key) {
+          case "ArrowUp": arvore.camera().alvoY -= passo; break;
+          case "ArrowDown": arvore.camera().alvoY += passo; break;
+          case "ArrowLeft": arvore.camera().alvoX -= passo; break;
+          case "ArrowRight": arvore.camera().alvoX += passo; break;
+        }
+      }
     }
   });
 
