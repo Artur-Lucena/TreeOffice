@@ -150,6 +150,40 @@ function atualizarFonte() {
   if (botao) botao.textContent = opencode.modo === "real" ? "Usar simulado" : "Usar dados reais";
 }
 
+function atualizarIndicadorConexao() {
+  const alvo = el("conexao-status");
+  if (!alvo) return;
+  if (opencode.modo !== "real") {
+    alvo.textContent = "modo simulado";
+    alvo.className = "conexao-status simulado";
+    return;
+  }
+  const agora = Date.now();
+  const ultima = opencode.atualizadoEm || 0;
+  const diff = agora - ultima;
+  let texto = "";
+  let classe = "conexao-status";
+  if (!opencode.conectado) {
+    texto = "desconectado";
+    classe += " desconectado";
+  } else if (opencode.erro) {
+    texto = `erro: ${opencode.erro}`;
+    classe += " erro";
+  } else if (diff < 5000) {
+    texto = "conectado · agora";
+    classe += " conectado";
+  } else if (diff < 60000) {
+    texto = `conectado · ${Math.round(diff / 1000)}s atrás`;
+    classe += " conectado";
+  } else {
+    const dt = new Date(ultima);
+    texto = `conectado · ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    classe += " conectado";
+  }
+  alvo.textContent = texto;
+  alvo.className = classe;
+}
+
 function textoStatus() {
   if (opencode.modo !== "real") return "simulado · conectado";
   if (opencode.erro) return `real · ${opencode.erro}`;
@@ -186,6 +220,7 @@ async function carregar() {
     if(selecionado)selecionado=state.nos.find(no=>no.id===selecionado.id) || null;
     vivo = mapaVivo(resposta.simulacao);
     if (resposta.opencode) opencode = resposta.opencode;
+    atualizarIndicadorConexao();
     for (const texto of resposta.avisos || []) aviso(texto, "alerta");
     arvore.definirEstado(state, vivo);
     atualizarExplorador();
