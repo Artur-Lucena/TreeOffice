@@ -318,10 +318,16 @@ function atualizarExplorador() {
       const nome = document.createElement("span");
       nome.className = "no-nav-titulo";
       nome.textContent = no.titulo;
-      const indicador = document.createElement("i");
-      indicador.className = "estado";
-      indicador.setAttribute("aria-hidden", "true");
-      botao.append(naipe, nome, indicador);
+      if (no.sessionID) {
+        const linkIcon = document.createElement("span");
+        linkIcon.className = "no-nav-link";
+        linkIcon.setAttribute("aria-hidden", "true");
+        linkIcon.textContent = " 🔗";
+        linkIcon.title = "Sessão vinculada";
+        botao.append(naipe, nome, linkIcon, indicador);
+      } else {
+        botao.append(naipe, nome, indicador);
+      }
       botao.addEventListener("click", () => {
         // Revelar antecessores é navegação visual local, sem salvar ou tocar em sessões.
         let pai = state.nos.find((item) => item.id === no.grupoPai);
@@ -387,6 +393,9 @@ function atualizarPainel(no) {
   el("pn-instrucoes").textContent = no.instrucoes || "—";
   renderDepsNo(no);
   el("pn-recolher").textContent = no.recolhido ? "Expandir galho" : "Recolher galho";
+  const temSessao = !!no.sessionID;
+  el("pn-vincular").style.display = temSessao ? "none" : "";
+  el("pn-desvincular").style.display = temSessao ? "" : "none";
   el("pn-nota").textContent =
     estado === "nao_encontrado"
       ? "A sessão vinculada não existe mais. O nó permanece visível até você decidir o que fazer (D21)."
@@ -1299,6 +1308,8 @@ function iniciar() {
   el("pn-abrir").addEventListener("click", () => {
     aviso("Abrir no OpenCode: na Fase B o painel só lê; a conversa continua na interface do OpenCode (D13).", "alerta");
   });
+  el("pn-vincular").addEventListener("click", abrirVincularSessao);
+  el("pn-desvincular").addEventListener("click", desvincularSessao);
 
   el("btn-recolher").addEventListener("click", async () => {
     const algumAberto = state.nos.some((n) => !n.recolhido && state.nos.some((f) => f.grupoPai === n.id));
@@ -1548,6 +1559,139 @@ function removerVinculoLocal() {
     }
     fecharPainel();
     if (!await salvar("Módulo removido do painel.")) throw Error("Não foi possível salvar a remoção.");
+    fecharDialogoLocal();
+  });
+}
+
+/* ── P2: Vincular/desvincular sessões existentes ─────────────────────────── */
+
+async function abrirVincularSessao() {
+  if (!selecionado || opencode.modo !== "real") {
+    aviso("Vincular sessão exige modo real ativo.", "alerta");
+    return;
+  }
+  if (selecionado.sessionID) {
+    aviso("Este módulo já tem uma sessão vinculada. Desvincule primeiro.", "alerta");
+    return;
+  }
+  const caixa = document.createElement("div");
+  caixa.className = "campo";
+  const selProjeto = document.createElement("select");
+  selProjeto.id = "vincular-projeto";
+  selProjeto.setAttribute("aria-label", "Filtrar por projeto");
+  const busca = document.createElement("input");
+  busca.type = "search";
+  busca.id = "vincular-busca";
+  busca.placeholder = "buscar por título…";
+  busca.setAttribute("aria-label", "Buscar por título");
+  const lista = document.createElement("div");
+  lista.id = "vincular-lista";
+  lista.style.maxHeight = "300px";
+  lista.style.overflow = "auto";
+  const conta = document.createElement("p");
+  conta.className = "nota";
+  caixa.append(campo("Projeto", selProjeto), campo("Buscar", busca), conta, lista);
+
+  let projetos = [];
+  let carregadas = [];
+
+  async function carregar() {
+    el("preview-dialog-erro").textContent = "";
+    conta.textContent = "carregando…";
+    lista.replaceChildren();
+    try {
+      const params = new URLSearchParams({ limit: "50" });
+      if (selProjeto.value) params.set("projectID", selProjeto.value);
+      if (busca.value.trim()) params.set("busca", busca.value.trim());
+      const resposta = await api(`/api/opencode/sessoes?${params}`);
+      carregadas = Array.isArray(resposta.data) ? resposta.data : (resposta.sessions || resposta || []);
+      conta.textContent = carregadas.length === 50
+        ? "mostrando as 50 mais recentes — refine o filtro para ver as demais."
+        : `${carregadas.length} sessão(ões) encontrada(s).`;
+      for (const s of carregadas) {
+        const rot = document.createElement("label");
+        rot.className = "opcao";
+        const marca = document.createElement("input");
+        marca.type = "radio";
+        marca.name = "vincular-sessao";
+        marca.dataset.sessao = s.id;
+        const texto = document.createElement("div");
+        const forte = document.createElement("strong");
+        forte.textContent = s.title || s.id;
+        const meta = document.createElement("small");
+        const proj = projetos.find((p) => p.id === s.projectID);
+        const projNome = proj ? (proj.canonical || proj.directory || proj.id) : s.projectID;
+        const dt = s.time?.updated ? new Date(s.time.updated).toLocaleString("pt-BR") : "";
+        meta.textContent = `${projNome} · ${dt}`;
+        texto.append(forte, meta);
+        rot.append(marca, texto);
+        lista.appendChild(rot);
+      }
+      if (!carregadas.length) {
+        const vazio = document.createElement("p");
+        vazio.className = "nota";
+        vazio.textContent = "Nenhuma sessão encontrada com esses filtros.";
+        lista.appendChild(vazio);
+      }
+    } catch (erro) {
+      conta.textContent = "";
+      el("preview-dialog-erro").textContent = `Não foi possível listar: ${erro.message}`;
+    }
+  }
+
+  try {
+    const resposta = await api("/api/opencode/projetos");
+    projetos = Array.isArray(resposta.data) ? resposta.data : (resposta || []);
+  } catch {
+    projetos = [];
+  }
+  selProjeto.replaceChildren();
+  const todos = document.createElement("option");
+  todos.value = "";
+  todos.textContent = "Todos os projetos";
+  selProjeto.appendChild(todos);
+  for (const p of projetos) {
+    const o = document.createElement("option");
+    o.value = p.id;
+    const nomeProj = (p.canonical || p.directory || p.id).split(/[/\\]/).filter(Boolean).pop();
+    o.textContent = `${nomeProj} (${p.id.slice(0, 8)}…)`;
+    selProjeto.appendChild(o);
+  }
+  selProjeto.addEventListener("change", carregar);
+  busca.addEventListener("input", () => { clearTimeout(busca._timer); busca._timer = setTimeout(carregar, 300); });
+  await carregar();
+
+  abrirDialogoLocal("Vincular sessão existente", caixa, "Vincular", async () => {
+    const marcada = lista.querySelector('input[name="vincular-sessao"]:checked');
+    if (!marcada) throw Error("Selecione uma sessão para vincular.");
+    const sessao = carregadas.find((s) => s.id === marcada.dataset.sessao);
+    if (!sessao) throw Error("Sessão não encontrada.");
+    if (state.nos.some((n) => n.sessionID === sessao.id && n.id !== selecionado.id)) {
+      throw Error("Esta sessão já está vinculada a outro módulo. Cada sessão só pode estar em um nó.");
+    }
+    selecionado.sessionID = sessao.id;
+    selecionado.simulado = false;
+    selecionado.diretorio = sessao.directory || selecionado.diretorio;
+    selecionado.worktree = null;
+    atualizarPainel(selecionado);
+    arvore.definirEstado(state, vivo);
+    if (!await salvar(`Sessão “${sessao.title || sessao.id}” vinculada ao módulo.`)) {
+      throw Error("Não foi possível salvar o vínculo.");
+    }
+    fecharDialogoLocal();
+  });
+}
+
+function desvincularSessao() {
+  if (!selecionado || !selecionado.sessionID) return;
+  const texto = document.createElement("p");
+  texto.textContent = `Desvincular a sessão “${selecionado.sessionID.slice(0, 12)}…” deste módulo? O módulo continua no painel como visual.`;
+  abrirDialogoLocal("Desvincular sessão", texto, "Desvincular", async () => {
+    selecionado.sessionID = null;
+    selecionado.simulado = true;
+    atualizarPainel(selecionado);
+    arvore.definirEstado(state, vivo);
+    if (!await salvar("Sessão desvinculada do módulo.")) throw Error("Não foi possível salvar.");
     fecharDialogoLocal();
   });
 }
