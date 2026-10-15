@@ -1069,6 +1069,138 @@ async function criarNo() {
   }
 }
 
+/* ── Fase B (B5): importação seletiva de chats reais ──────────────────────
+ * Lista as sessões ainda não vinculadas e traz as escolhidas como nós, uma
+ * a uma por decisão explícita — nunca em massa e nunca sozinha. Os nós
+ * nascem só no registro local; nada é criado no OpenCode. */
+async function abrirImportacao() {
+  if (opencode.modo !== "real") {
+    aviso("A importação de chats exige os dados reais: ative no menu Conexão.", "alerta");
+    return;
+  }
+  const caixa = document.createElement("div");
+  caixa.className = "campo";
+  const selProjeto = document.createElement("select");
+  selProjeto.id = "import-projeto";
+  selProjeto.setAttribute("aria-label", "Filtrar por projeto");
+  const busca = document.createElement("input");
+  busca.type = "search";
+  busca.id = "import-busca";
+  busca.placeholder = "buscar por título…";
+  busca.setAttribute("aria-label", "Buscar por título");
+  const selGrupo = document.createElement("select");
+  selGrupo.id = "import-grupo";
+  selGrupo.setAttribute("aria-label", "Espaço de destino");
+  const lista = document.createElement("div");
+  lista.id = "import-lista";
+  const conta = document.createElement("p");
+  conta.className = "nota";
+  caixa.append(selProjeto, busca, selGrupo, conta, lista);
+  abrirDialogoLocal("Acompanhar chats do OpenCode", caixa, "Trazer para o painel", async () => {
+    const marcadas = [...lista.querySelectorAll("input[type=checkbox]:checked")].slice(0, 50);
+    if (!marcadas.length) throw Error("Selecione ao menos um chat.");
+    let grupoId = selGrupo.value === "__novo__" ? null : selGrupo.value || null;
+    if (selGrupo.value === "__novo__") {
+      grupoId = `g_imp_${Date.now().toString(36)}`;
+      state.grupos.push({ id: grupoId, titulo: "OpenCode" });
+    }
+    const base = Date.now().toString(36);
+    marcadas.forEach((c, i) => {
+      const s = carregadas.find((x) => x.id === c.dataset.sessao);
+      if (!s || state.nos.some((n) => n.sessionID === s.id)) return;
+      state.nos.push({
+        id: `n_imp_${base}_${i}`,
+        titulo: (s.title || s.id).slice(0, 120),
+        papel: "livre",
+        grupoPai: grupoId,
+        sessionID: s.id,
+        diretorio: null,
+        worktree: null,
+        instrucoes: "",
+        simulado: false,
+      });
+    });
+    if (!await salvar("Chats trazidos do OpenCode; a organização continua sua.")) {
+      throw Error("Não foi possível salvar a importação.");
+    }
+    arvore.definirEstado(state, vivo);
+    atualizarExplorador();
+    fecharDialogoLocal();
+  });
+
+  let projetos = [];
+  let carregadas = [];
+  async function carregar() {
+    el("preview-dialog-erro").textContent = "";
+    conta.textContent = "carregando…";
+    lista.replaceChildren();
+    try {
+      const params = new URLSearchParams({ limit: "50" });
+      if (selProjeto.value) params.set("projectID", selProjeto.value);
+      if (busca.value.trim()) params.set("busca", busca.value.trim());
+      const resposta = await api(`/api/opencode/nao-vinculadas?${params}`);
+      carregadas = resposta.data || [];
+      conta.textContent = carregadas.length === 50
+        ? "mostrando as 50 mais recentes — refine o filtro para ver as demais."
+        : `${carregadas.length} chat(s) ainda sem vínculo.`;
+      for (const s of carregadas) {
+        const rot = document.createElement("label");
+        const marca = document.createElement("input");
+        marca.type = "checkbox";
+        marca.dataset.sessao = s.id;
+        const texto = document.createElement("span");
+        texto.textContent = s.title || s.id;
+        rot.append(marca, texto);
+        lista.appendChild(rot);
+      }
+      if (!carregadas.length) {
+        const vazio = document.createElement("p");
+        vazio.className = "nota";
+        vazio.textContent = "Nada sem vínculo por aqui. Novos chats do OpenCode aparecem após Ressincronizar.";
+        lista.appendChild(vazio);
+      }
+    } catch (erro) {
+      conta.textContent = "";
+      el("preview-dialog-erro").textContent = `Não foi possível listar: ${erro.message}`;
+    }
+  }
+  try {
+    const resposta = await api("/api/opencode/projetos");
+    projetos = resposta.data || resposta || [];
+  } catch {
+    projetos = [];
+  }
+  selProjeto.replaceChildren();
+  const todos = document.createElement("option");
+  todos.value = "";
+  todos.textContent = "Todos os projetos";
+  selProjeto.appendChild(todos);
+  for (const p of projetos) {
+    const o = document.createElement("option");
+    o.value = p.id;
+    o.textContent = `${(p.canonical || p.id).split(/[/\\]/).pop()} (${p.id.slice(0, 8)}…)`;
+    selProjeto.appendChild(o);
+  }
+  selGrupo.replaceChildren();
+  for (const g of state.grupos) {
+    const o = document.createElement("option");
+    o.value = g.id;
+    o.textContent = g.titulo;
+    selGrupo.appendChild(o);
+  }
+  const semGrupo = document.createElement("option");
+  semGrupo.value = "";
+  semGrupo.textContent = "Sem espaço (nós soltos)";
+  selGrupo.appendChild(semGrupo);
+  const novo = document.createElement("option");
+  novo.value = "__novo__";
+  novo.textContent = "Novo espaço “OpenCode”";
+  selGrupo.appendChild(novo);
+  selProjeto.addEventListener("change", carregar);
+  busca.addEventListener("change", carregar);
+  await carregar();
+}
+
 /* ── Ações do painel ────────────────────────────────────────────────────── */
 
 function iniciar() {
@@ -1093,6 +1225,7 @@ function iniciar() {
 
   ligarControlesConexoes();ligarControlesLocal();ligarArrastoDialogosUI();
   el("btn-novo").addEventListener("click", () => abrirPopup(selecionado?.id ?? null));
+  el("btn-acompanhar")?.addEventListener("click", abrirImportacao);
   el("busca-nos")?.addEventListener("input", atualizarExplorador);
   el("btn-explorador")?.addEventListener("click", () => {
     const aberto = el("app-shell").classList.toggle("nav-aberta");

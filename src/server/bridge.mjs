@@ -575,6 +575,51 @@ export function criarPonte(opcoes = {}) {
       return;
     }
 
+    /* ── Fase B (B5): sessões reais ainda não vinculadas (só leitura) ────
+     * Substrato da importação seletiva: a UI lista e o usuário escolhe quais
+     * trazer como nós. Devolve só identificadores (D23) — nunca conteúdo de
+     * conversa. Os nós nascem depois, no navegador, por ação explícita.
+     */
+    if (req.method === "GET" && url.pathname === "/api/opencode/nao-vinculadas") {
+      if (!origemValida(req, url)) {
+        json(res, 403, { erro: "origem ou host não autorizado" });
+        return;
+      }
+      if (modo !== "real" || !clienteOpenCode) {
+        json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });
+        return;
+      }
+      const projectID = (url.searchParams.get("projectID") || "").trim();
+      const busca = (url.searchParams.get("busca") || "").trim().toLowerCase();
+      const limite = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "50", 10) || 50, 1), 50);
+      try {
+        const todas = await clienteOpenCode.listarTodasSessoes({
+          limit: 50,
+          maxPaginas: 20,
+          ...(projectID ? { project: projectID } : {}),
+        });
+        const vinculadas = new Set(state.nos.map((n) => n.sessionID).filter(Boolean));
+        const livres = [];
+        for (const s of todas) {
+          if (!s?.id || vinculadas.has(s.id)) continue;
+          if (projectID && s.projectID !== projectID) continue;
+          const titulo = typeof s.title === "string" ? s.title : "";
+          if (busca && !titulo.toLowerCase().includes(busca) && !s.id.toLowerCase().includes(busca)) continue;
+          livres.push({
+            id: s.id,
+            title: titulo,
+            projectID: typeof s.projectID === "string" ? s.projectID : null,
+            updated: s.time?.updated ?? s.time?.created ?? 0,
+          });
+        }
+        livres.sort((a, b) => b.updated - a.updated);
+        json(res, 200, { data: livres.slice(0, limite) });
+      } catch (erro) {
+        json(res, 502, { erro: erro?.message || "falha ao ler sessões" });
+      }
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/opencode/projetos") {
       if (modo !== "real" || !clienteOpenCode) {
         json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });

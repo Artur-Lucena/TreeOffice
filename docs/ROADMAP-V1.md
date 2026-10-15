@@ -1,6 +1,6 @@
 # Roadmap da V1 do TreeOffice
 
-**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**. Fase E cumprida em 15/10/2026 (D60); Fase F em validação assistida (D61); demais portões abaixo.
+**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**; com a importação seletiva (B5, D62), **248 verificações**. Fase E cumprida (D60); Fase F em validação assistida (D61); demais portões abaixo.
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
 **Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de
@@ -74,6 +74,8 @@ estados e reconexão. V02, V03 e V06 permanecem nas fases seguintes.
 
 **Portão de saída:** a árvore nasce das sessões reais; queda e reconexão não
 perdem nós; estados visuais aprovados.
+
+**Atualização em 15/10/2026 (B5 cumprido nesta forma, D62):** em vez de nascer inteira das sessões (293 inundariam a árvore), a árvore recebe por importação seletiva explícita — diálogo “Acompanhar chats” com filtro, busca e teto; estados e reconexão seguem por releitura (D33).
 
 ## Fase C — criar chat e vincular worktree existente (Etapa 4)
 

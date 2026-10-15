@@ -179,6 +179,62 @@ try {
     verificar("dependência removida por ação explícita não volta", false);
   }
 
+  // Frente B (B5, RED): importação seletiva de chats reais.
+  const temAcompanhar = await avaliar("!!document.getElementById('btn-acompanhar')");
+  verificar("cabeçalho oferece acompanhar chats", temAcompanhar);
+  if (temAcompanhar) {
+    await avaliar("document.getElementById('btn-acompanhar').click()");
+    verificar("em simulado, importar pede dados reais", await ate(() => avaliar("document.getElementById('avisos').textContent.includes('dados reais')")));
+  } else {
+    verificar("em simulado, importar pede dados reais", false);
+  }
+  if (temAcompanhar) {
+    const { default: httpImp } = await import("node:http");
+    const baseImp = [
+      { id: "ses_b1", projectID: "proj_b", title: "Beta real", outcome: null, time: { created: 1, updated: 5 } },
+      ...Array.from({ length: 55 }, (_, i) => ({ id: `ses_a${i}`, projectID: "proj_a", title: `Alfa ${i}`, outcome: null, time: { created: 1, updated: 100 + i } })),
+    ];
+    const falsoImp = httpImp.createServer((req, res) => {
+      const url = new URL(req.url || "/", "http://127.0.0.1");
+      const out = (s, o) => { res.writeHead(s, { "content-type": "application/json" }); res.end(JSON.stringify(o)); };
+      if (url.pathname === "/api/info") return out(200, { version: "imp" });
+      if (url.pathname === "/api/project") return out(200, [{ id: "proj_a", canonical: "/fake/a" }, { id: "proj_b", canonical: "/fake/b" }]);
+      if (url.pathname === "/api/session" && req.method === "GET") {
+        const cursor = url.searchParams.get("cursor");
+        const pagina = cursor === "p2" ? baseImp.slice(2) : baseImp.slice(0, 2);
+        return out(200, { data: pagina, cursor: { previous: null, next: cursor ? null : "p2" } });
+      }
+      return out(404, {});
+    });
+    await new Promise((r) => falsoImp.listen(0, "127.0.0.1", r));
+    const ponteImp = criarPonte({ raiz: path.join(execucao, "arvore-imp"), porta: 47185, fonte: "simulado", opencodeUrl: `http://127.0.0.1:${falsoImp.address().port}` });
+    await ponteImp.iniciar();
+    const tokenImp = ponteImp.identidade().token;
+    const baseImpUrl = "http://127.0.0.1:47185";
+    await fetch(`${baseImpUrl}/api/opencode/modo`, { method: "POST", headers: { authorization: `Bearer ${tokenImp}`, "content-type": "application/json", origin: baseImpUrl }, body: JSON.stringify({ modo: "real" }) });
+    await cdp.enviar("Page.navigate", { url: `${baseImpUrl}/?token=${tokenImp}` });
+    await ate(() => avaliar("document.getElementById('versao')?.textContent && document.getElementById('versao').textContent !== '…'"));
+    await new Promise((r) => setTimeout(r, 1200));
+    await avaliar("document.getElementById('btn-acompanhar').click()");
+    await ate(() => avaliar("document.getElementById('preview-dialog').dataset.aberto==='true'"));
+    await ate(() => avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length>0"), 15000);
+    verificar("diálogo lista não vinculadas com teto de 50", await avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length===50"));
+    await avaliar("{const s=document.getElementById('import-projeto');s.value='proj_b';s.dispatchEvent(new Event('change'))}");
+    await ate(() => avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length===1"));
+    verificar("filtro por projeto reduz a lista", true);
+    await avaliar("{const c=document.querySelector('#import-lista input[type=checkbox]');c.checked=true;c.dispatchEvent(new Event('change'))}");
+    await avaliar("document.getElementById('preview-dialog-confirmar').click()");
+    await ate(() => ponteImp.estadoAtual().nos.some((n) => n.sessionID === "ses_b1"), 15000);
+    verificar("importar cria nó vinculado sem duplicar", ponteImp.estadoAtual().nos.filter((n) => n.sessionID === "ses_b1").length === 1);
+    await avaliar("document.getElementById('btn-acompanhar').click()");
+    await ate(() => avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length>0"), 15000);
+    verificar("vinculada não reaparece na lista", await avaliar("!document.querySelector('#import-lista input[data-sessao=\"ses_b1\"]')"));
+    await ponteImp.parar();
+    falsoImp.close();
+  } else {
+    for (const nome of ["diálogo lista não vinculadas com teto de 50", "filtro por projeto reduz a lista", "importar cria nó vinculado sem duplicar", "vinculada não reaparece na lista"]) verificar(nome, false);
+  }
+
   // Fixture usa o renderizador real e gestos de mouse CDP; nenhum mutador de debug.
   await avaliar(`(async()=>{
     const {criarArvore}=await import('/ui/tree.js');

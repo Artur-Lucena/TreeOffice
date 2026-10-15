@@ -50,6 +50,7 @@ node tests/smoke.mjs        # ponte, autenticação, persistência, lock…
 node tests/tree-render.mjs  # renderizador: quem é desenhado e onde
 node tests/opencode-client.mjs  # Fase B com serviço simulado (descoberta, paginação, SSE, modo real)
   node tests/opencode-escrita.mjs  # Fase C: a ponte cria sessões (auth, idempotência, pane) contra falso
+  node tests/opencode-importacao.mjs  # Fase B (B5): a ponte lista sessões ainda não vinculadas contra falso
 node tests/navigation.mjs       # explorador: grupos, busca, órfãos, ciclos e ausência de mutação
 node tests/tree-interactions.mjs # seleção de fios, ramificação, arrasto e restauração de posições
 node tests/visual-state.mjs      # normalização e persistência dos metadados visuais
