@@ -859,26 +859,110 @@ function renderPopup() {
       const cadastro = state.cadastros[Math.min(fluxo.cadastroIndex, state.cadastros.length - 1)];
 
       const selRepo = selecaoCadastros();
-      selRepo.addEventListener("change", () => {
+      selRepo.addEventListener("change", async () => {
         const escolhido = state.cadastros[fluxo.cadastroIndex];
         if (escolhido && !fluxo.nome) fluxo.nome = sugestaoNome(escolhido);
+        // Atualiza referências disponíveis quando o repositório muda
+        if (escolhido && opencode.modo === "real") {
+          await carregarReferencias(escolhido.caminho);
+        }
         renderPopup();
       });
       corpo.appendChild(campo("Repositório", selRepo));
 
-      const ref = document.createElement("input");
-      ref.type = "text";
-      ref.value = fluxo.referencia;
-      ref.addEventListener("input", () => {
-        fluxo.referencia = ref.value;
+      // Referência de origem: seletor com branches/tags do repositório
+      const refSel = document.createElement("select");
+      refSel.id = "worktree-referencia";
+      refSel.value = fluxo.referencia;
+      refSel.addEventListener("change", () => {
+        fluxo.referencia = refSel.value;
       });
+      const refCarregando = document.createElement("option");
+      refCarregando.value = "";
+      refCarregando.textContent = "carregando referências…";
+      refSel.appendChild(refCarregando);
       corpo.appendChild(
         campo(
           "Referência de origem (branch ou tag)",
-          ref,
-          "Nenhuma operação assume main em silêncio: a referência precisa ser escolhida aqui (D28).",
+          refSel,
+          "Branch, tag ou commit de onde o worktree nasce. Nenhuma operação assume main em silêncio (D28).",
         ),
       );
+
+      // Mostra git status do worktree de origem se houver
+      const gitStatusDiv = document.createElement("div");
+      gitStatusDiv.id = "git-status-worktree";
+      gitStatusDiv.className = "nota";
+      gitStatusDiv.style.fontFamily = "monospace";
+      gitStatusDiv.style.fontSize = "11px";
+      gitStatusDiv.style.whiteSpace = "pre-wrap";
+      gitStatusDiv.style.maxHeight = "120px";
+      gitStatusDiv.style.overflow = "auto";
+      corpo.appendChild(gitStatusDiv);
+
+      async function carregarReferencias(caminho) {
+        refSel.innerHTML = '<option value="">carregando…</option>';
+        try {
+          const resp = await api('/api/opencode/git/refs?path=' + encodeURIComponent(caminho));
+          refSel.innerHTML = "";
+          if (resp.branches?.length) {
+            for (const b of resp.branches) {
+              const o = document.createElement("option");
+              o.value = b.name;
+              o.textContent = 'branch: ' + b.name;
+              refSel.appendChild(o);
+            }
+          }
+          if (resp.tags?.length) {
+            if (resp.branches?.length) {
+              const sep = document.createElement("option");
+              sep.disabled = true;
+              sep.textContent = "—— tags ——";
+              refSel.appendChild(sep);
+            }
+            for (const t of resp.tags) {
+              const o = document.createElement("option");
+              o.value = t.name;
+              o.textContent = 'tag: ' + t.name;
+              refSel.appendChild(o);
+            }
+          }
+          // Seleciona a referência atual se ainda existir
+          if (fluxo.referencia && [...refSel.options].some(o => o.value === fluxo.referencia)) {
+            refSel.value = fluxo.referencia;
+          } else if (refSel.options.length > 0) {
+            fluxo.referencia = refSel.value;
+          }
+          // Carrega git status
+          await carregarGitStatus(caminho, fluxo.referencia);
+        } catch (e) {
+          refSel.innerHTML = '<option value="' + (fluxo.referencia || 'main') + '">' + (fluxo.referencia || 'main') + ' (erro ao carregar)</option>';
+        }
+      }
+
+      async function carregarGitStatus(caminho, ref) {
+        const div = el("git-status-worktree");
+        if (!div) return;
+        div.textContent = "verificando alterações não commitadas…";
+        try {
+          const resp = await api('/api/opencode/git/status?path=' + encodeURIComponent(caminho) + '&ref=' + encodeURIComponent(ref || ''));
+          if (resp.clean) {
+            div.textContent = "✓ Diretório limpo (sem alterações não commitadas).";
+            div.style.color = "var(--ok)";
+          } else {
+            div.textContent = "⚠ Alterações não commitadas detectadas:\n" + (resp.files || []).map(f => '  ' + f.status + '  ' + f.path).join("\n");
+            div.style.color = "var(--perigo)";
+          }
+        } catch (e) {
+          div.textContent = "Não foi possível verificar git status.";
+          div.style.color = "var(--texto-suave)";
+        }
+      }
+
+      // Carrega referências iniciais se já temos cadastro
+      if (cadastro && opencode.modo === "real") {
+        await carregarReferencias(cadastro.caminho);
+      }
 
       if (!fluxo.nome) fluxo.nome = sugestaoNome(cadastro);
       const nome = document.createElement("input");

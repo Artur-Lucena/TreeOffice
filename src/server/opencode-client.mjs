@@ -282,5 +282,26 @@ export function criarClienteOpenCode(servico) {
         return { fechar: () => controle.abort(), ok: false };
       }
     },
-  };
+
+  /**
+   * Lista referências git (branches e tags) de um repositório.
+   * Contrato: `GET /git/refs?path=<caminho>` → `{ branches: [{name}], tags: [{name}] }`.
+   */
+  async listarGitRefs(caminho) {
+    if (!caminho || typeof caminho !== "string") throw new Error("caminho é obrigatório para listar referências git.");
+    return getJson(url, password, "/api/git/refs", { path: caminho });
+  },
+
+  /**
+   * Obtém status git (alterações não commitadas) de um repositório em uma referência.
+   * Contrato: `GET /git/status?path=<caminho>&ref=<ref>` → `{ clean: boolean, files: [{status, path}] }`.
+   */
+  async obterGitStatus(caminho, ref = "") {
+    if (!caminho || typeof caminho !== "string") throw new Error("caminho é obrigatório para obter git status.");
+    const params = { path: caminho };
+    if (ref) params.ref = ref;
+    return getJson(url, password, "/api/git/status", params);
+  },
+};
 }
+

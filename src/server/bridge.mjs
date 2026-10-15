@@ -651,6 +651,45 @@ export function criarPonte(opcoes = {}) {
       return;
     }
 
+        if (req.method === "GET" && url.pathname === "/api/opencode/git/refs") {
+      if (modo !== "real" || !clienteOpenCode) {
+        json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });
+        return;
+      }
+      const pathRefs = url.searchParams.get("path") || "";
+      if (!pathRefs) {
+        json(res, 400, { erro: "path é obrigatório" });
+        return;
+      }
+      try {
+        const refs = await clienteOpenCode.listarGitRefs(pathRefs);
+        json(res, 200, refs);
+      } catch (erro) {
+        json(res, 502, { erro: erro?.message || "falha ao ler referências git" });
+      }
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/opencode/git/status") {
+      if (modo !== "real" || !clienteOpenCode) {
+        json(res, 409, { erro: "modo simulado ativo; ative os dados reais primeiro" });
+        return;
+      }
+      const pathStatus = url.searchParams.get("path") || "";
+      const refStatus = url.searchParams.get("ref") || "";
+      if (!pathStatus) {
+        json(res, 400, { erro: "path é obrigatório" });
+        return;
+      }
+      try {
+        const status = await clienteOpenCode.obterGitStatus(pathStatus, refStatus);
+        json(res, 200, status);
+      } catch (erro) {
+        json(res, 502, { erro: erro?.message || "falha ao ler git status" });
+      }
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/opencode/ressincronizar") {
       if (!origemValida(req, url)) {
         json(res, 403, { erro: "origem ou host não autorizado" });
