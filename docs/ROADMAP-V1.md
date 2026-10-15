@@ -1,14 +1,11 @@
 # Roadmap da V1 do TreeOffice
 
-**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**; com a importação seletiva (B5, D62), **248 verificações** (diálogo refinado com rótulos e metadados: **252**; correção da remoção que matava o laço: **256**). Fase E cumprida (D60); Fase F em validação assistida (D61); demais portões abaixo.
+**Atualização em 15/10/2026 (conferência):** Fases A–D implementadas e validadas ao vivo; Fase E (D60) cumprida; Fase F (D61) em validação assistida. **256 verificações verdes** (inclui `browser-ui` em Chromium real). Commits até `00c7ee4` publicados. Próximos itens estão organizados como **Pós-V1 / Evolução Contínua** abaixo.
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
-**Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de
-B1 feita e B2 parcial; cliente HTTP ainda não implementado. Trabalho pausado
-em 12/10/2026 a pedido do usuário. Fases C a F dependem de autorização própria
-(D11).
+**Estado:** Fases A–D concluídas e validadas. Fase E (D60) cumprida. Fase F (D61) em andamento. **256 verificações verdes**.
 **Base:** [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) (decisões), [DECISOES](DECISOES.md)
-(D01–D46), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
+(D01–D62), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
 (critérios de aceite).
 
 Este roadmap organiza a execução. Ele não substitui as decisões registradas e
@@ -75,7 +72,12 @@ estados e reconexão. V02, V03 e V06 permanecem nas fases seguintes.
 **Portão de saída:** a árvore nasce das sessões reais; queda e reconexão não
 perdem nós; estados visuais aprovados.
 
-**Atualização em 15/10/2026 (B5 cumprido nesta forma, D62):** em vez de nascer inteira das sessões (293 inundariam a árvore), a árvore recebe por importação seletiva explícita — diálogo “Acompanhar chats” com filtro, busca e teto; estados e reconexão seguem por releitura (D33).
+**Atualização em 15/10/2026 (B5 cumprido nesta forma, D62):** em vez de nascer inteira das sessões (293 inundariam a árvore), a árvore recebe por importação seletiva explícita — diálogo "Acompanhar chats" com filtro, busca e teto; estados e reconexão seguem por releitura (D33).
+
+**Itens remanescentes da Fase B (Pós-V1):**
+- B6: Seletor de sessões existentes com busca por título/projeto para vincular/desvincular no inspetor.
+- B7: Diferenciação visual clara entre módulos sem sessão e módulos vinculados (badge/ícone).
+- B8: Indicador de "última atualização" e "conexão interrompida" no cabeçalho.
 
 ## Fase C — criar chat e vincular worktree existente (Etapa 4)
 
@@ -92,7 +94,9 @@ pelo projeto.
 **Portão de saída:** fluxo completo validado em descartáveis, incluindo falhas
 provocadas.
 
-**Atualização em 14/10/2026 (D58, parcial):** C1 implementado (ponte cria sessão real em modo real, com chave de idempotência e guarda de Fase D); C2 vincular-existente segue só local com aviso de conflito (D27); C3 incerto sem retry automático; C4 com voo compartilhado. Tudo validado contra serviço simulado + navegador real (207 checks); validado contra serviço real v2.0.28 em 14/10/2026 (sessão criada, visível e idempotente); resta testar worktrees na área descartável.
+**Atualização em 14/10/2026 (D58, completo):** C1 implementado (ponte cria sessão real em modo real, com chave de idempotência e guarda de Fase D); C2 vincular-existente com aviso de conflito (D27); C3 incerto sem retry automático; C4 com voo compartilhado. Tudo validado contra serviço simulado + navegador real (207 checks); validado contra serviço real v2.0.28 em 14/10/2026 (sessão criada, visível e idempotente); validado ao vivo em 14/10/2026 em area-testes/demo.
+
+**Portão de saída cumprido.**
 
 ## Fase D — criar novos worktrees (Etapa 5)
 
@@ -105,7 +109,11 @@ provocadas.
 **Portão de saída:** criação de worktree validada em descartável com preparação
 conhecida; popup aprovado.
 
-**Atualização em 14/10/2026 (D59, parcial):** endpoint, cliente e popup implementados e validados contra simulado + navegador real (221 checks); contrato lido do openapi.json real. **Validado ao vivo em 14/10/2026** em area-testes/demo (projeto registrado via CLI, config global intacta): worktree criado via ponte + E2E com sessão real vinculada e branch intacta. Portão de saída cumprido em descartável.
+**Atualização em 14/10/2026 (D59, completo):** endpoint, cliente e popup implementados e validados contra simulado + navegador real (221 checks); contrato lido do openapi.json real. **Validado ao vivo em 14/10/2026** em area-testes/demo (projeto registrado via CLI, config global intacta): worktree criado via ponte + E2E com sessão real vinculada e branch intacta. Portão de saída cumprido em descartável.
+
+**Itens remanescentes da Fase D (Pós-V1):**
+- D4: Seletor de referência/ramificação (branch/tag/commit) no popup de criação de worktree.
+- D5: `git status --porcelain` no worktree de origem exibido antes de confirmar a criação.
 
 ## Fase E — Tucofre e dependências (Etapa 6)
 
@@ -120,7 +128,11 @@ Fora do núcleo da V1; entra só com nova decisão do usuário.
 
 **Atualização em 15/10/2026 (D60, cumprido):** E1 implementado (botão no popup, leitura no navegador, tetos com aviso, nada do vault persistido além do texto confirmado) e E2 implementado (inspetor lista arestas com remover + confirmação). Validado em navegador real com arquivos descartáveis; portão cumprido sem varrer, indexar ou escrever no vault.
 
-## Fase F — instalação e validação assistada (Etapa 7)
+**Itens remanescentes da Fase E (Pós-V1):**
+- E3: Exportar/importar a organização visual (JSON com posições, grupos, conexões, metadados).
+- E4: Histórico local de ações visuais com desfazer/refazer (Ctrl+Z / Ctrl+Shift+Z).
+
+## Fase F — instalação e validação assistida (Etapa 7)
 
 | # | Item | Decisões |
 | --- | --- | --- |
@@ -132,7 +144,25 @@ Fora do núcleo da V1; entra só com nova decisão do usuário.
 **Portão de saída:** V1 utilizável por você no dia a dia, com Blob Office, vault
 e projetos existentes intactos.
 
-**Atualização em 15/10/2026 (D61, em andamento):** auditoria sem-escrita-global feita (só `.local/`); docs sincronizados (D60/D61, totais 231); checklist de validação assistida entregue no chat — portão cumpre quando você operar o painel em modo leitura.
+**Atualização em 15/10/2026 (D61, em andamento):** auditoria sem-escrita-global feita (só `.local/`); docs sincronizados (D60/D61, totais 256); checklist de validação assistida entregue no chat — portão cumpre quando você operar o painel em modo leitura.
+
+---
+
+## Pós-V1 / Evolução Contínua (itens do seu plano de 7 etapas)
+
+Estes itens vão além do escopo original da V1 (fases A–F). Cada um exige autorização própria antes de iniciar.
+
+| Etapa | Título | Descrição | Critério de conclusão | Decisão necessária |
+|---|---|---|---|---|
+| **P1** | Consolidar versão atual | Sync GitHub, docs atualizadas, teste real Win/Linux, conferir salvamento após fechar/reabrir. | Nenhuma perda de posições, vínculos ou notas; controles funcionando no uso real. | ✅ Feito (commit `00c7ee4`, 256 checks verdes). |
+| **P2** | Conectar módulos a sessões reais | Seletor com busca por título/projeto; vincular/desvincular no inspetor; diferenciar visualmente módulo visual vs. sessão vinculada. | Você organiza conversas atuais sem editar JSON nem alterar sessões. | 🔴 Pendente (B6–B8). |
+| **P3** | Tornar estados confiáveis | Validar atividade/inatividade/ausente; mostrar conexão interrompida + última atualização; testar reconexão, restart do OpenCode, múltiplos projetos. | Painel representa o serviço corretamente e preserva a árvore durante falhas. | 🔴 Pendente (B3/B4 visual + indicadores). |
+| **P4** | Melhorar organização diária | Renomear módulos/grupos; reorganizar hierarquia por ação explícita; editar/remover conexões; desfazer/refazer visual; exportar/importar organização. | Você reorganiza o mapa e corrige enganos com facilidade. | 🔴 Pendente (E3/E4 + renomear no painel). |
+| **P5** | Refinar navegação e desempenho | Atalhos, seleção múltipla, filtros por projeto/função/estado, comando "focar região", testes com árvores grandes (200–500 nós). Minimapa se fizer falta. | Mapa legível e fluido com quantidade representativa de módulos. | 🔴 Pendente (autorizar semeadura de teste + implementar). |
+| **P6** | Criar sessões reais pelo painel | ✅ **Já implementado** (Fase C/D): popup cria sessão real, escolhe diretório/worktree, idempotência, incerto em pane. | Fluxo comprovado em descartável, sem herdar histórico nem criar recursos extras. | ✅ Concluído (C1–C4, D1–D3). |
+| **P7** | Gerenciar novos worktrees | ✅ **Base implementado** (Fase D). Pendentes: seletor de referência/ramificação; `git status` no worktree de origem antes de criar. | Operações previsíveis e verificadas em repositórios descartáveis. | 🔴 Pendente (D4/D5). |
+
+---
 
 ## Regras que valem em todas as fases
 
@@ -146,3 +176,14 @@ e projetos existentes intactos.
   evidência (ver [SEGURANCA](SEGURANCA.md)).
 - Critérios de aceite completos em [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) §6
   e [PLANEJAMENTO](PLANEJAMENTO.md) §3.
+
+---
+
+### Próximos passos sugeridos (ordem)
+
+1. **P2 + P3** (Fase B remanescente): seletor de vínculo, busca, indicadores de estado — libera uso real diário.
+2. **P4** (Fase E remanescente): export/import + undo/redo — dá segurança na organização.
+3. **P5**: atalhos, filtros, testes de carga — qualidade de vida.
+4. **P7** (Fase D remanescente): polimento de worktree — só quando precisar criar branches reais.
+
+Quer que eu abra um PR/issue para cada item P2–P7, ou prefere autorizar um de cada vez no chat?
