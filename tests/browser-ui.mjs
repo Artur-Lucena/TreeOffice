@@ -109,6 +109,26 @@ try {
   await avaliar("document.getElementById('btn-novo').click()");
   verificar("botão abre popup", await avaliar("document.getElementById('popup').dataset.aberto==='true'"));
   const temPapel = verificar("popup permite escolher papel/naipe", await avaliar("!!document.querySelector('#pp-corpo select[aria-label=\"Papel organizacional\"]')"));
+  // Frente E (E1, RED): ler arquivo do Tucofre como sugestão de instruções.
+  fs.writeFileSync(path.join(execucao, "tucofre-teste.md"), "# Nota Tucofre\nLer antes de codar.\n");
+  fs.writeFileSync(path.join(execucao, "tucofre-grande.md"), "x".repeat(5000));
+  const temVault = await avaliar("!!document.getElementById('btn-vault') && !!document.getElementById('vault-arquivo')");
+  verificar("etapa 1 oferece leitura de arquivo do Tucofre", temVault);
+  if (temVault) {
+    await cdp.enviar("DOM.enable");
+    const docVault = await cdp.enviar("DOM.getDocument", { depth: 0 });
+    const alvoVault = await cdp.enviar("DOM.querySelector", { nodeId: docVault.root.nodeId, selector: "#vault-arquivo" });
+    await cdp.enviar("DOM.setFileInputFiles", { files: [path.join(execucao, "tucofre-teste.md")], nodeId: alvoVault.nodeId });
+    verificar("arquivo do Tucofre vira sugestão editável", await ate(() => avaliar("document.getElementById('instrucoes-novo-no').value.includes('Ler antes de codar')")));
+    await cdp.enviar("DOM.setFileInputFiles", { files: [path.join(execucao, "tucofre-grande.md")], nodeId: alvoVault.nodeId });
+    verificar(
+      "arquivo além do teto é cortado com aviso",
+      await ate(async () => (await avaliar("document.getElementById('instrucoes-novo-no').value.length")) === 4000 && (await avaliar("document.getElementById('pp-aviso').textContent")).includes("4000")),
+    );
+  } else {
+    verificar("arquivo do Tucofre vira sugestão editável", false);
+    verificar("arquivo além do teto é cortado com aviso", false);
+  }
   if (temPapel) {
     await avaliar(`{ document.querySelector('#pp-corpo input[type=text]').value='Investigação de teste'; document.querySelector('#pp-corpo input[type=text]').dispatchEvent(new Event('input')); const s=document.querySelector('#pp-corpo select[aria-label="Papel organizacional"]'); s.value='investigacao';s.dispatchEvent(new Event('change')); }`);
     await textoBotao("Continuar");
@@ -118,12 +138,46 @@ try {
     await textoBotao("Continuar"); await textoBotao("Criar chat");
     await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste"));
     verificar("papel escolhido persiste localmente sem criar sessão real", ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste" && n.papel === "investigacao" && !n.sessionID));
+    verificar("nome do arquivo do Tucofre não é persistido", !JSON.stringify(ponte.estadoAtual()).includes("tucofre-"));
     verificar("painel permite trocar papel existente", await avaliar("document.getElementById('pn-papel').tagName==='SELECT'"));
     await avaliar("{ const s=document.getElementById('pn-papel');s.value='estudo';s.dispatchEvent(new Event('change')); }");
     await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste" && n.papel === "estudo"));
     verificar("troca de papel mostra ♣ no desenho", await ate(() => avaliar(`(()=>{const m=window.__marcas;const t=m.get("Investigação de teste");const e=m.get("♣");return !!(t&&e&&e.x===t.x);})()`)));
   }
   await avaliar("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
+  // Frente E (E2, RED): dependência criada e removida só por ação explícita.
+  await avaliar("document.getElementById('btn-novo').click()");
+  await ate(() => avaliar("!!document.querySelector('#pp-corpo input[type=text]')"));
+  await avaliar("{document.querySelector('#pp-corpo input[type=text]').value='Apoio teste';document.querySelector('#pp-corpo input[type=text]').dispatchEvent(new Event('input'))}");
+  await textoBotao("Continuar");
+  await avaliar("{const r=document.querySelector('#pp-corpo input[value=nao]');r.checked=true;r.dispatchEvent(new Event('change'))}");
+  await textoBotao("Continuar");
+  await avaliar("{const s=document.querySelector('#pp-corpo select');s.value='sem-diretorio';s.dispatchEvent(new Event('change'))}");
+  await textoBotao("Continuar"); await textoBotao("Criar chat");
+  await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Apoio teste"));
+  await avaliar("document.querySelectorAll('.no-nav')[0].click()");
+  await ate(() => avaliar("!document.getElementById('painel').classList.contains('oculto')"));
+  const depsAntes = ponte.estadoAtual().dependencias.length;
+  await avaliar("document.getElementById('pn-dependencia').click()");
+  await ate(() => avaliar("document.getElementById('preview-dialog').dataset.aberto==='true'"));
+  await avaliar("{const s=document.getElementById('preview-dependencia');s.selectedIndex=s.options.length-1;s.dispatchEvent(new Event('change'))}");
+  await avaliar("document.getElementById('preview-dialog-confirmar').click()");
+  await ate(() => ponte.estadoAtual().dependencias.length === depsAntes + 1);
+  verificar("dependência criada por ação explícita", ponte.estadoAtual().dependencias.length === depsAntes + 1);
+  const temListaDeps = await avaliar("document.querySelectorAll('#pn-deps [data-dep]').length>=1 && !!document.querySelector('#pn-deps [data-remover-dep]')");
+  verificar("inspetor lista a dependência com remoção explícita", temListaDeps);
+  if (temListaDeps) {
+    const novaDep = ponte.estadoAtual().dependencias[ponte.estadoAtual().dependencias.length - 1];
+    const seletorLinha = `#pn-deps [data-dep="${novaDep.origem}>${novaDep.destino}"] [data-remover-dep]`;
+    verificar("remoção mira a aresta criada", await avaliar(`!!document.querySelector(${JSON.stringify(seletorLinha)})`));
+    await avaliar(`document.querySelector(${JSON.stringify(seletorLinha)}).click()`);
+    await ate(() => avaliar("document.getElementById('preview-dialog').dataset.aberto==='true'"));
+    await avaliar("document.getElementById('preview-dialog-confirmar').click()");
+    await ate(() => ponte.estadoAtual().dependencias.length === depsAntes);
+    verificar("dependência removida por ação explícita não volta", ponte.estadoAtual().dependencias.length === depsAntes);
+  } else {
+    verificar("dependência removida por ação explícita não volta", false);
+  }
 
   // Fixture usa o renderizador real e gestos de mouse CDP; nenhum mutador de debug.
   await avaliar(`(async()=>{

@@ -185,7 +185,7 @@ seus projetos como efeito colateral.
 
 ## 3. Critérios de aceite candidatos
 
-Cobertura atual (conferida em 15/10/2026, total do projeto **221 verificações**, todas verdes): o smoke (`tests/smoke.mjs`, 51 ok)
+Cobertura atual (conferida em 15/10/2026, total do projeto **231 verificações**, todas verdes): o smoke (`tests/smoke.mjs`, 51 ok)
 cobre token/origem/host, cookie de subrecursos, recursos locais, normalização
 sem conteúdo privado, escrita atômica com backup, lock, modo degradado e porta
 fixa; o `tree-render` (55 ok) cobre nós visíveis, órfãos com âncora, galho

@@ -20,7 +20,7 @@ já estão.
 
 ## 2. Estado atual
 
-**Atualização em 14/10/2026:** UI reformulada e aprovada pelo usuário após avaliação de prévias interativas. D54–D57 registram tipografia local, naipes centrais, posições livres persistidas, fios uniformes e selecionáveis, ramificações nos fios e diálogos animados/arrastáveis. Foi autorizado aplicar e enviar essas mudanças ao repositório. A integração com OpenCode permanece somente leitura; criação de módulos continua visual/simulada. Detalhes e testes em `docs/UI-REFORMULADA-2026-10-14.md`.
+**Atualização em 15/10/2026:** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo`; Fase E (D60) implementada — leitura selecionada do Tucofre como sugestão de instruções e remoção explícita de dependências; Fase F (D61) autorizada e em validação assistida. 231 verificações verdes. Os parágrafos abaixo preservam o histórico inicial. D54–D57 registram tipografia local, naipes centrais, posições livres persistidas, fios uniformes e selecionáveis, ramificações nos fios e diálogos animados/arrastáveis. Foi autorizado aplicar e enviar essas mudanças ao repositório. A integração com OpenCode permanece somente leitura; criação de módulos continua visual/simulada. Detalhes e testes em `docs/UI-REFORMULADA-2026-10-14.md`.
 
 **Atualização em 13/10/2026:** a ponte somente leitura está implementada;
 continua faltando UI para vincular sessões reais (Fase C não autorizada).

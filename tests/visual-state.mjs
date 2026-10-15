@@ -25,4 +25,11 @@ const limpo=normalizeState(limitado).state;
 assert.equal(limpo.conexoesInfo["ramo:a"].nome.length,80);
 assert.equal(limpo.conexoesInfo["ramo:a"].notas.length,1000);
 assert.equal(limpo.conexoesInfo["ramo:inexistente"],undefined);
-console.log("12 verificações de persistência visual passaram.");
+// Frente E: instruções têm teto (sugestão do Tucofre respeita o mesmo limite do digitado).
+const longo=structuredClone(entrada);longo.nos[0].instrucoes="z".repeat(5000);
+assert.equal(normalizeState(longo).state.nos[0].instrucoes.length,4000);
+// Frente E (E2): laço e duplicata não viram aresta.
+const deps=structuredClone(entrada);deps.nos.push({id:"c"});
+deps.dependencias=[{origem:"a",destino:"a"},{origem:"a",destino:"c"},{origem:"a",destino:"c"}];
+assert.deepEqual(normalizeState(deps).state.dependencias,[{origem:"a",destino:"c"}]);
+console.log("14 verificações de persistência visual passaram.");

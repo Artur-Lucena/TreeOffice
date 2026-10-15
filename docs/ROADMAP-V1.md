@@ -1,6 +1,6 @@
 # Roadmap da V1 do TreeOffice
 
-**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Fases E–F continuam nos portões abaixo.
+**Atualização em 15/10/2026 (conferência):** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo` (sessão real criada e vinculada, worktree criado via ponte, branch intacta). Commits até `9b104a3` publicados; **221 verificações verdes** (inclui `browser-ui` em Chromium real). Com a Fase E (15/10/2026), **231 verificações**. Fases E–F continuam nos portões abaixo.
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
 **Estado:** Fase A concluída. Fase B autorizada e parcial: pesquisa inicial de
@@ -116,6 +116,8 @@ Fora do núcleo da V1; entra só com nova decisão do usuário.
 
 **Portão de saída:** leitura selecionada funcionando; vault intacto.
 
+**Atualização em 15/10/2026 (D60, cumprido):** E1 implementado (botão no popup, leitura no navegador, tetos com aviso, nada do vault persistido além do texto confirmado) e E2 implementado (inspetor lista arestas com remover + confirmação). Validado em navegador real com arquivos descartáveis; portão cumprido sem varrer, indexar ou escrever no vault.
+
 ## Fase F — instalação e validação assistada (Etapa 7)
 
 | # | Item | Decisões |
@@ -127,6 +129,8 @@ Fora do núcleo da V1; entra só com nova decisão do usuário.
 
 **Portão de saída:** V1 utilizável por você no dia a dia, com Blob Office, vault
 e projetos existentes intactos.
+
+**Atualização em 15/10/2026 (D61, em andamento):** auditoria sem-escrita-global feita (só `.local/`); docs sincronizados (D60/D61, totais 231); checklist de validação assistida entregue no chat — portão cumpre quando você operar o painel em modo leitura.
 
 ## Regras que valem em todas as fases
 

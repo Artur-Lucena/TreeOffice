@@ -385,6 +385,7 @@ function atualizarPainel(no) {
   el("pn-worktree").textContent = no.worktree || "nenhum";
   el("pn-sessao").textContent = no.sessionID || "sem sessão vinculada";
   el("pn-instrucoes").textContent = no.instrucoes || "—";
+  renderDepsNo(no);
   el("pn-recolher").textContent = no.recolhido ? "Expandir galho" : "Recolher galho";
   el("pn-nota").textContent =
     estado === "nao_encontrado"
@@ -607,6 +608,55 @@ function renderPopup() {
     caixaTextarea(corpo, "Instruções de entrada (opcional)", fluxo.instrucoes, (valor) => {
       fluxo.instrucoes = valor;
     });
+    // Frente E (E1, D37): ler um arquivo do Tucofre como sugestão de texto.
+    // O arquivo é lido como texto no próprio navegador; só o texto confirmado
+    // por você entra nas instruções. Nenhum caminho é pedido, guardado ou
+    // enviado à ponte — o nome do arquivo nunca é persistido.
+    const linhaVault = document.createElement("div");
+    linhaVault.className = "campo";
+    const entradaVault = document.createElement("input");
+    entradaVault.type = "file";
+    entradaVault.id = "vault-arquivo";
+    entradaVault.accept = ".md,.markdown,.txt,text/plain";
+    entradaVault.hidden = true;
+    entradaVault.tabIndex = -1;
+    entradaVault.setAttribute("aria-hidden", "true");
+    const btnVault = botao("Ler arquivo do Tucofre", "", () => entradaVault.click());
+    btnVault.id = "btn-vault";
+    entradaVault.addEventListener("change", async () => {
+      const arquivo = entradaVault.files?.[0];
+      entradaVault.value = "";
+      if (!arquivo) return;
+      if (arquivo.size > 65536) {
+        avisoAlvo.textContent = `Arquivo grande demais (${Math.round(arquivo.size / 1024)} KB; limite 64 KB). Escolha um arquivo menor.`;
+        avisoAlvo.className = "popup-aviso erro";
+        return;
+      }
+      let texto;
+      try {
+        texto = await arquivo.text();
+      } catch {
+        avisoAlvo.textContent = "Não foi possível ler o arquivo como texto.";
+        avisoAlvo.className = "popup-aviso erro";
+        return;
+      }
+      if (texto.length > 4000) {
+        fluxo.instrucoes = texto.slice(0, 4000);
+        avisoAlvo.textContent = "Arquivo além do teto de 4000 caracteres: os primeiros 4000 foram usados como sugestão — edite à vontade.";
+        avisoAlvo.className = "popup-aviso";
+      } else {
+        fluxo.instrucoes = texto;
+        avisoAlvo.textContent = "";
+        avisoAlvo.className = "popup-aviso";
+      }
+      el("instrucoes-novo-no").value = fluxo.instrucoes;
+    });
+    linhaVault.append(btnVault, entradaVault);
+    corpo.appendChild(linhaVault);
+    const dicaVault = document.createElement("div");
+    dicaVault.className = "dica-campo";
+    dicaVault.textContent = "Opcional: escolha um arquivo do vault para sugerir o texto. O arquivo nunca sai do seu navegador sem a sua confirmação (D37).";
+    corpo.appendChild(dicaVault);
     const nota = document.createElement("div");
     nota.className = "dica-campo";
     nota.textContent =
@@ -1233,6 +1283,57 @@ function abrirDialogoLocal(titulo,conteudo,textoAcao,acao) {
   (el("preview-dialog-corpo").querySelector("select,input,button") || el("preview-dialog-confirmar")).focus();
 }
 
+/* Frente E (E2): dependências listadas no inspetor, cada aresta removível
+ * só por ação explícita com confirmação. Nenhum nó é apagado ou bloqueado. */
+function renderDepsNo(no) {
+  const caixa = el("pn-deps");
+  if (!caixa) return;
+  caixa.replaceChildren();
+  const titulo = document.createElement("p");
+  titulo.className = "rotulo";
+  titulo.textContent = "Dependências";
+  caixa.appendChild(titulo);
+  const lista = state.dependencias.filter((d) => d.origem === no.id || d.destino === no.id);
+  if (!lista.length) {
+    const vazio = document.createElement("p");
+    vazio.className = "nota";
+    vazio.textContent = "Sem dependências. “Marcar dependência” cria por ação explícita.";
+    caixa.appendChild(vazio);
+    return;
+  }
+  for (const d of lista) {
+    const linha = document.createElement("div");
+    linha.className = "dep-linha";
+    linha.dataset.dep = `${d.origem}>${d.destino}`;
+    const outro = state.nos.find((n) => n.id === (d.origem === no.id ? d.destino : d.origem));
+    const rot = document.createElement("span");
+    rot.textContent = d.origem === no.id
+      ? `depende de “${outro?.titulo || d.destino}”`
+      : `“${outro?.titulo || d.origem}” depende daqui`;
+    const remover = document.createElement("button");
+    remover.type = "button";
+    remover.dataset.removerDep = "1";
+    remover.textContent = "remover";
+    remover.setAttribute("aria-label", `Remover dependência com “${outro?.titulo || "nó"}”`);
+    remover.addEventListener("click", () => removerDependenciaLocal(d.origem, d.destino));
+    linha.append(rot, remover);
+    caixa.appendChild(linha);
+  }
+}
+
+function removerDependenciaLocal(origem, destino) {
+  const a = state.nos.find((n) => n.id === origem);
+  const b = state.nos.find((n) => n.id === destino);
+  const texto = document.createElement("p");
+  texto.textContent = `Remover a dependência entre “${a?.titulo || origem}” e “${b?.titulo || destino}”? Nenhum nó é apagado ou bloqueado.`;
+  abrirDialogoLocal("Remover dependência", texto, "Remover dependência", async () => {
+    state.dependencias = state.dependencias.filter((d) => !(d.origem === origem && d.destino === destino));
+    if (selecionado) atualizarPainel(selecionado);
+    if (!await salvar("Dependência removida do painel.")) throw Error("Não foi possível salvar a remoção.");
+    fecharDialogoLocal();
+  });
+}
+
 function marcarDependenciaLocal() {
   if (!selecionado) return;
   const origem=selecionado.id;
@@ -1250,6 +1351,7 @@ function marcarDependenciaLocal() {
     if (!state.nos.some(n=>n.id===origem)||!state.nos.some(n=>n.id===destino)) throw Error("Selecione um módulo válido.");
     if (state.dependencias.some(d=>d.origem===origem&&d.destino===destino)) throw Error("Essa dependência já existe.");
     state.dependencias.push({origem,destino});
+    if (selecionado) atualizarPainel(selecionado);
     if (!await salvar("Dependência adicionada no painel.")) throw Error("Não foi possível salvar a dependência.");
     fecharDialogoLocal();
   });

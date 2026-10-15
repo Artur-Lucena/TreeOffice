@@ -26,21 +26,24 @@ clicáveis com nome e notas, assistente de ramificação em 4 etapas.
 ![Explorador e assistente de novo chat](docs/imagens/explorador.png)
 
 **Não faz:** criar sessões, worktrees ou tarefas sozinho; herdar conversa entre
-chats; ler seu vault; mudar qualquer configuração. Ver
+chats; varrer ou indexar seu vault (lê um arquivo por vez, só o que você
+escolhe, como sugestão editável); mudar qualquer configuração. Ver
 [docs/SEGURANCA.md](docs/SEGURANCA.md).
 
 ## Onde estamos
 
 Interface reformulada e aprovada em 14/10/2026 (D54–D57). Fase A concluída,
 Fase B lendo o OpenCode em modo somente leitura, Fase C pronta (criar sessão
-real com idempotência, validada contra serviço de verdade) e Fase D pronta
-(criar worktree novo, validada ao vivo em descartável).
-Fases E–F aguardam sua autorização, uma por vez. O plano completo está em
+real com idempotência, validada contra serviço de verdade), Fase D pronta
+(criar worktree novo, validada ao vivo em descartável) e Fase E pronta
+(ler arquivo do Tucofre como sugestão de instruções + remoção explícita de
+dependências, 15/10/2026, D60). Fase F (instalação e validação assistida) em
+andamento com sua autorização (D61). O plano completo está em
 [docs/ROADMAP-V1.md](docs/ROADMAP-V1.md).
 
 ## Testes
 
-**221 verificações, todas verdes** (14/10/2026, com navegador real e dados
+**231 verificações, todas verdes** (15/10/2026, com navegador real e dados
 descartáveis):
 
 ```bash
@@ -48,10 +51,10 @@ node tests/smoke.mjs            # 51 — ponte, token, persistência
 node tests/tree-render.mjs      # 55 — desenho, naipes, tipografia
 node tests/tree-interactions.mjs # 23 — gestos, fios, ramificações
 node tests/navigation.mjs       # 8 — explorador e busca
-node tests/visual-state.mjs     # 12 — normalização e persistência
+node tests/visual-state.mjs     # 14 — normalização e persistência
 node tests/opencode-client.mjs  # 35 — leitura + criarSessao/criarWorktree contra simulado
 node tests/opencode-escrita.mjs  # 23 — ponte cria sessões e worktrees (Fase C/D) contra falso
-node tests/browser-ui.mjs       # 14 — regressões no Chromium real
+node tests/browser-ui.mjs       # 22 — regressões no Chromium real (inclui Tucofre e dependências)
 ```
 
 ## Pastas
