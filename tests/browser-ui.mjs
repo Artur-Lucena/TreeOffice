@@ -219,10 +219,14 @@ try {
     await ate(() => avaliar("document.getElementById('preview-dialog').dataset.aberto==='true'"));
     await ate(() => avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length>0"), 15000);
     verificar("diálogo lista não vinculadas com teto de 50", await avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length===50"));
+    verificar("diálogo explica que os nós nascem locais", await avaliar("document.getElementById('preview-dialog-corpo').textContent.includes('só no registro local')"));
+    verificar("filtros têm rótulo visível", await avaliar("['import-projeto','import-busca','import-grupo'].every((id)=>{const l=document.querySelector(`label[for=\"${id}\"]`);return !!l&&l.textContent.trim().length>2})"));
+    verificar("linha mostra título, projeto e data", await avaliar("!!document.querySelector('#import-lista .opcao strong')&&!!document.querySelector('#import-lista .opcao small')"));
     await avaliar("{const s=document.getElementById('import-projeto');s.value='proj_b';s.dispatchEvent(new Event('change'))}");
     await ate(() => avaliar("document.querySelectorAll('#import-lista input[type=checkbox]').length===1"));
     verificar("filtro por projeto reduz a lista", true);
     await avaliar("{const c=document.querySelector('#import-lista input[type=checkbox]');c.checked=true;c.dispatchEvent(new Event('change'))}");
+    verificar("contador de selecionadas atualiza", await avaliar("document.getElementById('import-conta').textContent.includes('1 selecionada')"));
     await avaliar("document.getElementById('preview-dialog-confirmar').click()");
     await ate(() => ponteImp.estadoAtual().nos.some((n) => n.sessionID === "ses_b1"), 15000);
     verificar("importar cria nó vinculado sem duplicar", ponteImp.estadoAtual().nos.filter((n) => n.sessionID === "ses_b1").length === 1);

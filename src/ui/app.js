@@ -1079,23 +1079,53 @@ async function abrirImportacao() {
     return;
   }
   const caixa = document.createElement("div");
-  caixa.className = "campo";
+  const intro = document.createElement("p");
+  intro.className = "nota";
+  intro.textContent = "Marque os chats para trazer como nós vinculados. Os nós nascem só no registro local — nada é criado no OpenCode; os já vinculados não reaparecem.";
+  caixa.appendChild(intro);
   const selProjeto = document.createElement("select");
   selProjeto.id = "import-projeto";
   selProjeto.setAttribute("aria-label", "Filtrar por projeto");
+  caixa.appendChild(campo("Projeto", selProjeto));
   const busca = document.createElement("input");
   busca.type = "search";
   busca.id = "import-busca";
   busca.placeholder = "buscar por título…";
   busca.setAttribute("aria-label", "Buscar por título");
+  caixa.appendChild(campo("Buscar", busca));
   const selGrupo = document.createElement("select");
   selGrupo.id = "import-grupo";
   selGrupo.setAttribute("aria-label", "Espaço de destino");
+  caixa.appendChild(campo("Espaço de destino", selGrupo, "Onde os nós importados vão morar na árvore."));
   const lista = document.createElement("div");
   lista.id = "import-lista";
   const conta = document.createElement("p");
   conta.className = "nota";
-  caixa.append(selProjeto, busca, selGrupo, conta, lista);
+  const selInfo = document.createElement("p");
+  selInfo.id = "import-conta";
+  selInfo.className = "nota";
+  caixa.append(conta, lista, selInfo);
+  function nomeProjeto(id) {
+    const p = projetos.find((x) => x.id === id);
+    const base = String(p?.canonical || p?.directory || id || "").split(/[/\\]/).filter(Boolean).pop();
+    return base || id || "—";
+  }
+  function metaSessao(s) {
+    const partes = [nomeProjeto(s.projectID)];
+    if (s.updated) {
+      const d = new Date(s.updated);
+      if (!Number.isNaN(d.getTime())) {
+        partes.push(d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }));
+      }
+    }
+    return partes.join(" · ");
+  }
+  function atualizarContaImport() {
+    const n = lista.querySelectorAll("input[type=checkbox]:checked").length;
+    selInfo.textContent = n === 0
+      ? "Nenhum selecionado — teto de 50 por vez."
+      : `${n} selecionada(s) — teto de 50 por vez.`;
+  }
   abrirDialogoLocal("Acompanhar chats do OpenCode", caixa, "Trazer para o painel", async () => {
     const marcadas = [...lista.querySelectorAll("input[type=checkbox]:checked")].slice(0, 50);
     if (!marcadas.length) throw Error("Selecione ao menos um chat.");
@@ -1140,16 +1170,23 @@ async function abrirImportacao() {
       if (busca.value.trim()) params.set("busca", busca.value.trim());
       const resposta = await api(`/api/opencode/nao-vinculadas?${params}`);
       carregadas = resposta.data || [];
+      atualizarContaImport();
       conta.textContent = carregadas.length === 50
         ? "mostrando as 50 mais recentes — refine o filtro para ver as demais."
         : `${carregadas.length} chat(s) ainda sem vínculo.`;
       for (const s of carregadas) {
         const rot = document.createElement("label");
+        rot.className = "opcao";
         const marca = document.createElement("input");
         marca.type = "checkbox";
         marca.dataset.sessao = s.id;
-        const texto = document.createElement("span");
-        texto.textContent = s.title || s.id;
+        marca.addEventListener("change", atualizarContaImport);
+        const texto = document.createElement("div");
+        const forte = document.createElement("strong");
+        forte.textContent = s.title || s.id;
+        const meta = document.createElement("small");
+        meta.textContent = metaSessao(s);
+        texto.append(forte, meta);
         rot.append(marca, texto);
         lista.appendChild(rot);
       }

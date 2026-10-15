@@ -43,7 +43,7 @@ andamento com sua autorização (D61). O plano completo está em
 
 ## Testes
 
-**248 verificações, todas verdes** (15/10/2026, com navegador real e dados
+**252 verificações, todas verdes** (15/10/2026, com navegador real e dados
 descartáveis):
 
 ```bash
@@ -55,7 +55,7 @@ node tests/visual-state.mjs     # 14 — normalização e persistência
 node tests/opencode-client.mjs  # 35 — leitura + criarSessao/criarWorktree contra simulado
 node tests/opencode-escrita.mjs  # 23 — ponte cria sessões e worktrees (Fase C/D) contra falso
 node tests/opencode-importacao.mjs # 11 — ponte lista não vinculadas (B5) contra falso
-node tests/browser-ui.mjs       # 28 — regressões no Chromium real (inclui Tucofre, dependências e importação)
+node tests/browser-ui.mjs       # 32 — regressões no Chromium real (inclui Tucofre, dependências e importação)
 ```
 
 ## Pastas
