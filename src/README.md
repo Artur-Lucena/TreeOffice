@@ -133,9 +133,8 @@ src/
 - O desenho é Canvas 2D puro e assim fica: a p5.js foi descartada por D45
   depois que a avaliação visual aprovou o resultado.
 - A simulação é local e não representa o comportamento real das sessões.
-- Nenhuma operação de escrita no OpenCode ou no Git existe aqui. Criar chat,
-  vincular worktree e criar worktree pertencem às Etapas 4 e 5 do roadmap.
-- O popup demonstra as confirmações; ele não chama API alguma.
+- Escrita real existe desde D58/D59, só via popup com confirmação explícita e só em modo real: criar sessão (`POST /api/opencode/sessoes`, idempotente) e criar worktree (`POST /api/opencode/worktrees`, idempotente). Testes e validações usam repositórios descartáveis (`area-testes/`); fora deles, nada é criado sem sua autorização específica.
+- O popup apresenta as confirmações e chama a ponte em modo real; em simulado, tudo permanece local.
 - A colisão vale para corpos visíveis; textos e territórios não se repelem.
 
 Após atualizar o código, encerre **a ponte do TreeOffice** com `Ctrl+C`,

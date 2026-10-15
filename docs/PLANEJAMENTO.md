@@ -185,14 +185,14 @@ seus projetos como efeito colateral.
 
 ## 3. Critérios de aceite candidatos
 
-Cobertura atual dos testes simulados: o smoke (`tests/smoke.mjs`, 44 ok)
+Cobertura atual (conferida em 15/10/2026, total do projeto **221 verificações**, todas verdes): o smoke (`tests/smoke.mjs`, 51 ok)
 cobre token/origem/host, cookie de subrecursos, recursos locais, normalização
 sem conteúdo privado, escrita atômica com backup, lock, modo degradado e porta
 fixa; o `tree-render` (55 ok) cobre nós visíveis, órfãos com âncora, galho
 recolhido, efeitos da Onda 1, naipes por papel, colisão entre corpos, arrasto
-com retorno suave, galhos em tubo e tipografia; o `opencode-client` (27 ok) cobre descoberta,
-paginação, SSE, modo real e ausência de vazamento de credencial, tudo contra
-serviço simulado.
+com retorno suave, galhos em tubo e tipografia; o `opencode-client` (35 ok) cobre descoberta,
+paginação, SSE, modo real, `criarSessao`/`criarWorktree` e ausência de vazamento de credencial, tudo contra
+serviço simulado; o `opencode-escrita` (23 ok) cobre a ponte criando sessões e worktrees com auth, idempotência inclusive concorrente e pane sem vazar credencial, contra serviço falso; `tree-interactions` (23), `navigation` (8), `visual-state` (12) e `browser-ui` (14, em Chromium real) completam o total.
 **Atualização em 14/10/2026 (Fase C, D58):** smoke 51 ok; opencode-client 31 ok (inclui criarSessao); novo opencode-escrita 13 ok (ponte cria sessões com auth, idempotência inclusive concorrente, e pane sem vazar credencial, contra serviço falso); total do projeto 207 verificações; com a Fase D, 221 (opencode-client 35, opencode-escrita 23), com C2 e D validados ao vivo em descartável em 14/10/2026. C1 validado contra serviço real v2.0.28 em 14/10/2026.
 O restante segue pendente de integração real e de validação assistida.
 
