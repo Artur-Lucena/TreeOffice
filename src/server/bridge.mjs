@@ -34,7 +34,7 @@ import {
   NOME_BRIDGE,
 } from "./state-store.mjs";
 import { normalizeState, limparOcupacaoOrfa, limparDependenciasOrfas, ESTADO } from "../shared/model.mjs";
-import { seedDemoState, criarSimulacao, tickSimulacao } from "../shared/mock.mjs";
+import { criarSimulacao, tickSimulacao } from "../shared/mock.mjs";
 import { descobrirServico, criarClienteOpenCode } from "./opencode-client.mjs";
 import { classificarEvento, detalheDoEvento, estadoDoNoReal } from "../shared/opencode-map.mjs";
 
@@ -144,7 +144,10 @@ export function criarPonte(opcoes = {}) {
   const versao = versaoCodigo();
 
   const identidade = carregarOuCriarIdentidade(baseDir);
-  const carregado = loadState(baseDir, { semear: seedDemoState });
+  // D63: sem semeio por omissão — o painel nasce vazio e só mostra o que o
+  // usuário importou/vinculou. A árvore demo existe só como fixture de teste,
+  // pedida explicitamente via `opcoes.semear`.
+  const carregado = loadState(baseDir, { semear: opcoes.semear });
   let state = carregado.state;
   let avisos = carregado.avisos;
   const sim = criarSimulacao(state);

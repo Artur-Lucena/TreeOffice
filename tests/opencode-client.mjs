@@ -376,5 +376,5 @@ async function main() {
 
 main().catch((erro) => {
   console.error(`\nErro inesperado no teste: ${erro?.stack || erro}`);
-  process.exitCode = 1;
+  process.exit(1);
 });

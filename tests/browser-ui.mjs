@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, execFileSync } from "node:child_process";
 import { criarPonte } from "../src/server/bridge.mjs";
+import { seedDemoState } from "../src/shared/mock.mjs";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const candidatos = [process.env.TREEOFFICE_BROWSER,
@@ -77,7 +78,7 @@ const textoBotao = (texto) => avaliar(`document.querySelector('#pp-acoes').query
 const mouse = (type, x, y, buttons = 0) => cdp.enviar("Input.dispatchMouseEvent", { type, x, y, button: buttons || type === "mouseReleased" ? "left" : "none", buttons, clickCount: 1 });
 
 try {
-  ponte = criarPonte({ raiz: path.join(execucao, "arvore"), porta: 47183, fonte: "simulado" });
+  ponte = criarPonte({ raiz: path.join(execucao, "arvore"), porta: 47183, fonte: "simulado", semear: seedDemoState });
   await ponte.iniciar();
   const perfil = path.join(execucao, "perfil");
   browser = spawn(binario, ["--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking", "--disable-sync", "--no-default-browser-check", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--window-size=1200,800", "--host-resolver-rules=MAP * 0.0.0.0, EXCLUDE 127.0.0.1, EXCLUDE localhost", "about:blank"], { stdio: "ignore" });

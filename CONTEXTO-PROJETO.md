@@ -20,6 +20,8 @@ já estão.
 
 ## 2. Estado atual
 
+**Atualização em 16/10/2026:** F4 com causa raiz encontrada e corrigida (`49aa629`): `await` fora de async parava o módulo inteiro (tela preta com "conectando…"), `indicador` do explorador restaurado, renomear em escopo de módulo com diálogo temático, HTML corrigido, `iniciar.mjs` encerra em porta ocupada. `.local/` limpo de mock — só os 2 nós reais importados (D63: painel nasce vazio; semeio demo só opt-in em `smoke`/`browser-ui`). Gate ESM em `scripts/checar-sintaxe-ui.mjs` (D64). **261 verificações verdes** (`browser-ui` com 36). Hosts zumbis encerrados; ponte real na 4717. Falta só a validação manual do usuário (F4).
+
 **Atualização em 15/10/2026:** Fases C (D58) e D (D59) implementadas e validadas ao vivo em `area-testes/demo`; Fase E (D60) implementada — leitura selecionada do Tucofre como sugestão de instruções e remoção explícita de dependências; Fase F (D61) autorizada e em validação assistida. 231 verificações verdes. Os parágrafos abaixo preservam o histórico inicial. D54–D57 registram tipografia local, naipes centrais, posições livres persistidas, fios uniformes e selecionáveis, ramificações nos fios e diálogos animados/arrastáveis. Foi autorizado aplicar e enviar essas mudanças ao repositório. A integração com OpenCode permanece somente leitura; criação de módulos continua visual/simulada. Detalhes e testes em `docs/UI-REFORMULADA-2026-10-14.md`.
 
 **Atualização em 13/10/2026:** a ponte somente leitura está implementada;

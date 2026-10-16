@@ -15,6 +15,7 @@ import net from "node:net";
 import { fileURLToPath } from "node:url";
 
 import { criarPonte, NOME_COOKIE } from "../src/server/bridge.mjs";
+import { seedDemoState } from "../src/shared/mock.mjs";
 import { normalizeState, emptyState, ESTADO } from "../src/shared/model.mjs";
 import { loadState, localDir, NOME_ESTADO } from "../src/server/state-store.mjs";
 
@@ -94,7 +95,7 @@ async function main() {
   const raiz = temporario("raiz");
   console.log(`\nTreeOffice — teste de fumaça (Etapa 2, dados simulados)\nRaiz descartável: ${raiz}\n`);
 
-  const ponte = criarPonte({ porta: PORTA, raiz });
+  const ponte = criarPonte({ porta: PORTA, raiz, semear: seedDemoState });
   await ponte.iniciar();
   const token = ponte.identidade().token;
   const com = { authorization: `Bearer ${token}` };
@@ -284,6 +285,20 @@ async function main() {
     verificar("conteúdo privado não é persistido", !escrito.includes("conteúdo privado"));
     verificar("notas do vault não são persistidas", !escrito.includes("notaDoVault"));
 
+    /* ── Primeiro uso sem semeio (D63) ─────────────────────────────────── */
+    // O caminho padrão do painel real desde 16/10/2026: sem arquivo e sem
+    // `semear`, o estado sai vazio e com a MESMA forma do caminho normal
+    // (`state` presente). Já quebrou uma vez devolvendo o estado espalhado no
+    // topo — `criarSimulacao(state.nos)` lançava e a ponte não subia.
+    console.log("\nPrimeiro uso sem semeio (D63)");
+    const raizPrimeira = temporario("primeiro-uso");
+    const primeira = loadState(raizPrimeira);
+    verificar(
+      "primeira execução sem arquivo nasce vazia e com forma completa",
+      primeira.primeiraVez === true && primeira.state?.nos?.length === 0 && Array.isArray(primeira.state?.grupos),
+      JSON.stringify({ primeiraVez: primeira.primeiraVez, temState: !!primeira.state }),
+    );
+
     /* ── Persistência atômica e backup ─────────────────────────────────── */
     console.log("\nPersistência (D20, D22)");
     const visual = { ...emptyState(), grupos: [{id:"g_visual",titulo:"Grupo"}], nos:[
@@ -355,7 +370,7 @@ async function main() {
     console.log("\nPorta (D40)");
     let erroPorta = null;
     try {
-      const outra = criarPonte({ porta: PORTA, raiz });
+      const outra = criarPonte({ porta: PORTA, raiz, semear: seedDemoState });
       await outra.iniciar();
       await outra.parar();
     } catch (erro) {
@@ -381,5 +396,7 @@ async function main() {
 
 main().catch((erro) => {
   console.error(`\nErro inesperado no teste: ${erro?.stack || erro}`);
-  process.exitCode = 1;
+  // `exitCode` sozinho pendura o processo quando servidores de teste seguram
+  // o event loop; o erro precisa encerrar na hora.
+  process.exit(1);
 });

@@ -124,4 +124,4 @@ async function main() {
   console.log("\nNenhum serviço real, projeto, chat ou worktree foi tocado.");
   process.exit(falhou ? 1 : 0);
 }
-main().catch((erro) => { console.error(`\nErro inesperado no teste: ${erro?.stack || erro}`); process.exitCode = 1; });
+main().catch((erro) => { console.error(`\nErro inesperado no teste: ${erro?.stack || erro}`); process.exit(1); });

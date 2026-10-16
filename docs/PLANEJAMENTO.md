@@ -185,14 +185,15 @@ seus projetos como efeito colateral.
 
 ## 3. Critérios de aceite candidatos
 
-Cobertura atual (conferida em 15/10/2026, total do projeto **256 verificações**, todas verdes): o smoke (`tests/smoke.mjs`, 51 ok)
+Cobertura atual (conferida em 16/10/2026, total do projeto **261 verificações**, todas verdes): o smoke (`tests/smoke.mjs`, 52 ok)
 cobre token/origem/host, cookie de subrecursos, recursos locais, normalização
 sem conteúdo privado, escrita atômica com backup, lock, modo degradado e porta
 fixa; o `tree-render` (59 ok) cobre nós visíveis, órfãos com âncora, galho
 recolhido, efeitos da Onda 1, naipes por papel, colisão entre corpos, arrasto
 com retorno suave, galhos em tubo e tipografia; o `opencode-client` (35 ok) cobre descoberta,
 paginação, SSE, modo real, `criarSessao`/`criarWorktree` e ausência de vazamento de credencial, tudo contra
-serviço simulado; o `opencode-escrita` (23 ok) cobre a ponte criando sessões e worktrees com auth, idempotência inclusive concorrente e pane sem vazar credencial, contra serviço falso; `tree-interactions` (23), `navigation` (8), `visual-state` (12) e `browser-ui` (14, em Chromium real) completam o total.
+serviço simulado; o `opencode-escrita` (23 ok) cobre a ponte criando sessões e worktrees com auth, idempotência inclusive concorrente e pane sem vazar credencial, contra serviço falso; `tree-interactions` (23), `navigation` (8), `visual-state` (14) e `browser-ui` (36, em Chromium real — inclui indicador de conexão, renomear, desfazer e multi-seleção) completam o total.
+**Atualização em 16/10/2026 (F4, D63, D64):** tela preta do painel real diagnosticada e corrigida em `49aa629` (`await` fora de async parava o módulo inteiro; `indicador` do explorador restaurado; renomear em escopo de módulo com diálogo temático; HTML corrigido; `iniciar.mjs` encerra em porta ocupada). `.local/` do usuário limpo de mock — só os 2 nós reais importados, sem `/simulado/`; painel novo nasce vazio (semeio demo só opt-in em `smoke`/`browser-ui`); gate ESM em `scripts/checar-sintaxe-ui.mjs`.
 **Atualização em 14/10/2026 (Fase C, D58):** smoke 51 ok; opencode-client 31 ok (inclui criarSessao); novo opencode-escrita 13 ok (ponte cria sessões com auth, idempotência inclusive concorrente, e pane sem vazar credencial, contra serviço falso); total do projeto 207 verificações; com a Fase D, 221 (opencode-client 35, opencode-escrita 23), com C2 e D validados ao vivo em descartável em 14/10/2026. C1 validado contra serviço real v2.0.28 em 14/10/2026.
 O restante segue pendente de integração real e de validação assistida.
 

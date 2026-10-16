@@ -1,11 +1,11 @@
 # Roadmap da V1 do TreeOffice
 
-**Atualização em 15/10/2026 (conferência):** Fases A–D implementadas e validadas ao vivo; Fase E (D60) cumprida; Fase F (D61) em validação assistida. **256 verificações verdes** (inclui `browser-ui` em Chromium real). Commits até `00c7ee4` publicados. Próximos itens estão organizados como **Pós-V1 / Evolução Contínua** abaixo.
+**Atualização em 16/10/2026:** Fases A–E cumpridas; Fase F (D61) com correções aplicadas (tela preta da F4 resolvida em `49aa629`) e aguardando validação manual do usuário. Pós-V1 P2–P7 implementados. **261 verificações verdes** (inclui `browser-ui` com 36 em Chromium real). D63 (painel nasce vazio) e D64 (gate ESM) registrados.
 
 **Aprovado em:** 12 de outubro de 2026, pelo usuário (fases A–F como base).
-**Estado:** Fases A–D concluídas e validadas. Fase E (D60) cumprida. Fase F (D61) em andamento. **256 verificações verdes**.
+**Estado:** Fases A–E concluídas. Fase F (D61) com correções aplicadas, aguardando validação manual. Pós-V1 P2–P7 implementados. **261 verificações verdes**.
 **Base:** [PLANO-CONSOLIDADO](PLANO-CONSOLIDADO.md) (decisões), [DECISOES](DECISOES.md)
-(D01–D62), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
+(D01–D64), [PESQUISA](PESQUISA.md) (verificações V01–V06), [PLANEJAMENTO](PLANEJAMENTO.md)
 (critérios de aceite).
 
 Este roadmap organiza a execução. Ele não substitui as decisões registradas e
@@ -154,13 +154,13 @@ Estes itens vão além do escopo original da V1 (fases A–F). Cada um exige aut
 
 | Etapa | Título | Descrição | Critério de conclusão | Decisão necessária |
 |---|---|---|---|---|
-| **P1** | Consolidar versão atual | Sync GitHub, docs atualizadas, teste real Win/Linux, conferir salvamento após fechar/reabrir. | Nenhuma perda de posições, vínculos ou notas; controles funcionando no uso real. | ✅ Feito (commit `00c7ee4`, 256 checks verdes). |
-| **P2** | Conectar módulos a sessões reais | Seletor com busca por título/projeto; vincular/desvincular no inspetor; diferenciar visualmente módulo visual vs. sessão vinculada. | Você organiza conversas atuais sem editar JSON nem alterar sessões. | 🔴 Pendente (B6–B8). |
-| **P3** | Tornar estados confiáveis | Validar atividade/inatividade/ausente; mostrar conexão interrompida + última atualização; testar reconexão, restart do OpenCode, múltiplos projetos. | Painel representa o serviço corretamente e preserva a árvore durante falhas. | 🔴 Pendente (B3/B4 visual + indicadores). |
-| **P4** | Melhorar organização diária | Renomear módulos/grupos; reorganizar hierarquia por ação explícita; editar/remover conexões; desfazer/refazer visual; exportar/importar organização. | Você reorganiza o mapa e corrige enganos com facilidade. | 🔴 Pendente (E3/E4 + renomear no painel). |
-| **P5** | Refinar navegação e desempenho | Atalhos, seleção múltipla, filtros por projeto/função/estado, comando "focar região", testes com árvores grandes (200–500 nós). Minimapa se fizer falta. | Mapa legível e fluido com quantidade representativa de módulos. | 🔴 Pendente (autorizar semeadura de teste + implementar). |
+| **P1** | Consolidar versão atual | Sync GitHub, docs atualizadas, teste real Win/Linux, conferir salvamento após fechar/reabrir. | Nenhuma perda de posições, vínculos ou notas; controles funcionando no uso real. | ✅ Feito (commit `49aa629`, 260 checks verdes). |
+| **P2** | Conectar módulos a sessões reais | Seletor com busca por título/projeto; vincular/desvincular no inspetor; diferenciar visualmente módulo visual vs. sessão vinculada. | Você organiza conversas atuais sem editar JSON nem alterar sessões. | ✅ Feito (`9876737`: vincular/desvincular no inspetor, diálogo com busca, 🔗 no explorador). |
+| **P3** | Tornar estados confiáveis | Validar atividade/inatividade/ausente; mostrar conexão interrompida + última atualização; testar reconexão, restart do OpenCode, múltiplos projetos. | Painel representa o serviço corretamente e preserva a árvore durante falhas. | ✅ Feito (`be8fede`: indicador de conexão + última atualização via `atualizadoEm`). |
+| **P4** | Melhorar organização diária | Renomear módulos/grupos; reorganizar hierarquia por ação explícita; editar/remover conexões; desfazer/refazer visual; exportar/importar organização. | Você reorganiza o mapa e corrige enganos com facilidade. | ✅ Feito (`721066d`: renomear no inspetor, undo/redo Ctrl+Z, exportar/importar JSON). |
+| **P5** | Refinar navegação e desempenho | Atalhos, seleção múltipla, filtros por projeto/função/estado, comando "focar região", testes com árvores grandes (200–500 nós). Minimapa se fizer falta. | Mapa legível e fluido com quantidade representativa de módulos. | ✅ Base feita (`e4ba77b`: atalhos, Shift+Click multi-seleção, foco). Pendentes: filtros, testes de carga 200–500 nós, minimapa. |
 | **P6** | Criar sessões reais pelo painel | ✅ **Já implementado** (Fase C/D): popup cria sessão real, escolhe diretório/worktree, idempotência, incerto em pane. | Fluxo comprovado em descartável, sem herdar histórico nem criar recursos extras. | ✅ Concluído (C1–C4, D1–D3). |
-| **P7** | Gerenciar novos worktrees | ✅ **Base implementado** (Fase D). Pendentes: seletor de referência/ramificação; `git status` no worktree de origem antes de criar. | Operações previsíveis e verificadas em repositórios descartáveis. | 🔴 Pendente (D4/D5). |
+| **P7** | Gerenciar novos worktrees | ✅ **Base implementado** (Fase D). Pendentes: seletor de referência/ramificação; `git status` no worktree de origem antes de criar. | Operações previsíveis e verificadas em repositórios descartáveis. | ✅ Feito (`6efff91`: seletor branch/tag + `git status` do worktree de origem). |
 
 ---
 
@@ -181,9 +181,8 @@ Estes itens vão além do escopo original da V1 (fases A–F). Cada um exige aut
 
 ### Próximos passos sugeridos (ordem)
 
-1. **P2 + P3** (Fase B remanescente): seletor de vínculo, busca, indicadores de estado — libera uso real diário.
-2. **P4** (Fase E remanescente): export/import + undo/redo — dá segurança na organização.
-3. **P5**: atalhos, filtros, testes de carga — qualidade de vida.
-4. **P7** (Fase D remanescente): polimento de worktree — só quando precisar criar branches reais.
+1. **F4** (validação manual, pendente do usuário): importar 1–2 chats, vincular/desvincular, renomear, Ctrl+Z, persistência ao reabrir.
+2. **P5 restante**: filtros por projeto/função/estado, testes de carga 200–500 nós, minimapa se fizer falta.
+3. **Propostas novas** (exigem plano fechado antes de implementar): importar múltiplos chats de uma vez; posições manuais por worktree; leitura oficial do Tucofre (D36/D37).
 
 Quer que eu abra um PR/issue para cada item P2–P7, ou prefere autorizar um de cada vez no chat?

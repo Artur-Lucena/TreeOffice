@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import { normalizeState, emptyState } from "../shared/model.mjs";
+import { normalizeState } from "../shared/model.mjs";
 
 export const NOME_ESTADO = "state.json";
 export const NOME_BACKUP = "state.backup.json";
@@ -63,7 +63,7 @@ export function loadState(baseDir, { semear } = {}) {
         const semeado = normalizeState(semear());
         return { ...semeado, avisos, primeiraVez: true };
       }
-      return { ...{ ...emptyState(), avisos: [] }, primeiraVez: true };
+      return { ...normalizeState(null), avisos, primeiraVez: true };
     }
     avisos.push(`Arquivo de estado ilegível (${leitura.erro?.code ?? "erro"}); tentando backup.`);
     const reserva = lerJsonSeguro(backup);

@@ -55,6 +55,7 @@ node tests/navigation.mjs       # explorador: grupos, busca, órfãos, ciclos e 
 node tests/tree-interactions.mjs # seleção de fios, ramificação, arrasto e restauração de posições
 node tests/visual-state.mjs      # normalização e persistência dos metadados visuais
 node tests/browser-ui.mjs      # navegador real: Node 22+ e Edge/Chromium já instalado
+node scripts/checar-sintaxe-ui.mjs  # gate ESM da interface (D64): `node --check` em `.js` não acusa `await` fora de async
 ```
 
 O comando direto da ponte (`node src/server/bridge.mjs`, mesmas opções menos
