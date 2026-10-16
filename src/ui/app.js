@@ -429,6 +429,9 @@ function atualizarExplorador() {
       const nome = document.createElement("span");
       nome.className = "no-nav-titulo";
       nome.textContent = no.titulo;
+      const indicador = document.createElement("i");
+      indicador.className = "estado";
+      indicador.setAttribute("aria-hidden", "true");
       if (no.sessionID) {
         const linkIcon = document.createElement("span");
         linkIcon.className = "no-nav-link";
@@ -959,9 +962,9 @@ function renderPopup() {
         }
       }
 
-      // Carrega referências iniciais se já temos cadastro
+      // Carrega referências em segundo plano (não bloqueia o desenho da etapa)
       if (cadastro && opencode.modo === "real") {
-        await carregarReferencias(cadastro.caminho);
+        void carregarReferencias(cadastro.caminho);
       }
 
       if (!fluxo.nome) fluxo.nome = sugestaoNome(cadastro);
@@ -1995,21 +1998,33 @@ function desvincularSessao() {
     if (!await salvar("Sessão desvinculada do módulo.")) throw Error("Não foi possível salvar.");
     fecharDialogoLocal();
   });
+}
 
 function renomearSelecionado() {
   if (!selecionado) return;
-  const novo = prompt("Novo nome para “" + selecionado.titulo + "”: ", selecionado.titulo);
-  if (!novo || !novo.trim() || novo.trim() === selecionado.titulo) return;
-  const antigo = selecionado.titulo;
-  selecionado.titulo = novo.trim();
-  atualizarPainel(selecionado);
-  arvore.definirEstado(state, vivo);
-  registrarAcao({ tipo: "renomear", id: selecionado.id, anterior: antigo, posterior: selecionado.titulo });
-  if (!await salvar("Módulo renomeado para “" + selecionado.titulo + "”.")) throw Error("Não foi possível salvar.");
-  atualizarExplorador();
-}
-
-
+  const campoNome = document.createElement("input");
+  campoNome.type = "text";
+  campoNome.value = selecionado.titulo;
+  campoNome.maxLength = 80;
+  campoNome.setAttribute("aria-label", "Novo nome do módulo");
+  const caixa = document.createElement("div");
+  caixa.appendChild(campo("Novo nome", campoNome, "Sempre editável; Ctrl+Z desfaz se algo sair do lugar."));
+  abrirDialogoLocal("Renomear módulo", caixa, "Renomear", async () => {
+    const novo = campoNome.value.trim().slice(0, 80);
+    if (!novo) throw Error("Informe um nome para o módulo.");
+    if (novo === selecionado.titulo) {
+      fecharDialogoLocal();
+      return;
+    }
+    const antigo = selecionado.titulo;
+    selecionado.titulo = novo;
+    atualizarPainel(selecionado);
+    arvore.definirEstado(state, vivo);
+    registrarAcao({ tipo: "renomear", id: selecionado.id, anterior: antigo, posterior: novo });
+    if (!await salvar(`Módulo renomeado para “${novo}”.`)) throw Error("Não foi possível salvar.");
+    atualizarExplorador();
+    fecharDialogoLocal();
+  });
 }
 
 function posicaoNovaRamificacao(origemId) {

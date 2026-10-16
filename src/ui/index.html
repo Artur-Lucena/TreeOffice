@@ -28,6 +28,7 @@
             <summary>Organização <span aria-hidden="true">⌄</span></summary>
             <div class="menu-conteudo"><p class="rotulo">Organização visual</p><button id="btn-exportar" type="button">Exportar organização</button><button id="btn-importar" type="button">Importar organização</button></div>
           </details>
+        </div>
       </header>
       <div class="workspace">
         <aside id="explorador" class="explorador" aria-label="Explorador da organização">
@@ -55,7 +56,7 @@
           <div class="inspetor-titulo"><p class="rotulo">Inspetor</p><span class="texto-suave">Contexto e ações</span></div>
           <div id="painel-vazio" class="painel-vazio"><span aria-hidden="true">♧</span><h2>Cada nó, um contexto.</h2><p>Selecione um nó na árvore ou no explorador para ver o papel, a sessão e o worktree associado.</p><small>Selecionar não inicia nenhuma tarefa.</small></div>
           <section id="painel" class="painel oculto" aria-live="polite" aria-label="Nó selecionado">
-            <div class="painel-cabeca"><div><p class="rotulo">Nó selecionado</p><h2 id="pn-titulo">Nó</h2><button id="pn-renomear" class="botao-icone" type="button" title="Renomear" aria-label="Renomear este módulo">✎</button><button id="pn-fechar" class="botao-icone" type="button" aria-label="Fechar contexto do nó">×</button></div>
+            <div class="painel-cabeca"><div><p class="rotulo">Nó selecionado</p><h2 id="pn-titulo">Nó</h2></div><div class="painel-cabeca-icones"><button id="pn-renomear" class="botao-icone" type="button" title="Renomear" aria-label="Renomear este módulo">✎</button><button id="pn-fechar" class="botao-icone" type="button" aria-label="Fechar contexto do nó">×</button></div></div>
             <dl class="painel-corpo"><div><dt>Estado</dt><dd id="pn-estado">—</dd></div><div><dt><label for="pn-papel">Papel / naipe</label></dt><dd><select id="pn-papel" aria-label="Papel organizacional"></select></dd></div><div><dt>Diretório</dt><dd id="pn-diretorio">—</dd></div><div><dt>Worktree</dt><dd id="pn-worktree">—</dd></div><div><dt>Sessão</dt><dd id="pn-sessao">—</dd></div><div class="largo"><dt>Instruções de entrada</dt><dd id="pn-instrucoes">—</dd></div></dl>
             <div id="pn-deps" class="painel-deps"></div>
             <div class="painel-acoes"><button id="pn-ramificar" class="primario" type="button">Ramificar daqui <span aria-hidden="true">↗</span></button><button id="pn-dependencia" type="button">Marcar dependência</button><button id="pn-recolher" type="button">Recolher galho</button><button id="pn-abrir" type="button" title="A conversa continua na interface do OpenCode">Abrir no OpenCode</button><button id="pn-vincular" type="button">Vincular sessão</button><button id="pn-desvincular" class="perigo" type="button" style="display:none">Desvincular sessão</button><button id="pn-remover" class="perigo" type="button">Remover vínculo visual</button></div>

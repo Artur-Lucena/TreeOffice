@@ -85,7 +85,7 @@ ponte
   })
   .catch((erro) => {
     console.error(`[treeoffice] falha ao iniciar: ${erro.message}`);
-    process.exitCode = 1;
+    process.exit(1);
   });
 
 const encerrar = async () => {

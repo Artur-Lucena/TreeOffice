@@ -28,6 +28,7 @@ fs.mkdirSync(dir, { recursive: true });
 const execucao = fs.mkdtempSync(path.join(dir, "execucao-"));
 let browser; let cdp; let ponte;
 let passou = 0; let falhou = 0;
+const erros = [];
 function verificar(nome, condicao, detalhe = "") {
   console.log(`  ${condicao ? "ok" : "FALHA"} ${nome}${!condicao && detalhe ? ` — ${detalhe}` : ""}`);
   condicao ? passou++ : falhou++;
@@ -40,7 +41,7 @@ async function ate(condicao, prazo = 10000) {
     if (valor) return valor;
     await new Promise((r) => setTimeout(r, 50));
   }
-  throw new Error("Prazo excedido ao aguardar condição do teste.");
+  throw new Error("Prazo excedido ao aguardar condição do teste." + (erros.length ? ` Erros JS na página: ${erros.join(" | ")}` : ""));
 }
 async function conectar(url) {
   const ws = new WebSocket(url);
@@ -85,7 +86,7 @@ try {
   const debugPort = fs.readFileSync(portaArquivo, "utf8").split(/\r?\n/)[0];
   const alvos = await fetch(`http://127.0.0.1:${debugPort}/json/list`).then((r) => r.json());
   cdp = await conectar(alvos.find((p) => p.type === "page").webSocketDebuggerUrl);
-  const erros = []; const respostas = [];
+  const respostas = [];
   cdp.observar("Runtime.exceptionThrown", (p) => erros.push(p.exceptionDetails.exception?.description || p.exceptionDetails.text));
   cdp.observar("Network.responseReceived", (p) => respostas.push({ url: new URL(p.response.url).pathname, status: p.response.status }));
   await cdp.enviar("Page.enable"); await cdp.enviar("Runtime.enable"); await cdp.enviar("Network.enable");
@@ -105,6 +106,7 @@ try {
   verificar("legenda ensina o significado sem depender de tooltip", await avaliar("/liderança/.test(document.getElementById('legenda').textContent)"));
   await ate(() => avaliar("document.getElementById('versao').textContent !== '…'"));
   verificar("carimbo do código visível", await avaliar("document.getElementById('versao').textContent.includes('código')"));
+  verificar("indicador de conexão já sai de 'conectando…'", (await avaliar("document.getElementById('conexao-status').textContent")) !== "conectando…");
 
   await avaliar("document.getElementById('btn-novo').click()");
   verificar("botão abre popup", await avaliar("document.getElementById('popup').dataset.aberto==='true'"));
@@ -144,6 +146,30 @@ try {
     await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste" && n.papel === "estudo"));
     verificar("troca de papel mostra ♣ no desenho", await ate(() => avaliar(`(()=>{const m=window.__marcas;const t=m.get("Investigação de teste");const e=m.get("♣");return !!(t&&e&&e.x===t.x);})()`)));
   }
+
+  // Pós-V1 (P4/P5): renomear com desfazer e multi-seleção no explorador.
+  if (await avaliar("!!document.getElementById('pn-renomear') && !document.getElementById('painel').classList.contains('oculto')")) {
+    await avaliar("document.getElementById('pn-renomear').click()");
+    await ate(() => avaliar("document.getElementById('preview-dialog').dataset.aberto==='true'"));
+    await avaliar("{const i=document.querySelector('#preview-dialog-corpo input[type=text]');i.value='Investigação renomeada';i.dispatchEvent(new Event('input'))}");
+    await avaliar("document.getElementById('preview-dialog-confirmar').click()");
+    let renomeou = true;
+    try { await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação renomeada")); } catch { renomeou = false; }
+    verificar("renomear pelo inspetor grava no estado", renomeou);
+    let voltou = false;
+    if (renomeou) {
+      await avaliar("document.getElementById('btn-desfazer').click()");
+      try { await ate(() => ponte.estadoAtual().nos.some((n) => n.titulo === "Investigação de teste")); voltou = true; } catch { voltou = false; }
+    }
+    verificar("desfazer restaura o título anterior", voltou);
+  } else {
+    verificar("renomear pelo inspetor grava no estado", false);
+    verificar("desfazer restaura o título anterior", false);
+  }
+  await avaliar("document.querySelectorAll('.no-nav')[1].dispatchEvent(new MouseEvent('click',{shiftKey:true,bubbles:true}))");
+  const multi = await avaliar("document.querySelectorAll('.no-nav.multi-selecao').length>=1");
+  await avaliar("document.querySelectorAll('.no-nav')[1].dispatchEvent(new MouseEvent('click',{shiftKey:true,bubbles:true}))");
+  verificar("Shift+Click marca e desmarca multi-seleção no explorador", multi);
   await avaliar("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
   // Frente E (E2, RED): dependência criada e removida só por ação explícita.
   await avaliar("document.getElementById('btn-novo').click()");
